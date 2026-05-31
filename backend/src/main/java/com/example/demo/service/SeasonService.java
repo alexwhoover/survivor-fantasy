@@ -41,6 +41,7 @@ public class SeasonService {
                 sc.getContestant().getFirstName(),
                 sc.getContestant().getLastName(),
                 sc.getContestant().getHometown(),
+                sc.getContestant().getState(),
                 sc.getFinishPlace(),
                 sc.getEliminatedEpisode(),
                 sc.isWinner(),

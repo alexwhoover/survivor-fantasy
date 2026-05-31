@@ -20,8 +20,8 @@ public class Contestant {
     @Column(name = "hometown")
     private String hometown;
 
-    @Column(name = "occupation")
-    private String occupation;
+    @Column(name = "state")
+    private String state;
 
     @Column(name = "image_url")
     private String imageUrl;
@@ -30,6 +30,6 @@ public class Contestant {
     public String getFirstName() { return firstName; }
     public String getLastName() { return lastName; }
     public String getHometown() { return hometown; }
-    public String getOccupation() { return occupation; }
+    public String getState() { return state; }
     public String getImageUrl() { return imageUrl; }
 }
