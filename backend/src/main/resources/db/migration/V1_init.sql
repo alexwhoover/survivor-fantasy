@@ -1,4 +1,4 @@
-CREATE DATABASE survivor_league;
+CREATE DATABASE IF NOT EXISTS survivor_league;
 USE survivor_league;
 
 CREATE TABLE seasons (
