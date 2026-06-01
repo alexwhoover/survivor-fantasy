@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { Trophy, Users, Crown } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { TorchIcon } from "../components/TorchIcon";
 import { useAuth } from "../context/AuthContext";
+import survivorLogo from "../../assets/survivor-logo.svg";
 
 export function Landing() {
   const { user } = useAuth();
@@ -12,7 +12,7 @@ export function Landing() {
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="text-center mb-16">
         <div className="flex justify-center mb-6">
-          <TorchIcon className="h-24 w-24" />
+          <img src={survivorLogo} alt="Survivor Fantasy" className="h-40 w-auto" />
         </div>
         <h1 className="text-5xl font-bold mb-4">Survivor Fantasy</h1>
         <p className="text-xl text-muted-foreground mb-8">

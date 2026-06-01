@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { TorchIcon } from "./TorchIcon";
+import torchIcon from "../../assets/torch.png";
 import { LogOut, LogIn } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../context/AuthContext";
@@ -23,7 +23,7 @@ export function Navigation() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-3" aria-label="Home">
-            <TorchIcon className="h-10 w-10" />
+            <img src={torchIcon} alt="" className="h-10 w-auto" />
             <span className="text-xl font-semibold text-foreground">Survivor Fantasy</span>
           </Link>
           <div className="flex items-center gap-1">

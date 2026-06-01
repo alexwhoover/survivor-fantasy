@@ -1,0 +1,30 @@
+# Frontend (Vite + React)
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/.vite/
+
+# Backend (Spring Boot / Maven)
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

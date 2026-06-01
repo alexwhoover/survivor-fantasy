@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { TorchIcon } from "../components/TorchIcon";
+import torchIcon from "../../assets/torch.png";
 import { login, register } from "../../api";
 import { useAuth } from "../context/AuthContext";
 
@@ -37,7 +37,7 @@ export function Login() {
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <TorchIcon className="h-24 w-24" />
+            <img src={torchIcon} alt="" className="h-24 w-auto" />
           </div>
           <h1 className="text-4xl font-bold mb-2">Survivor Fantasy</h1>
           <p className="text-muted-foreground">Outwit. Outplay. Outlast.</p>

@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Users, Trophy, Star, TrendingUp, Crown } from "lucide-react";
-import { TorchIcon } from "../components/TorchIcon";
+import jeffProbstField from "../../assets/jeff-probst-field.jpg";
 
 export function HowToPlay() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <TorchIcon className="h-12 w-12" />
+        <div className="flex justify-center mb-6">
+          <img src={jeffProbstField} alt="Jeff Probst" className="w-full max-w-2xl rounded-lg" />
+        </div>
+        <div className="mb-4">
           <h1>How to Play</h1>
         </div>
         <p className="text-lg text-muted-foreground">
