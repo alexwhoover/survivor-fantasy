@@ -1,3 +1,5 @@
+# For dev environment, run docker compose up
+# For production on pi, run docker compose --profile production up -d
 services:
   db:
     image: mysql:8.4
@@ -21,7 +23,7 @@ services:
   app:
     build: ./backend
     ports:
-      - "8080:8080"
+      - "8080:8080" # Remove this in production, only for testing
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/survivor_league
       SPRING_DATASOURCE_USERNAME: survivor_app
@@ -31,6 +33,13 @@ services:
       db:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     command: tunnel --no-autoupdate run
@@ -39,6 +48,8 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    profiles:
+      - production
 
 volumes:
   mysql_data:
