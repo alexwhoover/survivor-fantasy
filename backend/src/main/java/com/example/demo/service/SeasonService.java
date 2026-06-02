@@ -4,6 +4,7 @@ import com.example.demo.dao.SeasonDao;
 import com.example.demo.dto.SeasonContestantDto;
 import com.example.demo.entity.Season;
 import com.example.demo.entity.SeasonContestant;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ public class SeasonService {
 
     private final SeasonDao seasonDao;
 
+    @Autowired
     public SeasonService(SeasonDao seasonDao) {
         this.seasonDao = seasonDao;
     }
