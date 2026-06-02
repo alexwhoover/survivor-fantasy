@@ -13,23 +13,29 @@ export function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isRegister) {
-      if (password !== confirmPassword) {
-        alert("Passwords don't match!");
-        return;
+    setError(null);
+    try {
+      if (isRegister) {
+        if (password !== confirmPassword) {
+          setError("Passwords don't match");
+          return;
+        }
+        const user = await register(username, password);
+        setUser(user);
+      } else {
+        const user = await login(username, password);
+        setUser(user);
       }
-      const user = await register(username, password);
-      setUser(user);
-    } else {
-      const user = await login(username, password);
-      setUser(user);
+      navigate("/leagues");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     }
-    navigate("/leagues");
   };
 
   return (
@@ -95,6 +101,10 @@ export function Login() {
                 </div>
               )}
 
+              {error && (
+                <p className="text-sm text-red-500 text-center">{error}</p>
+              )}
+
               <Button type="submit" className="w-full mt-6">
                 {isRegister ? "Create Account" : "Login"}
               </Button>
@@ -105,6 +115,7 @@ export function Login() {
                   onClick={() => {
                     setIsRegister(!isRegister);
                     setConfirmPassword("");
+                    setError(null);
                   }}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >

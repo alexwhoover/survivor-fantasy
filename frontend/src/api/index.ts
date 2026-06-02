@@ -33,45 +33,49 @@ export interface SeasonContestant {
 }
 
 export interface AuthUser {
-  id: string;
+  id: number;
   username: string;
-  email: string;
+  createdAt: string;
 }
 
 const API_BASE = "/api";
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  // TODO: const res = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
-  //       if (!res.ok) return null;
-  //       return res.json();
   const raw = sessionStorage.getItem("survivor_session");
   return raw ? (JSON.parse(raw) as AuthUser) : null;
 }
 
 export async function login(username: string, password: string): Promise<AuthUser> {
-  // TODO: const res = await fetch(`${API_BASE}/auth/login`, { method: "POST", credentials: "include",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ username, password }) });
-  //       if (!res.ok) throw new Error("Invalid credentials");
-  //       return res.json();
-  const user: AuthUser = { id: "user1", username, email: "" };
+  const res = await fetch(`${API_BASE}/users/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Invalid credentials");
+  }
+  const user: AuthUser = await res.json();
   sessionStorage.setItem("survivor_session", JSON.stringify(user));
   return user;
 }
 
 export async function register(username: string, password: string): Promise<AuthUser> {
-  // TODO: const res = await fetch(`${API_BASE}/auth/register`, { method: "POST", credentials: "include",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ username, password }) });
-  //       if (!res.ok) throw new Error("Registration failed");
-  //       return res.json();
-  const user: AuthUser = { id: "user1", username, email: "" };
+  const res = await fetch(`${API_BASE}/users/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Registration failed");
+  }
+  const user: AuthUser = await res.json();
   sessionStorage.setItem("survivor_session", JSON.stringify(user));
   return user;
 }
 
 export async function logout(): Promise<void> {
-  // TODO: await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" });
   sessionStorage.removeItem("survivor_session");
 }
 
