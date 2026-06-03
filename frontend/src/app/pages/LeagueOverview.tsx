@@ -6,7 +6,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useAuth } from "../context/AuthContext";
-import { getLeagueById, getSeasonContestants, getSeasonById, getMyRoster, getLeagueRosters, getMyLeagueRole, type LeagueApiResponse, type Season, type SeasonContestant, type RosterResponse, type UserRoster } from "../../api";
+import { getLeagueById, getSeasonContestants, getSeasonById, getMyRoster, getLeagueMembers, getMyLeagueRole, type LeagueApiResponse, type Season, type SeasonContestant, type RosterResponse, type LeagueMember } from "../../api";
 import { EpisodeScores } from "./EpisodeScores";
 
 export function LeagueOverview() {
@@ -16,8 +16,8 @@ export function LeagueOverview() {
   const [season, setSeason] = useState<Season | null>(null);
   const [seasonContestants, setSeasonContestants] = useState<SeasonContestant[]>([]);
   const [myRoster, setMyRoster] = useState<RosterResponse | null>(null);
-  const [allRosters, setAllRosters] = useState<UserRoster[]>([]);
-  const [selectedRoster, setSelectedRoster] = useState<UserRoster | null>(null);
+  const [leagueMembers, setLeagueMembers] = useState<LeagueMember[]>([]);
+  const [selectedMember, setSelectedMember] = useState<LeagueMember | null>(null);
   const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function LeagueOverview() {
       getSeasonContestants(l.seasonId).then(setSeasonContestants);
       getSeasonById(l.seasonId).then(setSeason);
     });
-    getLeagueRosters(leagueId).then(setAllRosters);
+    getLeagueMembers(id).then(setLeagueMembers);
   }, [leagueId]);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function LeagueOverview() {
               <CardTitle className="text-sm text-muted-foreground">League Members</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{allRosters.length}</div>
+              <div className="text-3xl font-bold">{leagueMembers.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -87,16 +87,16 @@ export function LeagueOverview() {
         </TabsList>
 
         <TabsContent value="roster" className="space-y-6">
-          {selectedRoster && (
+          {selectedMember && (
             <div className="flex items-center justify-between">
-              <h2>{selectedRoster.userName}'s Roster</h2>
-              <Button variant="outline" onClick={() => setSelectedRoster(null)}>
+              <h2>{selectedMember.username}'s Roster</h2>
+              <Button variant="outline" onClick={() => setSelectedMember(null)}>
                 Back to My Roster
               </Button>
             </div>
           )}
 
-          {selectedRoster ? (
+          {selectedMember ? (
             <Card>
               <CardHeader>
                 <CardTitle>Roster Details</CardTitle>
@@ -181,15 +181,15 @@ export function LeagueOverview() {
               <CardDescription>Current rankings for {league.name}</CardDescription>
             </CardHeader>
             <CardContent>
-              {allRosters.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No standings yet.</p>
+              {leagueMembers.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No members yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {allRosters.map((roster, index) => {
-                    const isCurrentUser = user && String(roster.userId) === String(user.id);
+                  {leagueMembers.map((member, index) => {
+                    const isCurrentUser = user && member.userId === user.id;
                     return (
                       <div
-                        key={roster.userId}
+                        key={member.userId}
                         className={`flex items-center justify-between p-4 rounded-lg border ${
                           isCurrentUser ? "bg-accent border-primary" : "bg-card"
                         }`}
@@ -198,11 +198,10 @@ export function LeagueOverview() {
                           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
                             <span className="font-bold">{index + 1}</span>
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{roster.userName}</span>
-                              {isCurrentUser && <Badge variant="outline">You</Badge>}
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{member.username}</span>
+                            {isCurrentUser && <Badge variant="outline">You</Badge>}
+                            {member.role === "ADMIN" && <Badge variant="outline">Admin</Badge>}
                           </div>
                         </div>
                         {!isCurrentUser && (
@@ -210,7 +209,7 @@ export function LeagueOverview() {
                             variant="outline"
                             size="sm"
                             className="gap-2"
-                            onClick={() => setSelectedRoster(roster)}
+                            onClick={() => setSelectedMember(member)}
                           >
                             <Eye className="h-4 w-4" />
                             View

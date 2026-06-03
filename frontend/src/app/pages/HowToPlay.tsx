@@ -34,7 +34,6 @@ export function HowToPlay() {
               <li>Pick an <strong className="text-foreground">equal number of contestants from each starting tribe</strong></li>
               <li>Typically, this is <strong className="text-foreground">2 contestants per tribe</strong> for a total of 6</li>
               <li>Numbers may vary based on the season's tribe structure</li>
-              <li>Submit your picks before the deadline!</li>
             </ul>
           </CardContent>
         </Card>

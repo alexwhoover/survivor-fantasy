@@ -112,6 +112,13 @@ export interface LeagueApiResponse {
   pickDeadline: string | null;
 }
 
+export interface LeagueMember {
+  userId: number;
+  username: string;
+  role: "ADMIN" | "MEMBER";
+  joinedAt: string;
+}
+
 export interface RosterResponse {
   id: number;
   leagueId: number;
@@ -119,6 +126,12 @@ export interface RosterResponse {
   mvpSeasonContestantId: number;
   seasonContestantIds: number[];
   submittedAt: string;
+}
+
+export async function getLeagueMembers(leagueId: number): Promise<LeagueMember[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/members`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch members: ${res.status}`);
+  return res.json();
 }
 
 export async function getLeagueById(id: number): Promise<LeagueApiResponse> {

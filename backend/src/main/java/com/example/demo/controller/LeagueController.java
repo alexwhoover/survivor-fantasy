@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dto.CreateLeagueRequest;
 import com.example.demo.dto.JoinLeagueRequest;
+import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MemberRoleResponse;
 import com.example.demo.dto.RosterResponse;
@@ -39,6 +40,11 @@ public class LeagueController {
     @GetMapping("/{id}")
     public LeagueResponse getLeague(@PathVariable Long id) {
         return leagueService.getLeagueById(id);
+    }
+
+    @GetMapping("/{id}/members")
+    public List<LeagueMemberResponse> getMembers(@PathVariable Long id) {
+        return leagueMemberDao.findMembersWithUsernames(id);
     }
 
     @GetMapping("/{id}/my-role")

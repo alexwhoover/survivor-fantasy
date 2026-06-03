@@ -1,6 +1,6 @@
 INSERT INTO seasons (name, season_number, location, premiere_date, finale_date, merge_episode, status)
 VALUES
-    ('Survivor: 50', 50, 'Mamanuca Islands, Fiji', '2026-02-25', '2026-05-20', 7, 'ACTIVE'),
+    ('Survivor: 50', 50, 'Mamanuca Islands, Fiji', '2026-02-25', '2026-05-20', 7, 'COMPLETED'),
     ('Survivor: 49', 49, 'Mamanuca Islands, Fiji', '2025-09-24', '2025-12-17', 7, 'COMPLETED');
     
 INSERT INTO contestants (first_name, last_name, hometown, state) VALUES

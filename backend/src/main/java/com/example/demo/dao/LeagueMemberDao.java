@@ -1,8 +1,10 @@
 package com.example.demo.dao;
 
+import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.entity.LeagueMember;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -24,6 +26,17 @@ public class LeagueMemberDao {
                 .setParameter("userId", userId)
                 .getResultStream()
                 .findFirst();
+    }
+
+    public List<LeagueMemberResponse> findMembersWithUsernames(Long leagueId) {
+        return entityManager.createQuery(
+                "SELECT new com.example.demo.dto.LeagueMemberResponse(m.userId, u.username, m.role, m.joinedAt) " +
+                "FROM LeagueMember m, User u " +
+                "WHERE u.id = m.userId AND m.leagueId = :leagueId " +
+                "ORDER BY m.joinedAt ASC",
+                LeagueMemberResponse.class)
+                .setParameter("leagueId", leagueId)
+                .getResultList();
     }
 
     public boolean existsByLeagueIdAndUserId(Long leagueId, Long userId) {

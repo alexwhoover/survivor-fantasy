@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Input } from "../components/ui/input";
 import { getEpisodeScores, saveEpisodeScores, type SeasonContestant, type EpisodeScoreItem } from "../../api";
 
 interface Props {
@@ -46,8 +44,6 @@ export function EpisodeScores({ seasonId, numEpisodes, seasonContestants }: Prop
     }
   };
 
-  const tribes = [...new Set(seasonContestants.map((c) => c.tribe).filter(Boolean) as string[])];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -78,45 +74,38 @@ export function EpisodeScores({ seasonId, numEpisodes, seasonContestants }: Prop
       </div>
 
       {selectedEpisode !== null && (
-        <div className="space-y-4">
-          {tribes.map((tribe) => {
-            const tribeContestants = seasonContestants.filter((c) => c.tribe === tribe);
-            const tribeColour = tribeContestants[0]?.tribeColour ?? "#6B7280";
-
-            return (
-              <Card key={tribe}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: tribeColour }} />
-                    <CardTitle className="text-base">{tribe} Tribe</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {tribeContestants.map((contestant) => (
-                      <div key={contestant.id} className="flex items-center gap-3">
-                        <span className="flex-1 text-sm font-medium">
-                          {contestant.firstName} {contestant.lastName}
-                        </span>
-                        <Input
-                          type="number"
-                          min={0}
-                          className="w-20 text-center"
-                          value={scores[contestant.id] ?? 0}
-                          onChange={(e) =>
-                            setScores((prev) => ({
-                              ...prev,
-                              [contestant.id]: Math.max(0, Number(e.target.value)),
-                            }))
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="rounded-md border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-2 text-left font-medium">Contestant</th>
+                <th className="px-4 py-2 text-right font-medium w-32">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {seasonContestants.map((contestant, i) => (
+                <tr key={contestant.id} className={i % 2 === 0 ? "" : "bg-muted/25"}>
+                  <td className="px-4 py-1.5">
+                    {contestant.firstName} {contestant.lastName}
+                  </td>
+                  <td className="px-4 py-1.5 text-right">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      className="w-20 rounded border border-input bg-background px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      value={scores[contestant.id] ?? 0}
+                      onChange={(e) =>
+                        setScores((prev) => ({
+                          ...prev,
+                          [contestant.id]: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
