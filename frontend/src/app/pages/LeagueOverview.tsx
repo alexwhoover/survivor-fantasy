@@ -6,16 +6,19 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useAuth } from "../context/AuthContext";
-import { getLeagueById, getSeasonContestants, getMyRoster, getLeagueRosters, type LeagueApiResponse, type SeasonContestant, type RosterResponse, type UserRoster } from "../../api";
+import { getLeagueById, getSeasonContestants, getSeasonById, getMyRoster, getLeagueRosters, getMyLeagueRole, type LeagueApiResponse, type Season, type SeasonContestant, type RosterResponse, type UserRoster } from "../../api";
+import { EpisodeScores } from "./EpisodeScores";
 
 export function LeagueOverview() {
   const { leagueId } = useParams();
   const { user } = useAuth();
   const [league, setLeague] = useState<LeagueApiResponse | null>(null);
+  const [season, setSeason] = useState<Season | null>(null);
   const [seasonContestants, setSeasonContestants] = useState<SeasonContestant[]>([]);
   const [myRoster, setMyRoster] = useState<RosterResponse | null>(null);
   const [allRosters, setAllRosters] = useState<UserRoster[]>([]);
   const [selectedRoster, setSelectedRoster] = useState<UserRoster | null>(null);
+  const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
 
   useEffect(() => {
     if (!leagueId) return;
@@ -23,13 +26,16 @@ export function LeagueOverview() {
     getLeagueById(id).then((l) => {
       setLeague(l);
       getSeasonContestants(l.seasonId).then(setSeasonContestants);
+      getSeasonById(l.seasonId).then(setSeason);
     });
     getLeagueRosters(leagueId).then(setAllRosters);
   }, [leagueId]);
 
   useEffect(() => {
     if (!leagueId || !user) return;
-    getMyRoster(Number(leagueId), user.id).then(setMyRoster);
+    const id = Number(leagueId);
+    getMyRoster(id, user.id).then(setMyRoster);
+    getMyLeagueRole(id, user.id).then(setMyRole);
   }, [leagueId, user]);
 
   if (!league) {
@@ -74,9 +80,10 @@ export function LeagueOverview() {
       </div>
 
       <Tabs defaultValue="roster" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${myRole === "ADMIN" ? "grid-cols-3" : "grid-cols-2"}`}>
           <TabsTrigger value="roster">My Roster</TabsTrigger>
           <TabsTrigger value="standings">Standings</TabsTrigger>
+          {myRole === "ADMIN" && <TabsTrigger value="scores">Episode Scores</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="roster" className="space-y-6">
@@ -128,7 +135,12 @@ export function LeagueOverview() {
                               )}
                             </div>
                             {contestant.tribe && (
-                              <div className="text-sm text-muted-foreground">{contestant.tribe} Tribe</div>
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                {contestant.tribeColour && (
+                                  <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: contestant.tribeColour }} />
+                                )}
+                                {contestant.tribe} Tribe
+                              </div>
                             )}
                           </div>
                         </div>
@@ -212,6 +224,16 @@ export function LeagueOverview() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {myRole === "ADMIN" && season && (
+          <TabsContent value="scores">
+            <EpisodeScores
+              seasonId={season.id}
+              numEpisodes={season.numEpisodes}
+              seasonContestants={seasonContestants}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

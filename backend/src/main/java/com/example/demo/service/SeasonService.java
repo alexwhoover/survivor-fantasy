@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SeasonService {
@@ -28,16 +29,24 @@ public class SeasonService {
     }
 
     @Transactional(readOnly = true)
+    public Season getSeasonById(Long id) {
+        return seasonDao.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Season not found"));
+    }
+
+    @Transactional(readOnly = true)
     public List<SeasonContestantDto> getContestantsBySeason(Long seasonId) {
         seasonDao.findById(seasonId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Season not found"));
 
+        Map<String, String> tribeColours = seasonDao.findTribeColoursBySeasonId(seasonId);
         return seasonDao.findContestantsBySeasonId(seasonId).stream()
-                .map(this::toDto)
+                .map(sc -> toDto(sc, tribeColours))
                 .toList();
     }
 
-    private SeasonContestantDto toDto(SeasonContestant sc) {
+    private SeasonContestantDto toDto(SeasonContestant sc, Map<String, String> tribeColours) {
+        String tribeColour = sc.getTribe() != null ? tribeColours.get(sc.getTribe()) : null;
         return new SeasonContestantDto(
                 sc.getId(),
                 sc.getContestant().getFirstName(),
@@ -45,6 +54,7 @@ public class SeasonService {
                 sc.getContestant().getHometown(),
                 sc.getContestant().getState(),
                 sc.getTribe(),
+                tribeColour,
                 sc.getFinishPlace(),
                 sc.getEliminatedEpisode(),
                 sc.isWinner(),

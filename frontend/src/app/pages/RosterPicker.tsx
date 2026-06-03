@@ -14,8 +14,6 @@ import {
   type SeasonContestant,
 } from "../../api";
 
-const TRIBE_COLORS = ["bg-red-600", "bg-blue-600", "bg-yellow-600", "bg-green-600", "bg-purple-600"];
-
 export function RosterPicker() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
@@ -69,7 +67,9 @@ export function RosterPicker() {
   }
 
   const tribes = [...new Set(contestants.map((c) => c.tribe).filter(Boolean) as string[])];
-  const tribeColorMap = Object.fromEntries(tribes.map((t, i) => [t, TRIBE_COLORS[i % TRIBE_COLORS.length]]));
+  const tribeColorMap = Object.fromEntries(
+    tribes.map((t) => [t, contestants.find((c) => c.tribe === t)?.tribeColour ?? '#6B7280'])
+  );
 
   const activeByTribe = (tribe: string) => contestants.filter((c) => c.tribe === tribe && c.eliminatedEpisode === null);
   const countByTribe = (tribe: string) => selectedIds.filter((id) => contestants.find((c) => c.id === id)?.tribe === tribe).length;

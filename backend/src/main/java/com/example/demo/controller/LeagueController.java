@@ -1,8 +1,10 @@
 package com.example.demo.controller;
 
+import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dto.CreateLeagueRequest;
 import com.example.demo.dto.JoinLeagueRequest;
 import com.example.demo.dto.LeagueResponse;
+import com.example.demo.dto.MemberRoleResponse;
 import com.example.demo.dto.RosterResponse;
 import com.example.demo.dto.SubmitRosterRequest;
 import com.example.demo.service.LeagueService;
@@ -20,11 +22,13 @@ public class LeagueController {
 
     private final LeagueService leagueService;
     private final RosterService rosterService;
+    private final LeagueMemberDao leagueMemberDao;
 
     @Autowired
-    public LeagueController(LeagueService leagueService, RosterService rosterService) {
+    public LeagueController(LeagueService leagueService, RosterService rosterService, LeagueMemberDao leagueMemberDao) {
         this.leagueService = leagueService;
         this.rosterService = rosterService;
+        this.leagueMemberDao = leagueMemberDao;
     }
 
     @GetMapping
@@ -35,6 +39,13 @@ public class LeagueController {
     @GetMapping("/{id}")
     public LeagueResponse getLeague(@PathVariable Long id) {
         return leagueService.getLeagueById(id);
+    }
+
+    @GetMapping("/{id}/my-role")
+    public ResponseEntity<MemberRoleResponse> getMyRole(@PathVariable Long id, @RequestParam Long userId) {
+        return leagueMemberDao.findByLeagueIdAndUserId(id, userId)
+                .map(m -> ResponseEntity.ok(new MemberRoleResponse(m.getRole().name())))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping

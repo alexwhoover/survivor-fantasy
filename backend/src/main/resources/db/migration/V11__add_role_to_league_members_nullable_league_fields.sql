@@ -5,5 +5,3 @@ ALTER TABLE leagues
 ALTER TABLE league_members
     ADD COLUMN role ENUM('ADMIN', 'MEMBER') NOT NULL DEFAULT 'MEMBER';
 
-ALTER TABLE leagues
-    DROP COLUMN mvp_bonus;

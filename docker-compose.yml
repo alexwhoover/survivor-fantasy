@@ -18,6 +18,15 @@ services:
       timeout: 5s
       retries: 5
 
+  flyway:
+    image: flyway/flyway:11-alpine
+    command: -url=jdbc:mysql://mysql:3306/survivor_league -user=survivor_app -password=survivor_app migrate
+    volumes:
+      - ./backend/src/main/resources/db/migration:/flyway/sql
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   backend:
     build: ./backend
     ports:
@@ -30,6 +39,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
 
   frontend:
     build: ./frontend

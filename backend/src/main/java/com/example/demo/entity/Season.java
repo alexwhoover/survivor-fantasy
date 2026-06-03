@@ -36,6 +36,9 @@ public class Season {
     @Column(name = "winner_contestant_id")
     private Long winnerContestantId;
 
+    @Column(name = "num_episodes")
+    private int numEpisodes;
+
     public Long getId() { return id; }
     public String getName() { return name; }
     public int getSeasonNumber() { return seasonNumber; }
@@ -45,4 +48,5 @@ public class Season {
     public Integer getMergeEpisode() { return mergeEpisode; }
     public SeasonStatus getStatus() { return status; }
     public Long getWinnerContestantId() { return winnerContestantId; }
+    public int getNumEpisodes() { return numEpisodes; }
 }

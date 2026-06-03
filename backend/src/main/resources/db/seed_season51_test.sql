@@ -1,8 +1,8 @@
 -- Test seed: Survivor Season 51 with fake players
 -- Run manually against local DB. NOT a Flyway migration.
 
-INSERT INTO seasons (name, season_number, location, premiere_date, finale_date, merge_episode, status)
-VALUES ('Survivor: New Horizons', 51, 'Mamanuca Islands, Fiji', '2026-09-23', '2026-12-16', 7, 'UPCOMING');
+INSERT INTO seasons (name, season_number, location, premiere_date, finale_date, merge_episode, status, num_episodes)
+VALUES ('Survivor: New Horizons', 51, 'Mamanuca Islands, Fiji', '2026-09-23', '2026-12-16', 7, 'UPCOMING', 14);
 
 SET @sid = LAST_INSERT_ID();
 
@@ -30,6 +30,11 @@ INSERT INTO contestants (first_name, last_name, hometown, state) VALUES
 ('Drew',    'Parker',     'San Diego',     'California');
 
 SET @cid = LAST_INSERT_ID();  -- ID of the first inserted contestant (Maya Chen)
+
+INSERT INTO season_tribes (season_id, name, colour) VALUES
+(@sid, 'Loa',  '#06B6D4'),
+(@sid, 'Moku', '#EC4899'),
+(@sid, 'Puna', '#10B981');
 
 INSERT INTO season_contestants (season_id, contestant_id, tribe) VALUES
 (@sid, @cid +  0, 'Loa'),

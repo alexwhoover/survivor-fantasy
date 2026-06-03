@@ -23,6 +23,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const handler = () => {
+      sessionStorage.removeItem("survivor_session");
+      setUser(null);
+    };
+    window.addEventListener("auth:unauthorized", handler);
+    return () => window.removeEventListener("auth:unauthorized", handler);
+  }, []);
+
   return (
     <AuthContext.Provider value={{ user, setUser, loading }}>
       {children}

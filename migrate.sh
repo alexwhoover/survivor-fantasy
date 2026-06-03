@@ -10,7 +10,7 @@ DB_PASS="${DB_PASS:-survivor_app}"
 MIGRATIONS_DIR="$(dirname "$0")/backend/src/main/resources/db/migration"
 
 mysql_cmd() {
-    mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" "$@"
+    docker compose exec -T mysql mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" "$@"
 }
 
 echo "Running migrations against $DB_NAME on $DB_HOST:$DB_PORT..."
