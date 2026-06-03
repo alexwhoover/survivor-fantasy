@@ -79,21 +79,44 @@ export async function logout(): Promise<void> {
   sessionStorage.removeItem("survivor_session");
 }
 
-export async function getMyLeagues(): Promise<League[]> {
-  // TODO: fetch(`${API_BASE}/leagues`)
-  return mockLeagues;
+export interface LeagueApiResponse {
+  id: number;
+  name: string;
+  code: string;
+  seasonId: number;
+  createdBy: number;
+  createdAt: string;
 }
 
-export async function createLeague(name: string): Promise<League> {
-  // TODO: fetch(`${API_BASE}/leagues`, { method: "POST", body: JSON.stringify({ name }) })
-  return { ...mockLeagues[0], id: `league-${Date.now()}`, name, code: "NEW123" };
+export async function getMyLeagues(): Promise<LeagueApiResponse[]> {
+  // TODO: implement when GET /api/leagues endpoint exists
+  return [];
 }
 
-export async function joinLeague(code: string): Promise<League> {
-  // TODO: fetch(`${API_BASE}/leagues/join`, { method: "POST", body: JSON.stringify({ code }) })
-  const league = mockLeagues.find((l) => l.code === code);
-  if (!league) throw new Error("League not found");
-  return league;
+export async function createLeague(name: string, seasonId: number, userId: number): Promise<LeagueApiResponse> {
+  const res = await fetch(`${API_BASE}/leagues`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, seasonId, userId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to create league");
+  }
+  return res.json();
+}
+
+export async function joinLeague(code: string, userId: number): Promise<LeagueApiResponse> {
+  const res = await fetch(`${API_BASE}/leagues/join`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, userId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to join league");
+  }
+  return res.json();
 }
 
 export async function getLeague(leagueId: string): Promise<League | null> {

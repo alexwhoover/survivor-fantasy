@@ -7,19 +7,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { getMyLeagues, createLeague, joinLeague, type League } from "../../api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { getMyLeagues, createLeague, joinLeague, getSeasons, type LeagueApiResponse, type Season } from "../../api";
 
 export function Home() {
   const { user, loading } = useAuth();
-  const [leagues, setLeagues] = useState<League[]>([]);
+  const [leagues, setLeagues] = useState<LeagueApiResponse[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [leagueName, setLeagueName] = useState("");
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
   const [joinCode, setJoinCode] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [joinError, setJoinError] = useState("");
 
   useEffect(() => {
     if (user) getMyLeagues().then(setLeagues);
   }, [user]);
+
+  useEffect(() => {
+    getSeasons().then(setSeasons).catch(() => {});
+  }, []);
 
   if (loading) return null;
 
@@ -45,17 +54,45 @@ export function Home() {
   }
 
   const handleCreateLeague = async () => {
-    const league = await createLeague(leagueName);
-    setLeagues((prev) => [...prev, league]);
-    setCreateDialogOpen(false);
-    setLeagueName("");
+    setCreateError("");
+    if (!leagueName.trim()) {
+      setCreateError("League name is required");
+      return;
+    }
+    if (!selectedSeasonId) {
+      setCreateError("Please select a season");
+      return;
+    }
+    try {
+      const league = await createLeague(leagueName.trim(), Number(selectedSeasonId), user.id);
+      setLeagues((prev) => [...prev, league]);
+      setCreateDialogOpen(false);
+      setLeagueName("");
+      setSelectedSeasonId("");
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create league");
+    }
   };
 
   const handleJoinLeague = async () => {
-    const league = await joinLeague(joinCode);
-    setLeagues((prev) => [...prev, league]);
-    setJoinDialogOpen(false);
-    setJoinCode("");
+    setJoinError("");
+    if (!joinCode.trim()) {
+      setJoinError("League code is required");
+      return;
+    }
+    try {
+      const league = await joinLeague(joinCode.trim(), user.id);
+      setLeagues((prev) => [...prev, league]);
+      setJoinDialogOpen(false);
+      setJoinCode("");
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : "Failed to join league");
+    }
+  };
+
+  const getSeasonName = (seasonId: number) => {
+    const season = seasons.find((s) => s.id === seasonId);
+    return season ? season.name : `Season ${seasonId}`;
   };
 
   return (
@@ -66,7 +103,7 @@ export function Home() {
           <p className="text-muted-foreground">Manage your Survivor fantasy leagues</p>
         </div>
         <div className="flex gap-3">
-          <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+          <Dialog open={joinDialogOpen} onOpenChange={(open) => { setJoinDialogOpen(open); if (!open) setJoinError(""); }}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <LogIn className="h-4 w-4" />
@@ -85,12 +122,13 @@ export function Home() {
                   <Label htmlFor="join-code">League Code</Label>
                   <Input
                     id="join-code"
-                    placeholder="e.g., TORCH47"
+                    placeholder="e.g., 5TSTNL"
                     value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                     className="uppercase"
                   />
                 </div>
+                {joinError && <p className="text-sm text-destructive">{joinError}</p>}
                 <Button onClick={handleJoinLeague} className="w-full">
                   Join League
                 </Button>
@@ -98,7 +136,7 @@ export function Home() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={(open) => { setCreateDialogOpen(open); if (!open) setCreateError(""); }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -122,6 +160,22 @@ export function Home() {
                     onChange={(e) => setLeagueName(e.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="season-select">Season</Label>
+                  <Select value={selectedSeasonId} onValueChange={setSelectedSeasonId}>
+                    <SelectTrigger id="season-select">
+                      <SelectValue placeholder="Select a season" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {seasons.map((season) => (
+                        <SelectItem key={season.id} value={String(season.id)}>
+                          {season.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {createError && <p className="text-sm text-destructive">{createError}</p>}
                 <Button onClick={handleCreateLeague} className="w-full">
                   Create League
                 </Button>
@@ -139,7 +193,7 @@ export function Home() {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="mb-1">{league.name}</CardTitle>
-                    <CardDescription>Season {league.season}</CardDescription>
+                    <CardDescription>{getSeasonName(league.seasonId)}</CardDescription>
                   </div>
                   <Trophy className="h-5 w-5 text-primary" />
                 </div>
@@ -148,11 +202,7 @@ export function Home() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4" />
-                    <span>4 members</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Episode:</span>{" "}
-                    <span className="text-foreground font-medium">{league.currentEpisode}</span>
+                    <span>Members</span>
                   </div>
                   <div className="text-sm">
                     <span className="text-muted-foreground">League Code:</span>{" "}

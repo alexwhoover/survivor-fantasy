@@ -6,7 +6,6 @@ CREATE TABLE leagues (
     pick_deadline         DATETIME     NOT NULL,
     merge_episode         INT          NOT NULL,
     current_episode       INT          DEFAULT 1,
-    mvp_bonus             INT          DEFAULT 50,
     contestants_per_tribe INT          DEFAULT 2,
     created_by            BIGINT       NOT NULL,
     created_at            TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
