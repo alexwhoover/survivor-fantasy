@@ -40,27 +40,6 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponse login(String username, String password) {
-        if (username == null || username.isBlank() || password == null || password.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password are required");
-        }
-
-        Optional<User> found = userDao.findByUsername(username);
-
-        if (found.isEmpty()) {
-            passwordEncoder.matches(password, "dummyhashtopreventtimingattacks.....");
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-        }
-
-        User user = found.get();
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-        }
-
-        return toResponse(user);
-    }
-
-    @Transactional(readOnly = true)
     public UserResponse findByUsername(String username) {
         return toResponse(userDao.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")));

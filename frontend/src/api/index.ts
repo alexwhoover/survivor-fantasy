@@ -48,6 +48,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 export async function login(username: string, password: string): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/users/login`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
@@ -63,6 +64,7 @@ export async function login(username: string, password: string): Promise<AuthUse
 export async function register(username: string, password: string): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/users/register`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
@@ -76,6 +78,10 @@ export async function register(username: string, password: string): Promise<Auth
 }
 
 export async function logout(): Promise<void> {
+  await fetch(`${API_BASE}/users/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
   sessionStorage.removeItem("survivor_session");
 }
 
@@ -96,6 +102,7 @@ export async function getMyLeagues(): Promise<LeagueApiResponse[]> {
 export async function createLeague(name: string, seasonId: number, userId: number): Promise<LeagueApiResponse> {
   const res = await fetch(`${API_BASE}/leagues`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, seasonId, userId }),
   });
@@ -109,6 +116,7 @@ export async function createLeague(name: string, seasonId: number, userId: numbe
 export async function joinLeague(code: string, userId: number): Promise<LeagueApiResponse> {
   const res = await fetch(`${API_BASE}/leagues/join`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code, userId }),
   });
@@ -145,13 +153,13 @@ export async function getContestants(season: string): Promise<Contestant[]> {
 }
 
 export async function getSeasons(): Promise<Season[]> {
-  const res = await fetch(`${API_BASE}/seasons`);
+  const res = await fetch(`${API_BASE}/seasons`, { credentials: "include" });
   if (!res.ok) throw new Error(`Failed to fetch seasons: ${res.status}`);
   return res.json();
 }
 
 export async function getSeasonContestants(seasonId: number): Promise<SeasonContestant[]> {
-  const res = await fetch(`${API_BASE}/seasons/${seasonId}/contestants`);
+  const res = await fetch(`${API_BASE}/seasons/${seasonId}/contestants`, { credentials: "include" });
   if (!res.ok) throw new Error(`Failed to fetch contestants: ${res.status}`);
   return res.json();
 }
