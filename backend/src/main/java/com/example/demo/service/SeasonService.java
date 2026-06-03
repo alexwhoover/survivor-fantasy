@@ -39,11 +39,12 @@ public class SeasonService {
 
     private SeasonContestantDto toDto(SeasonContestant sc) {
         return new SeasonContestantDto(
-                sc.getContestant().getId(),
+                sc.getId(),
                 sc.getContestant().getFirstName(),
                 sc.getContestant().getLastName(),
                 sc.getContestant().getHometown(),
                 sc.getContestant().getState(),
+                sc.getTribe(),
                 sc.getFinishPlace(),
                 sc.getEliminatedEpisode(),
                 sc.isWinner(),

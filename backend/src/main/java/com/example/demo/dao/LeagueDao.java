@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -26,11 +27,22 @@ public class LeagueDao {
                 .isEmpty();
     }
 
+    public Optional<League> findById(Long id) {
+        return Optional.ofNullable(entityManager.find(League.class, id));
+    }
+
     public Optional<League> findByCode(String code) {
         return entityManager.createQuery(
                 "SELECT l FROM League l WHERE l.code = :code", League.class)
                 .setParameter("code", code)
                 .getResultStream()
                 .findFirst();
+    }
+
+    public List<League> findByUserId(Long userId) {
+        return entityManager.createQuery(
+                "SELECT l FROM League l JOIN LeagueMember m ON l.id = m.leagueId WHERE m.userId = :userId", League.class)
+                .setParameter("userId", userId)
+                .getResultList();
     }
 }

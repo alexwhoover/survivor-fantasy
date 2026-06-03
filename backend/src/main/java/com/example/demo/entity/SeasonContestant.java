@@ -17,6 +17,9 @@ public class SeasonContestant {
     @JoinColumn(name = "contestant_id")
     private Contestant contestant;
 
+    @Column(name = "tribe")
+    private String tribe;
+
     @Column(name = "eliminated_episode")
     private Integer eliminatedEpisode;
 
@@ -29,6 +32,7 @@ public class SeasonContestant {
     public Long getId() { return id; }
     public Long getSeasonId() { return seasonId; }
     public Contestant getContestant() { return contestant; }
+    public String getTribe() { return tribe; }
     public Integer getEliminatedEpisode() { return eliminatedEpisode; }
     public Integer getFinishPlace() { return finishPlace; }
     public boolean isWinner() { return winner; }

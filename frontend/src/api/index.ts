@@ -26,6 +26,7 @@ export interface SeasonContestant {
   lastName: string;
   hometown: string | null;
   state: string | null;
+  tribe: string | null;
   finishPlace: number | null;
   eliminatedEpisode: number | null;
   winner: boolean;
@@ -92,11 +93,29 @@ export interface LeagueApiResponse {
   seasonId: number;
   createdBy: number;
   createdAt: string;
+  contestantsPerTribe: number;
+  pickDeadline: string | null;
 }
 
-export async function getMyLeagues(): Promise<LeagueApiResponse[]> {
-  // TODO: implement when GET /api/leagues endpoint exists
-  return [];
+export interface RosterResponse {
+  id: number;
+  leagueId: number;
+  userId: number;
+  mvpSeasonContestantId: number;
+  seasonContestantIds: number[];
+  submittedAt: string;
+}
+
+export async function getLeagueById(id: number): Promise<LeagueApiResponse> {
+  const res = await fetch(`${API_BASE}/leagues/${id}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch league: ${res.status}`);
+  return res.json();
+}
+
+export async function getMyLeagues(userId: number): Promise<LeagueApiResponse[]> {
+  const res = await fetch(`${API_BASE}/leagues?userId=${userId}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch leagues: ${res.status}`);
+  return res.json();
 }
 
 export async function createLeague(name: string, seasonId: number, userId: number): Promise<LeagueApiResponse> {
@@ -137,14 +156,25 @@ export async function getLeagueRosters(leagueId: string): Promise<UserRoster[]> 
   return [myRoster, ...otherRosters].filter((r) => r.leagueId === leagueId);
 }
 
-export async function getMyRoster(leagueId: string): Promise<UserRoster | null> {
-  // TODO: fetch(`${API_BASE}/leagues/${leagueId}/rosters/me`)
-  return myRoster.leagueId === leagueId ? myRoster : null;
+export async function getMyRoster(leagueId: number, userId: number): Promise<RosterResponse | null> {
+  const res = await fetch(`${API_BASE}/leagues/${leagueId}/rosters/me?userId=${userId}`, { credentials: "include" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch roster: ${res.status}`);
+  return res.json();
 }
 
-export async function submitRoster(leagueId: string, contestants: string[], mvpId: string): Promise<void> {
-  // TODO: fetch(`${API_BASE}/leagues/${leagueId}/rosters`, { method: "POST", body: JSON.stringify({ contestants, mvpId }) })
-  console.log("submitRoster:", { leagueId, contestants, mvpId });
+export async function submitRoster(leagueId: number, userId: number, seasonContestantIds: number[], mvpSeasonContestantId: number): Promise<RosterResponse> {
+  const res = await fetch(`${API_BASE}/leagues/${leagueId}/rosters`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, seasonContestantIds, mvpSeasonContestantId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to submit roster");
+  }
+  return res.json();
 }
 
 export async function getContestants(season: string): Promise<Contestant[]> {

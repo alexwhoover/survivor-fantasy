@@ -23,7 +23,7 @@ export function Home() {
   const [joinError, setJoinError] = useState("");
 
   useEffect(() => {
-    if (user) getMyLeagues().then(setLeagues);
+    if (user) getMyLeagues(user.id).then(setLeagues);
   }, [user]);
 
   useEffect(() => {

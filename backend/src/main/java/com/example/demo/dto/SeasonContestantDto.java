@@ -11,6 +11,7 @@ public record SeasonContestantDto(
         String lastName,
         String hometown,
         String state,
+        String tribe,
         Integer finishPlace,
         Integer eliminatedEpisode,
         boolean winner,

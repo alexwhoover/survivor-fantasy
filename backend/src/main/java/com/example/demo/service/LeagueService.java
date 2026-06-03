@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class LeagueService {
@@ -28,6 +29,13 @@ public class LeagueService {
     public LeagueService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
+    }
+
+    public List<LeagueResponse> getLeaguesForUser(Long userId) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
+        }
+        return leagueDao.findByUserId(userId).stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -88,6 +96,12 @@ public class LeagueService {
         return sb.toString();
     }
 
+    public LeagueResponse getLeagueById(Long id) {
+        League league = leagueDao.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
+        return toResponse(league);
+    }
+
     private LeagueResponse toResponse(League league) {
         return new LeagueResponse(
                 league.getId(),
@@ -95,7 +109,9 @@ public class LeagueService {
                 league.getCode(),
                 league.getSeasonId(),
                 league.getCreatedBy(),
-                league.getCreatedAt()
+                league.getCreatedAt(),
+                league.getContestantsPerTribe(),
+                league.getPickDeadline()
         );
     }
 }
