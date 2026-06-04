@@ -40,4 +40,15 @@ public class EpisodeScoreDao {
                 .setParameter("leagueId", leagueId)
                 .getResultList();
     }
+
+    public List<EpisodeScore> findAllBySeasonIdAndLeagueId(Long seasonId, Long leagueId) {
+        return entityManager.createQuery(
+                "SELECT es FROM EpisodeScore es " +
+                "JOIN SeasonContestant sc ON es.seasonContestantId = sc.id " +
+                "WHERE sc.seasonId = :seasonId AND es.leagueId = :leagueId",
+                EpisodeScore.class)
+                .setParameter("seasonId", seasonId)
+                .setParameter("leagueId", leagueId)
+                .getResultList();
+    }
 }

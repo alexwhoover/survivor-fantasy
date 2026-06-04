@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -15,6 +16,13 @@ public class RosterDao {
 
     public void save(Roster roster) {
         entityManager.persist(roster);
+    }
+
+    public List<Roster> findAllByLeagueId(Long leagueId) {
+        return entityManager.createQuery(
+                "SELECT r FROM Roster r WHERE r.leagueId = :leagueId", Roster.class)
+                .setParameter("leagueId", leagueId)
+                .getResultList();
     }
 
     public Optional<Roster> findByLeagueIdAndUserId(Long leagueId, Long userId) {

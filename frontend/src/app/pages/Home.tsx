@@ -18,6 +18,8 @@ export function Home() {
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [leagueName, setLeagueName] = useState("");
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
+  const [pickDeadline, setPickDeadline] = useState("");
+  const [contestantsPerTribe, setContestantsPerTribe] = useState("2");
   const [joinCode, setJoinCode] = useState("");
   const [createError, setCreateError] = useState("");
   const [joinError, setJoinError] = useState("");
@@ -63,12 +65,30 @@ export function Home() {
       setCreateError("Please select a season");
       return;
     }
+    if (!pickDeadline) {
+      setCreateError("Pick deadline is required");
+      return;
+    }
+    const perTribe = Number(contestantsPerTribe);
+    if (!perTribe || perTribe < 1 || perTribe > 10) {
+      setCreateError("Contestants per tribe must be between 1 and 10");
+      return;
+    }
     try {
-      const league = await createLeague(leagueName.trim(), Number(selectedSeasonId), user.id);
+      // datetime-local gives "YYYY-MM-DDTHH:mm", backend expects ISO LocalDateTime
+      const league = await createLeague(
+        leagueName.trim(),
+        Number(selectedSeasonId),
+        user.id,
+        pickDeadline,
+        perTribe
+      );
       setLeagues((prev) => [...prev, league]);
       setCreateDialogOpen(false);
       setLeagueName("");
       setSelectedSeasonId("");
+      setPickDeadline("");
+      setContestantsPerTribe("2");
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Failed to create league");
     }
@@ -93,6 +113,16 @@ export function Home() {
   const getSeasonName = (seasonId: number) => {
     const season = seasons.find((s) => s.id === seasonId);
     return season ? season.name : `Season ${seasonId}`;
+  };
+
+  const formatDeadline = (deadline: string | null) => {
+    if (!deadline) return null;
+    return new Date(deadline).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -175,6 +205,29 @@ export function Home() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pick-deadline">Pick Deadline</Label>
+                  <Input
+                    id="pick-deadline"
+                    type="datetime-local"
+                    value={pickDeadline}
+                    onChange={(e) => setPickDeadline(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Members cannot change their roster after this date and time
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contestants-per-tribe">Contestants Per Tribe</Label>
+                  <Input
+                    id="contestants-per-tribe"
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={contestantsPerTribe}
+                    onChange={(e) => setContestantsPerTribe(e.target.value)}
+                  />
+                </div>
                 {createError && <p className="text-sm text-destructive">{createError}</p>}
                 <Button onClick={handleCreateLeague} className="w-full">
                   Create League
@@ -185,35 +238,48 @@ export function Home() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {leagues.map((league) => (
-          <Link key={league.id} to={`/league/${league.id}`}>
-            <Card className="transition-all hover:border-primary hover:fire-glow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="mb-1">{league.name}</CardTitle>
-                    <CardDescription>{getSeasonName(league.seasonId)}</CardDescription>
+      {leagues.length === 0 ? (
+        <div className="text-center py-16">
+          <Trophy className="h-12 w-12 text-primary mx-auto mb-4 opacity-40" />
+          <p className="text-muted-foreground mb-2">You're not in any leagues yet.</p>
+          <p className="text-sm text-muted-foreground">Create a new league or join one with a code.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {leagues.map((league) => (
+            <Link key={league.id} to={`/league/${league.id}`}>
+              <Card className="transition-all hover:border-primary hover:fire-glow cursor-pointer h-full">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="mb-1">{league.name}</CardTitle>
+                      <CardDescription>{getSeasonName(league.seasonId)}</CardDescription>
+                    </div>
+                    <Trophy className="h-5 w-5 text-primary shrink-0" />
                   </div>
-                  <Trophy className="h-5 w-5 text-primary" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>Members</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>{league.contestantsPerTribe} per tribe</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Code: </span>
+                      <span className="font-mono text-primary">{league.code}</span>
+                    </div>
+                    {league.pickDeadline && (
+                      <div className="text-muted-foreground">
+                        Picks due {formatDeadline(league.pickDeadline)}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">League Code:</span>{" "}
-                    <span className="font-mono text-primary">{league.code}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

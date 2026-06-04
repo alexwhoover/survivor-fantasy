@@ -55,7 +55,7 @@ export function EpisodeScores({ leagueId, numEpisodes, seasonContestants }: Prop
             <SelectValue placeholder="Select episode" />
           </SelectTrigger>
           <SelectContent>
-            {Array.from({ length: numEpisodes }, (_, i) => i + 1).map((ep) => (
+            {Array.from({ length: numEpisodes - 1 }, (_, i) => i + 2).map((ep) => (
               <SelectItem key={ep} value={String(ep)}>
                 Episode {ep}
               </SelectItem>

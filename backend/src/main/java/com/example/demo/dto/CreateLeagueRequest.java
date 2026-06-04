@@ -1,3 +1,11 @@
 package com.example.demo.dto;
 
-public record CreateLeagueRequest(String name, Long seasonId, Long userId) {}
+import java.time.LocalDateTime;
+
+public record CreateLeagueRequest(
+        String name,
+        Long seasonId,
+        Long userId,
+        LocalDateTime pickDeadline,
+        Integer contestantsPerTribe
+) {}

@@ -95,12 +95,6 @@ INSERT INTO roster_picks (roster_id, season_contestant_id) VALUES
 -- ─── Episode scores (episodes 1–3) ───────────────────────────────────────────
 
 INSERT INTO episode_scores (season_contestant_id, league_id, episode_number, points) VALUES
--- Episode 1
-(@sc_maya,    @lid,  1,  5), (@sc_tyler,   @lid,  1,  3), (@sc_priya,   @lid,  1,  7), (@sc_danny,   @lid,  1,  2),
-(@sc_sofia,   @lid,  1,  4), (@sc_marcus,  @lid,  1,  6), (@sc_rachel,  @lid,  1,  8), (@sc_kevin,   @lid,  1,  3),
-(@sc_aisha,   @lid,  1,  5), (@sc_jake,    @lid,  1,  9), (@sc_elena,   @lid,  1,  4), (@sc_noah,    @lid,  1,  2),
-(@sc_zoe,     @lid,  1,  6), (@sc_carlos,  @lid,  1,  4), (@sc_hannah,  @lid,  1,  3), (@sc_brandon, @lid,  1,  1),
-(@sc_natalie, @lid,  1,  7), (@sc_drew,    @lid,  1,  5),
 -- Episode 2
 (@sc_maya,    @lid,  2,  8), (@sc_tyler,   @lid,  2,  4), (@sc_priya,   @lid,  2,  3), (@sc_danny,   @lid,  2,  6),
 (@sc_sofia,   @lid,  2,  2), (@sc_marcus,  @lid,  2,  7), (@sc_rachel,  @lid,  2,  5), (@sc_kevin,   @lid,  2,  8),

@@ -47,6 +47,9 @@ public class EpisodeScoreService {
 
     @Transactional
     public List<EpisodeScoreItem> saveScoresForEpisode(Long leagueId, int episodeNumber, List<EpisodeScoreItem> scores) {
+        if (episodeNumber < 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Episode scores cannot be entered for episode 1");
+        }
         for (EpisodeScoreItem item : scores) {
             episodeScoreDao.findBySeasonContestantIdAndEpisodeNumberAndLeagueId(item.seasonContestantId(), episodeNumber, leagueId)
                     .ifPresentOrElse(

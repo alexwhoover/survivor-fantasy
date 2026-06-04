@@ -39,18 +39,25 @@ public class LeagueService {
     }
 
     @Transactional
-    public LeagueResponse createLeague(String name, Long seasonId, Long userId) {
+    public LeagueResponse createLeague(String name, Long seasonId, Long userId, LocalDateTime pickDeadline, Integer contestantsPerTribe) {
         if (name == null || name.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "League name is required");
         }
         if (seasonId == null || userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "seasonId and userId are required");
         }
+        if (pickDeadline == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "pickDeadline is required");
+        }
 
         String code = generateUniqueCode();
         LocalDateTime now = LocalDateTime.now();
 
         League league = new League(name.strip(), code, seasonId, userId, now);
+        league.setPickDeadline(pickDeadline);
+        if (contestantsPerTribe != null) {
+            league.setContestantsPerTribe(contestantsPerTribe);
+        }
         leagueDao.save(league);
 
         LeagueMember admin = new LeagueMember(league.getId(), userId, LeagueMember.Role.ADMIN, now);
@@ -102,7 +109,7 @@ public class LeagueService {
         return toResponse(league);
     }
 
-    private LeagueResponse toResponse(League league) {
+    public LeagueResponse toResponse(League league) {
         return new LeagueResponse(
                 league.getId(),
                 league.getName(),
@@ -111,7 +118,9 @@ public class LeagueService {
                 league.getCreatedBy(),
                 league.getCreatedAt(),
                 league.getContestantsPerTribe(),
-                league.getPickDeadline()
+                league.getPickDeadline(),
+                league.getMergeEpisode(),
+                league.getMergeDeadline()
         );
     }
 }

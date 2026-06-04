@@ -156,7 +156,7 @@ export function RosterPicker() {
             <Card key={tribe}>
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded-full ${tribeColorMap[tribe]}`} />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tribeColorMap[tribe] }} />
                   <CardTitle>{tribe} Tribe</CardTitle>
                   <Badge variant="outline">
                     {selectionCount} / {league.contestantsPerTribe} selected

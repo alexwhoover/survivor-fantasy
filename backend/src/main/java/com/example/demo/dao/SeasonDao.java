@@ -44,4 +44,16 @@ public class SeasonDao {
                 SeasonContestant.class
         ).setParameter("seasonId", seasonId).getResultList();
     }
+
+    public Optional<SeasonContestant> findSeasonContestantById(Long id) {
+        return Optional.ofNullable(entityManager.find(SeasonContestant.class, id));
+    }
+
+    public int countTribesBySeasonId(Long seasonId) {
+        Long count = entityManager.createQuery(
+                "SELECT COUNT(t) FROM SeasonTribe t WHERE t.seasonId = :seasonId", Long.class)
+                .setParameter("seasonId", seasonId)
+                .getSingleResult();
+        return count.intValue();
+    }
 }

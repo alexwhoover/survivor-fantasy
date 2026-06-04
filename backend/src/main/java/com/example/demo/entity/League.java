@@ -27,6 +27,9 @@ public class League {
     @Column(name = "merge_episode")
     private Integer mergeEpisode;
 
+    @Column(name = "merge_deadline")
+    private LocalDateTime mergeDeadline;
+
     @Column(name = "current_episode")
     private int currentEpisode = 1;
 
@@ -54,9 +57,14 @@ public class League {
     public String getCode() { return code; }
     public Long getSeasonId() { return seasonId; }
     public LocalDateTime getPickDeadline() { return pickDeadline; }
+    public void setPickDeadline(LocalDateTime pickDeadline) { this.pickDeadline = pickDeadline; }
     public Integer getMergeEpisode() { return mergeEpisode; }
+    public void setMergeEpisode(Integer mergeEpisode) { this.mergeEpisode = mergeEpisode; }
+    public LocalDateTime getMergeDeadline() { return mergeDeadline; }
+    public void setMergeDeadline(LocalDateTime mergeDeadline) { this.mergeDeadline = mergeDeadline; }
     public int getCurrentEpisode() { return currentEpisode; }
     public int getContestantsPerTribe() { return contestantsPerTribe; }
+    public void setContestantsPerTribe(int contestantsPerTribe) { this.contestantsPerTribe = contestantsPerTribe; }
     public Long getCreatedBy() { return createdBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

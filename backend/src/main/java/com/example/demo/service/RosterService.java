@@ -1,9 +1,12 @@
 package com.example.demo.service;
 
+import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.RosterDao;
 import com.example.demo.dao.RosterPickDao;
 import com.example.demo.dto.RosterResponse;
+import com.example.demo.entity.League;
+import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.Roster;
 import com.example.demo.entity.RosterPick;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +25,14 @@ public class RosterService {
     private final RosterDao rosterDao;
     private final RosterPickDao rosterPickDao;
     private final LeagueMemberDao leagueMemberDao;
+    private final LeagueDao leagueDao;
 
     @Autowired
-    public RosterService(RosterDao rosterDao, RosterPickDao rosterPickDao, LeagueMemberDao leagueMemberDao) {
+    public RosterService(RosterDao rosterDao, RosterPickDao rosterPickDao, LeagueMemberDao leagueMemberDao, LeagueDao leagueDao) {
         this.rosterDao = rosterDao;
         this.rosterPickDao = rosterPickDao;
         this.leagueMemberDao = leagueMemberDao;
+        this.leagueDao = leagueDao;
     }
 
     public Optional<RosterResponse> getMyRoster(Long leagueId, Long userId) {
@@ -35,18 +40,60 @@ public class RosterService {
                 .map(this::toResponse);
     }
 
+    public Optional<RosterResponse> getRosterForUser(Long leagueId, Long userId) {
+        return rosterDao.findByLeagueIdAndUserId(leagueId, userId)
+                .map(this::toResponse);
+    }
+
+    public List<RosterResponse> getAllRostersForLeague(Long leagueId) {
+        return rosterDao.findAllByLeagueId(leagueId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public RosterResponse submitRoster(Long leagueId, Long userId, Long mvpSeasonContestantId, List<Long> seasonContestantIds) {
-        if (!leagueMemberDao.existsByLeagueIdAndUserId(leagueId, userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a member of this league");
+        League league = leagueDao.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
+
+        LeagueMember member = leagueMemberDao.findByLeagueIdAndUserId(leagueId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a member of this league"));
+
+        if (member.getRole() != LeagueMember.Role.ADMIN) {
+            LocalDateTime deadline = league.getPickDeadline();
+            if (deadline != null && LocalDateTime.now().isAfter(deadline)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Pick deadline has passed");
+            }
         }
+
+        validatePicksInput(mvpSeasonContestantId, seasonContestantIds);
+        return upsertRoster(leagueId, userId, mvpSeasonContestantId, seasonContestantIds);
+    }
+
+    @Transactional
+    public RosterResponse adminUpdateRoster(Long leagueId, Long adminUserId, Long targetUserId, Long mvpSeasonContestantId, List<Long> seasonContestantIds) {
+        leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
+                .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Only league admins can modify other users' rosters"));
+
+        if (!leagueMemberDao.existsByLeagueIdAndUserId(leagueId, targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Target user is not a member of this league");
+        }
+
+        validatePicksInput(mvpSeasonContestantId, seasonContestantIds);
+        return upsertRoster(leagueId, targetUserId, mvpSeasonContestantId, seasonContestantIds);
+    }
+
+    private void validatePicksInput(Long mvpSeasonContestantId, List<Long> seasonContestantIds) {
         if (mvpSeasonContestantId == null || seasonContestantIds == null || seasonContestantIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "mvpSeasonContestantId and seasonContestantIds are required");
         }
         if (!seasonContestantIds.contains(mvpSeasonContestantId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MVP must be one of the picked contestants");
         }
+    }
 
+    private RosterResponse upsertRoster(Long leagueId, Long userId, Long mvpSeasonContestantId, List<Long> seasonContestantIds) {
         Roster roster = rosterDao.findByLeagueIdAndUserId(leagueId, userId).orElse(null);
 
         if (roster != null) {
