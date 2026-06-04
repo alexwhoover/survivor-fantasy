@@ -227,7 +227,7 @@ export function LeagueOverview() {
         {myRole === "ADMIN" && season && (
           <TabsContent value="scores">
             <EpisodeScores
-              seasonId={season.id}
+              leagueId={Number(leagueId)}
               numEpisodes={season.numEpisodes}
               seasonContestants={seasonContestants}
             />

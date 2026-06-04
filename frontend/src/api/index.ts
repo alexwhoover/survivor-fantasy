@@ -224,14 +224,14 @@ export async function getSeasonById(id: number): Promise<Season> {
   return res.json();
 }
 
-export async function getEpisodeScores(seasonId: number, episodeNumber: number): Promise<EpisodeScoreItem[]> {
-  const res = await apiFetch(`${API_BASE}/seasons/${seasonId}/episodes/${episodeNumber}/scores`, { credentials: "include" });
+export async function getEpisodeScores(leagueId: number, episodeNumber: number): Promise<EpisodeScoreItem[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeNumber}/scores`, { credentials: "include" });
   if (!res.ok) throw new Error(`Failed to fetch scores: ${res.status}`);
   return res.json();
 }
 
-export async function saveEpisodeScores(seasonId: number, episodeNumber: number, scores: EpisodeScoreItem[]): Promise<EpisodeScoreItem[]> {
-  const res = await apiFetch(`${API_BASE}/seasons/${seasonId}/episodes/${episodeNumber}/scores`, {
+export async function saveEpisodeScores(leagueId: number, episodeNumber: number, scores: EpisodeScoreItem[]): Promise<EpisodeScoreItem[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeNumber}/scores`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

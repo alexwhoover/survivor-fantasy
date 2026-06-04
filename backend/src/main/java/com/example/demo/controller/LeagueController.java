@@ -2,12 +2,14 @@ package com.example.demo.controller;
 
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dto.CreateLeagueRequest;
+import com.example.demo.dto.EpisodeScoreItem;
 import com.example.demo.dto.JoinLeagueRequest;
 import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MemberRoleResponse;
 import com.example.demo.dto.RosterResponse;
 import com.example.demo.dto.SubmitRosterRequest;
+import com.example.demo.service.EpisodeScoreService;
 import com.example.demo.service.LeagueService;
 import com.example.demo.service.RosterService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +26,14 @@ public class LeagueController {
     private final LeagueService leagueService;
     private final RosterService rosterService;
     private final LeagueMemberDao leagueMemberDao;
+    private final EpisodeScoreService episodeScoreService;
 
     @Autowired
-    public LeagueController(LeagueService leagueService, RosterService rosterService, LeagueMemberDao leagueMemberDao) {
+    public LeagueController(LeagueService leagueService, RosterService rosterService, LeagueMemberDao leagueMemberDao, EpisodeScoreService episodeScoreService) {
         this.leagueService = leagueService;
         this.rosterService = rosterService;
         this.leagueMemberDao = leagueMemberDao;
+        this.episodeScoreService = episodeScoreService;
     }
 
     @GetMapping
@@ -76,5 +80,18 @@ public class LeagueController {
     @ResponseStatus(HttpStatus.CREATED)
     public RosterResponse submitRoster(@PathVariable Long id, @RequestBody SubmitRosterRequest request) {
         return rosterService.submitRoster(id, request.userId(), request.mvpSeasonContestantId(), request.seasonContestantIds());
+    }
+
+    @GetMapping("/{id}/episodes/{episodeNumber}/scores")
+    public List<EpisodeScoreItem> getEpisodeScores(@PathVariable Long id, @PathVariable int episodeNumber) {
+        return episodeScoreService.getScoresForEpisode(id, episodeNumber);
+    }
+
+    @PostMapping("/{id}/episodes/{episodeNumber}/scores")
+    public List<EpisodeScoreItem> saveEpisodeScores(
+            @PathVariable Long id,
+            @PathVariable int episodeNumber,
+            @RequestBody List<EpisodeScoreItem> scores) {
+        return episodeScoreService.saveScoresForEpisode(id, episodeNumber, scores);
     }
 }

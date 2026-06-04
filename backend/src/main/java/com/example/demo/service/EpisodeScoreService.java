@@ -1,13 +1,17 @@
 package com.example.demo.service;
 
 import com.example.demo.dao.EpisodeScoreDao;
+import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.SeasonDao;
 import com.example.demo.dto.EpisodeScoreItem;
 import com.example.demo.entity.EpisodeScore;
+import com.example.demo.entity.League;
 import com.example.demo.entity.SeasonContestant;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -18,17 +22,21 @@ public class EpisodeScoreService {
 
     private final EpisodeScoreDao episodeScoreDao;
     private final SeasonDao seasonDao;
+    private final LeagueDao leagueDao;
 
     @Autowired
-    public EpisodeScoreService(EpisodeScoreDao episodeScoreDao, SeasonDao seasonDao) {
+    public EpisodeScoreService(EpisodeScoreDao episodeScoreDao, SeasonDao seasonDao, LeagueDao leagueDao) {
         this.episodeScoreDao = episodeScoreDao;
         this.seasonDao = seasonDao;
+        this.leagueDao = leagueDao;
     }
 
     @Transactional(readOnly = true)
-    public List<EpisodeScoreItem> getScoresForEpisode(Long seasonId, int episodeNumber) {
-        List<SeasonContestant> contestants = seasonDao.findContestantsBySeasonId(seasonId);
-        Map<Long, Integer> scoreMap = episodeScoreDao.findBySeasonIdAndEpisodeNumber(seasonId, episodeNumber)
+    public List<EpisodeScoreItem> getScoresForEpisode(Long leagueId, int episodeNumber) {
+        League league = leagueDao.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
+        List<SeasonContestant> contestants = seasonDao.findContestantsBySeasonId(league.getSeasonId());
+        Map<Long, Integer> scoreMap = episodeScoreDao.findBySeasonIdAndEpisodeNumberAndLeagueId(league.getSeasonId(), episodeNumber, leagueId)
                 .stream()
                 .collect(Collectors.toMap(EpisodeScore::getSeasonContestantId, EpisodeScore::getPoints));
 
@@ -38,14 +46,14 @@ public class EpisodeScoreService {
     }
 
     @Transactional
-    public List<EpisodeScoreItem> saveScoresForEpisode(Long seasonId, int episodeNumber, List<EpisodeScoreItem> scores) {
+    public List<EpisodeScoreItem> saveScoresForEpisode(Long leagueId, int episodeNumber, List<EpisodeScoreItem> scores) {
         for (EpisodeScoreItem item : scores) {
-            episodeScoreDao.findBySeasonContestantIdAndEpisodeNumber(item.seasonContestantId(), episodeNumber)
+            episodeScoreDao.findBySeasonContestantIdAndEpisodeNumberAndLeagueId(item.seasonContestantId(), episodeNumber, leagueId)
                     .ifPresentOrElse(
                             existing -> existing.setPoints(item.points()),
-                            () -> episodeScoreDao.save(new EpisodeScore(item.seasonContestantId(), episodeNumber, item.points()))
+                            () -> episodeScoreDao.save(new EpisodeScore(item.seasonContestantId(), leagueId, episodeNumber, item.points()))
                     );
         }
-        return getScoresForEpisode(seasonId, episodeNumber);
+        return getScoresForEpisode(leagueId, episodeNumber);
     }
 }

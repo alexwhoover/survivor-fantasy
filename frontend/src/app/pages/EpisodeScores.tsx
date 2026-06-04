@@ -4,12 +4,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { getEpisodeScores, saveEpisodeScores, type SeasonContestant, type EpisodeScoreItem } from "../../api";
 
 interface Props {
-  seasonId: number;
+  leagueId: number;
   numEpisodes: number;
   seasonContestants: SeasonContestant[];
 }
 
-export function EpisodeScores({ seasonId, numEpisodes, seasonContestants }: Props) {
+export function EpisodeScores({ leagueId, numEpisodes, seasonContestants }: Props) {
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [scores, setScores] = useState<Record<number, number>>({});
   const [saving, setSaving] = useState(false);
@@ -18,12 +18,12 @@ export function EpisodeScores({ seasonId, numEpisodes, seasonContestants }: Prop
 
   useEffect(() => {
     if (selectedEpisode === null) return;
-    getEpisodeScores(seasonId, selectedEpisode).then((items) => {
+    getEpisodeScores(leagueId, selectedEpisode).then((items) => {
       setScores(Object.fromEntries(items.map((i) => [i.seasonContestantId, i.points])));
       setError("");
       setSuccess(false);
     });
-  }, [seasonId, selectedEpisode]);
+  }, [leagueId, selectedEpisode]);
 
   const handleSave = async () => {
     if (selectedEpisode === null) return;
@@ -35,7 +35,7 @@ export function EpisodeScores({ seasonId, numEpisodes, seasonContestants }: Prop
         seasonContestantId: c.id,
         points: scores[c.id] ?? 0,
       }));
-      await saveEpisodeScores(seasonId, selectedEpisode, payload);
+      await saveEpisodeScores(leagueId, selectedEpisode, payload);
       setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save scores");

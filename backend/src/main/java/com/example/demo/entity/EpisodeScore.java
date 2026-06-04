@@ -13,6 +13,9 @@ public class EpisodeScore {
     @Column(name = "season_contestant_id", nullable = false)
     private Long seasonContestantId;
 
+    @Column(name = "league_id", nullable = false)
+    private Long leagueId;
+
     @Column(name = "episode_number", nullable = false)
     private int episodeNumber;
 
@@ -21,14 +24,16 @@ public class EpisodeScore {
 
     public EpisodeScore() {}
 
-    public EpisodeScore(Long seasonContestantId, int episodeNumber, int points) {
+    public EpisodeScore(Long seasonContestantId, Long leagueId, int episodeNumber, int points) {
         this.seasonContestantId = seasonContestantId;
+        this.leagueId = leagueId;
         this.episodeNumber = episodeNumber;
         this.points = points;
     }
 
     public Long getId() { return id; }
     public Long getSeasonContestantId() { return seasonContestantId; }
+    public Long getLeagueId() { return leagueId; }
     public int getEpisodeNumber() { return episodeNumber; }
     public int getPoints() { return points; }
     public void setPoints(int points) { this.points = points; }

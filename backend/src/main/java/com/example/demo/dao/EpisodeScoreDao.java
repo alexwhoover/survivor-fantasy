@@ -18,24 +18,26 @@ public class EpisodeScoreDao {
         entityManager.persist(score);
     }
 
-    public Optional<EpisodeScore> findBySeasonContestantIdAndEpisodeNumber(Long seasonContestantId, int episodeNumber) {
+    public Optional<EpisodeScore> findBySeasonContestantIdAndEpisodeNumberAndLeagueId(Long seasonContestantId, int episodeNumber, Long leagueId) {
         return entityManager.createQuery(
-                "SELECT es FROM EpisodeScore es WHERE es.seasonContestantId = :scId AND es.episodeNumber = :ep",
+                "SELECT es FROM EpisodeScore es WHERE es.seasonContestantId = :scId AND es.episodeNumber = :ep AND es.leagueId = :leagueId",
                 EpisodeScore.class)
                 .setParameter("scId", seasonContestantId)
                 .setParameter("ep", episodeNumber)
+                .setParameter("leagueId", leagueId)
                 .getResultStream()
                 .findFirst();
     }
 
-    public List<EpisodeScore> findBySeasonIdAndEpisodeNumber(Long seasonId, int episodeNumber) {
+    public List<EpisodeScore> findBySeasonIdAndEpisodeNumberAndLeagueId(Long seasonId, int episodeNumber, Long leagueId) {
         return entityManager.createQuery(
                 "SELECT es FROM EpisodeScore es " +
                 "JOIN SeasonContestant sc ON es.seasonContestantId = sc.id " +
-                "WHERE sc.seasonId = :seasonId AND es.episodeNumber = :ep",
+                "WHERE sc.seasonId = :seasonId AND es.episodeNumber = :ep AND es.leagueId = :leagueId",
                 EpisodeScore.class)
                 .setParameter("seasonId", seasonId)
                 .setParameter("ep", episodeNumber)
+                .setParameter("leagueId", leagueId)
                 .getResultList();
     }
 }
