@@ -30,7 +30,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // Permit /api/users/login and /api/users/register without a session
+        // Permit /api/users/login, /api/users/register, and GET /api/seasons/** without a session
         // All other endpoints require a valid session
         // Spring handles logout automatically with POST /api/users/logout
         http
@@ -38,7 +38,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/users/login", "/api/users/register")
-                    .permitAll().anyRequest().authenticated()
+                    .permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/seasons", "/api/seasons/**")
+                    .permitAll()
+                    .anyRequest().authenticated()
             )
             .logout(logout -> logout
                     .logoutUrl("/api/users/logout")
