@@ -122,9 +122,9 @@ export function Home() {
                     </div>
                     <Badge
                       variant="outline"
-                      className={league.pickingOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}
+                      className={league.initialPicksOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}
                     >
-                      {league.pickingOpen ? "Picking Open" : "Picking Closed"}
+                      {league.initialPicksOpen ? "Picking Open" : "Picking Closed"}
                     </Badge>
                   </div>
                 </CardContent>

@@ -21,6 +21,7 @@ export interface Contestant {
   eliminatedEpisode: number | null;
   winner: boolean;
   imageUrl: string | null;
+  totalPoints: number;
 }
 
 export interface AuthUser {
@@ -37,14 +38,14 @@ export interface LeagueApiResponse {
   createdBy: number;
   createdAt: string;
   contestantsPerTribe: number;
-  pickingOpen: boolean;
-  mergeEpisode: number | null;
-  mergeDeadline: string | null;
+  initialPicksOpen: boolean;
+  mergePicksOpen: boolean;
 }
 
 export interface Episode {
   id: number;
   episodeNumber: number;
+  isMergeEpisode: boolean;
 }
 
 export interface TribeSetupItem {
@@ -93,8 +94,7 @@ export interface MergeMemberStatus {
 export interface MergeStatusResponse {
   initiated: boolean;
   mergeEpisode: number | null;
-  mergeDeadline: string | null;
-  deadlinePassed: boolean;
+  mergePicksOpen: boolean;
   memberStatuses: MergeMemberStatus[];
 }
 
@@ -200,8 +200,8 @@ export async function createLeague(
   return res.json();
 }
 
-export async function setPicking(leagueId: number, adminUserId: number, open: boolean): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/picking`, {
+export async function setInitialPicksOpen(leagueId: number, adminUserId: number, open: boolean): Promise<LeagueApiResponse> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/initial-picking`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -209,7 +209,21 @@ export async function setPicking(leagueId: number, adminUserId: number, open: bo
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "Failed to update picking state");
+    throw new Error(text || "Failed to update initial picking state");
+  }
+  return res.json();
+}
+
+export async function setMergePicksOpen(leagueId: number, adminUserId: number, open: boolean): Promise<LeagueApiResponse> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge-picking`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adminUserId, open }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to update merge picking state");
   }
   return res.json();
 }
@@ -310,6 +324,26 @@ export async function deleteEpisode(leagueId: number, adminUserId: number, episo
     const text = await res.text();
     throw new Error(text || "Failed to remove episode");
   }
+}
+
+/** Flags (or unflags) an episode as the season's merge episode. At most one may be flagged. */
+export async function setEpisodeMergeFlag(
+  leagueId: number,
+  adminUserId: number,
+  episodeId: number,
+  isMergeEpisode: boolean
+): Promise<Episode> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeId}/merge-flag`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adminUserId, isMergeEpisode }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to update merge episode flag");
+  }
+  return res.json();
 }
 
 // --- Rosters ---
@@ -439,25 +473,6 @@ export async function getMyMergeAction(leagueId: number, userId: number): Promis
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action/me?userId=${userId}`, { credentials: "include" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch merge action: ${res.status}`);
-  return res.json();
-}
-
-export async function initiateMerge(
-  leagueId: number,
-  adminUserId: number,
-  mergeEpisode: number,
-  mergeDeadline: string
-): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/initiate`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, mergeEpisode, mergeDeadline }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to initiate merge");
-  }
   return res.json();
 }
 

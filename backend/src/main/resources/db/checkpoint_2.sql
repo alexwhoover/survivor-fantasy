@@ -43,7 +43,7 @@ UPDATE contestants SET eliminated_episode = NULL, winner = FALSE WHERE league_id
 -- ─── League state (picking closed — season underway) ──────────────────────────
 
 UPDATE leagues
-SET picking_open = FALSE, merge_episode = NULL, merge_deadline = NULL
+SET initial_picks_open = FALSE, merge_picks_open = FALSE
 WHERE id = @lid;
 
 INSERT INTO episodes (league_id, episode_number) VALUES

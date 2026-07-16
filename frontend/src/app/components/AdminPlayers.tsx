@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Crown, Pencil, CheckCircle2, Circle, X, ArrowLeftRight, Plus } from "lucide-react";
+import { Crown, Pencil, CheckCircle2, Circle, ArrowLeftRight, Plus } from "lucide-react";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { AdminMergeActionModal } from "./AdminMergeActionModal";
@@ -39,7 +39,7 @@ interface MergeEditTarget {
   existingAction: MergeActionResponse | null;
 }
 
-export function AdminRosters({
+export function AdminPlayers({
   league, adminUserId, members, contestants,
   mergeStatus, maxRosterSize, onMergeStatusUpdated,
 }: Props) {
@@ -133,89 +133,65 @@ export function AdminRosters({
       .filter(Boolean) as Contestant[];
   };
 
-  const mergeActionLabel = (action: MergeActionResponse | null | undefined): string | null => {
-    if (!action) return null;
-    const added = contestants.find((c) => c.id === action.addedContestantId);
-    const addedName = added ? `${added.firstName} ${added.lastName}` : "?";
-    if (action.actionType === "ADD") return `Added ${addedName}`;
-    const removed = contestants.find((c) => c.id === action.removedContestantId);
-    const removedName = removed ? `${removed.firstName} ${removed.lastName}` : "?";
-    return `${removedName} → ${addedName}`;
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {members.map((member) => {
         const rosterContestants = getRosterContestants(member.userId);
         const roster = rosters[member.userId];
-        const mvp = roster ? contestants.find((c) => c.id === roster.mvpContestantId) : null;
         const hasRoster = !!roster;
         const mergeAction = mergeActions[member.userId];
-        const canEditMerge = mergeStatus?.initiated && hasRoster;
+        const mergeInitiated = mergeStatus?.initiated ?? false;
+        const canEditMerge = mergeInitiated && hasRoster;
 
         return (
-          <Card key={member.userId}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-base">{member.username}</CardTitle>
-                  {member.role === "ADMIN" && <Badge variant="outline">Admin</Badge>}
-                  {!hasRoster && <Badge variant="secondary">No roster</Badge>}
-                </div>
-                <div className="flex items-center gap-2">
-                  {canEditMerge && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => openMergeEdit(member)}
-                    >
-                      {mergeAction
-                        ? <><ArrowLeftRight className="h-3.5 w-3.5" /> Edit Merge</>
-                        : <><Plus className="h-3.5 w-3.5" /> Set Merge</>}
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openRosterEdit(member)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit Roster
-                  </Button>
-                </div>
+          <Card key={member.userId} style={{ padding: "16px" }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[15px] font-medium">{member.username}</span>
+                {member.role === "ADMIN" && <Badge variant="secondary">Admin</Badge>}
               </div>
-            </CardHeader>
+              <div className="flex items-center gap-2">
+                {canEditMerge && (
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openMergeEdit(member)}>
+                    {mergeAction
+                      ? <><ArrowLeftRight className="h-3.5 w-3.5" /> Edit Merge</>
+                      : <><Plus className="h-3.5 w-3.5" /> Set Merge</>}
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openRosterEdit(member)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Roster
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2 flex-wrap mb-3">
+              <Badge variant={hasRoster ? "default" : "outline"}>
+                Initial Picks: {hasRoster ? "Submitted" : "Pending"}
+              </Badge>
+              <Badge variant={!mergeInitiated ? "secondary" : mergeAction ? "default" : "outline"}>
+                Merge Picks: {!mergeInitiated ? "N/A" : mergeAction ? "Submitted" : "Pending"}
+              </Badge>
+            </div>
 
             {hasRoster && (
-              <CardContent className="space-y-3">
-                {/* Picks */}
-                <div className="flex flex-wrap gap-2">
-                  {rosterContestants.map((c) => {
-                    const isMVP = c.id === roster?.mvpContestantId;
-                    const isMergeAdded = mergeAction?.addedContestantId === c.id;
-                    return (
-                      <div
-                        key={c.id}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-sm"
-                        style={isMVP ? { borderColor: "var(--primary)", backgroundColor: "var(--accent)" } : {}}
-                      >
-                        {isMVP && <Crown className="h-3 w-3 text-primary" />}
-                        <span>{c.firstName} {c.lastName}</span>
-                        {isMergeAdded && <ArrowLeftRight className="h-3 w-3 text-muted-foreground" />}
-                        {c.eliminatedEpisode !== null && <X className="h-3 w-3 text-destructive" />}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Merge action summary */}
-                {mergeAction && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground border-t pt-2">
-                    <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      <span className="font-medium text-foreground">Merge {mergeAction.actionType === "SWAP" ? "Swap" : "Add"}: </span>
-                      {mergeActionLabel(mergeAction)}
-                    </span>
-                  </div>
-                )}
-              </CardContent>
+              <div className="flex flex-wrap gap-2">
+                {rosterContestants.map((c) => {
+                  const isMVP = c.id === roster?.mvpContestantId;
+                  return (
+                    <div
+                      key={c.id}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs"
+                      style={{ borderColor: isMVP ? "var(--primary)" : "var(--border)" }}
+                    >
+                      {c.tribeColour && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: c.tribeColour }} />}
+                      <span>{c.firstName} {c.lastName}</span>
+                      {isMVP && <span className="text-primary font-medium">MVP</span>}
+                      {c.eliminatedEpisode !== null && <span className="text-muted-foreground">Out</span>}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </Card>
         );
@@ -333,7 +309,6 @@ export function AdminRosters({
           contestants={contestants}
           maxRosterSize={maxRosterSize}
           onSuccess={(status) => {
-            // Refresh this member's merge action
             getMyMergeAction(league.id, mergeEditTarget.member.userId)
               .then((a) => setMergeActions((prev) => ({ ...prev, [mergeEditTarget.member.userId]: a })))
               .catch(() => {});

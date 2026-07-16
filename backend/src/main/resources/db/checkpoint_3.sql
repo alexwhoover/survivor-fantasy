@@ -43,14 +43,15 @@ DELETE rp FROM roster_picks   rp JOIN rosters     r ON rp.roster_id     = r.id W
 DELETE FROM rosters WHERE league_id = @lid;
 UPDATE contestants SET eliminated_episode = NULL, winner = FALSE WHERE league_id = @lid;
 
--- ─── League state (merge initiated, deadline still open) ──────────────────────
+-- ─── League state (merge episode flagged, merge picks open) ───────────────────
 
 UPDATE leagues
-SET picking_open = FALSE, merge_episode = 7, merge_deadline = '2026-11-08 23:59:59'
+SET initial_picks_open = FALSE, merge_picks_open = TRUE
 WHERE id = @lid;
 
-INSERT INTO episodes (league_id, episode_number) VALUES
-(@lid, 1), (@lid, 2), (@lid, 3), (@lid, 4), (@lid, 5), (@lid, 6), (@lid, 7);
+INSERT INTO episodes (league_id, episode_number, is_merge_episode) VALUES
+(@lid, 1, FALSE), (@lid, 2, FALSE), (@lid, 3, FALSE), (@lid, 4, FALSE),
+(@lid, 5, FALSE), (@lid, 6, FALSE), (@lid, 7, TRUE);
 
 UPDATE contestants SET eliminated_episode = 1 WHERE id = @c_brandon;
 UPDATE contestants SET eliminated_episode = 2 WHERE id = @c_natalie;

@@ -15,7 +15,7 @@ UPDATE contestants SET eliminated_episode = NULL, winner = FALSE WHERE league_id
 -- ─── League state (picks still open, season not yet underway) ────────────────
 
 UPDATE leagues
-SET picking_open = TRUE, merge_episode = NULL, merge_deadline = NULL
+SET initial_picks_open = TRUE, merge_picks_open = FALSE
 WHERE id = @lid;
 
 -- No episodes, no rosters, no episode scores.
