@@ -23,11 +23,11 @@ public class MergeAction {
     @Column(name = "action_type", nullable = false)
     private ActionType actionType;
 
-    @Column(name = "added_season_contestant_id", nullable = false)
-    private Long addedSeasonContestantId;
+    @Column(name = "added_contestant_id", nullable = false)
+    private Long addedContestantId;
 
-    @Column(name = "removed_season_contestant_id")
-    private Long removedSeasonContestantId;
+    @Column(name = "removed_contestant_id")
+    private Long removedContestantId;
 
     @Column(name = "performed_at", nullable = false)
     private LocalDateTime performedAt;
@@ -35,12 +35,12 @@ public class MergeAction {
     public MergeAction() {}
 
     public MergeAction(Long leagueId, Long userId, ActionType actionType,
-                       Long addedSeasonContestantId, Long removedSeasonContestantId) {
+                       Long addedContestantId, Long removedContestantId) {
         this.leagueId = leagueId;
         this.userId = userId;
         this.actionType = actionType;
-        this.addedSeasonContestantId = addedSeasonContestantId;
-        this.removedSeasonContestantId = removedSeasonContestantId;
+        this.addedContestantId = addedContestantId;
+        this.removedContestantId = removedContestantId;
         this.performedAt = LocalDateTime.now();
     }
 
@@ -48,7 +48,7 @@ public class MergeAction {
     public Long getLeagueId() { return leagueId; }
     public Long getUserId() { return userId; }
     public ActionType getActionType() { return actionType; }
-    public Long getAddedSeasonContestantId() { return addedSeasonContestantId; }
-    public Long getRemovedSeasonContestantId() { return removedSeasonContestantId; }
+    public Long getAddedContestantId() { return addedContestantId; }
+    public Long getRemovedContestantId() { return removedContestantId; }
     public LocalDateTime getPerformedAt() { return performedAt; }
 }

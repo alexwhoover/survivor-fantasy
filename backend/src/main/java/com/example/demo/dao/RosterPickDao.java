@@ -30,11 +30,12 @@ public class RosterPickDao {
                 .executeUpdate();
     }
 
-    public void deletePickByRosterIdAndSeasonContestantId(Long rosterId, Long seasonContestantId) {
+    public void deletePickByRosterIdAndContestantId(Long rosterId, Long contestantId) {
         entityManager.createQuery(
-                "DELETE FROM RosterPick p WHERE p.rosterId = :rosterId AND p.seasonContestantId = :scId")
+                "DELETE FROM RosterPick p WHERE p.rosterId = :rosterId AND p.contestantId = :cId")
                 .setParameter("rosterId", rosterId)
-                .setParameter("scId", seasonContestantId)
+                .setParameter("cId", contestantId)
                 .executeUpdate();
     }
+
 }

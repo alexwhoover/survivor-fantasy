@@ -1,6 +1,0 @@
--- League/user/roster/score seed data has moved to checkpoint files.
--- Run: ./seed.sh [1|2|3|4]
---   1 = pre-picks (league open, no rosters yet)
---   2 = 4 episodes in, before merge window
---   3 = between ep 7 and 8, merge window open
---   4 = end of season, all results final

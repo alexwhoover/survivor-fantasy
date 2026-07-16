@@ -11,10 +11,11 @@ import { EpisodeScores } from "./EpisodeScores";
 import { AdminRosters } from "../components/AdminRosters";
 import { UserStatus } from "../components/UserStatus";
 import { MergeActionModal } from "../components/MergeActionModal";
+import { SeasonManagement } from "../components/SeasonManagement";
 import {
   getLeagueById,
-  getSeasonContestants,
-  getSeasonById,
+  getLeagueContestants,
+  getLeagueTribes,
   getMyRoster,
   getLeagueMembers,
   getMyLeagueRole,
@@ -23,8 +24,8 @@ import {
   getMyMergeAction,
   getRosterForUser,
   type LeagueApiResponse,
-  type Season,
-  type SeasonContestant,
+  type Tribe,
+  type Contestant,
   type RosterResponse,
   type LeagueMember,
   type LeaderboardEntry,
@@ -37,12 +38,12 @@ import {
 function RosterViewModal({
   member,
   leagueId,
-  seasonContestants,
+  contestants,
   onClose,
 }: {
   member: LeagueMember | null;
   leagueId: number;
-  seasonContestants: SeasonContestant[];
+  contestants: Contestant[];
   onClose: () => void;
 }) {
   const [roster, setRoster] = useState<RosterResponse | null | undefined>(undefined);
@@ -54,11 +55,11 @@ function RosterViewModal({
   }, [member, leagueId]);
 
   const rosterContestants =
-    roster?.seasonContestantIds
-      .map((id) => seasonContestants.find((c) => c.id === id))
-      .filter(Boolean) as SeasonContestant[] ?? [];
+    roster?.contestantIds
+      .map((id) => contestants.find((c) => c.id === id))
+      .filter(Boolean) as Contestant[] ?? [];
 
-  const mvp = roster ? seasonContestants.find((c) => c.id === roster.mvpSeasonContestantId) : null;
+  const mvp = roster ? contestants.find((c) => c.id === roster.mvpContestantId) : null;
 
   return (
     <Dialog open={member !== null} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -76,7 +77,7 @@ function RosterViewModal({
               ) : (
                 <div className="space-y-2">
                   {rosterContestants.map((c) => {
-                    const isMVP = c.id === roster.mvpSeasonContestantId;
+                    const isMVP = c.id === roster.mvpContestantId;
                     return (
                       <div
                         key={c.id}
@@ -171,8 +172,8 @@ export function LeagueOverview() {
   const { user } = useAuth();
 
   const [league, setLeague] = useState<LeagueApiResponse | null>(null);
-  const [season, setSeason] = useState<Season | null>(null);
-  const [seasonContestants, setSeasonContestants] = useState<SeasonContestant[]>([]);
+  const [tribes, setTribes] = useState<Tribe[]>([]);
+  const [contestants, setContestants] = useState<Contestant[]>([]);
   const [myRoster, setMyRoster] = useState<RosterResponse | null>(null);
   const [leagueMembers, setLeagueMembers] = useState<LeagueMember[]>([]);
   const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
@@ -195,11 +196,9 @@ export function LeagueOverview() {
   // Initial data load
   useEffect(() => {
     if (!leagueId) return;
-    getLeagueById(numId).then((l) => {
-      setLeague(l);
-      getSeasonContestants(l.seasonId).then(setSeasonContestants);
-      getSeasonById(l.seasonId).then(setSeason);
-    });
+    getLeagueById(numId).then(setLeague);
+    getLeagueContestants(numId).then(setContestants);
+    getLeagueTribes(numId).then(setTribes);
     getLeagueMembers(numId).then(setLeagueMembers);
     refreshLeaderboard();
     refreshMergeStatus();
@@ -217,17 +216,17 @@ export function LeagueOverview() {
   }
 
   const myRosterContestants = myRoster
-    ? (myRoster.seasonContestantIds
-        .map((id) => seasonContestants.find((c) => c.id === id))
-        .filter(Boolean) as SeasonContestant[])
+    ? (myRoster.contestantIds
+        .map((id) => contestants.find((c) => c.id === id))
+        .filter(Boolean) as Contestant[])
     : [];
 
   const mvpContestant = myRoster
-    ? (seasonContestants.find((c) => c.id === myRoster.mvpSeasonContestantId) ?? null)
+    ? (contestants.find((c) => c.id === myRoster.mvpContestantId) ?? null)
     : null;
 
   const isAdmin = myRole === "ADMIN";
-  const maxRosterSize = league.contestantsPerTribe * [...new Set(seasonContestants.map((c) => c.tribe).filter(Boolean))].length;
+  const maxRosterSize = league.contestantsPerTribe * tribes.length;
 
   const myMergeStatus = mergeStatus?.memberStatuses.find((m) => m.userId === user?.id);
   const myHasActed = myMergeStatus?.hasActed ?? false;
@@ -238,9 +237,7 @@ export function LeagueOverview() {
     !myHasActed &&
     myRoster !== null;
 
-  const canEditRoster = !league.pickDeadline || isAdmin
-    ? true
-    : new Date() < new Date(league.pickDeadline);
+  const canEditRoster = isAdmin || league.pickingOpen;
 
   const rankIcon = (rank: number) => {
     if (rank === 1) return <Medal className="h-4 w-4 text-yellow-400" />;
@@ -256,7 +253,7 @@ export function LeagueOverview() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="mb-1">{league.name}</h1>
-            {season && <p className="text-muted-foreground">{season.name}</p>}
+            <p className="text-muted-foreground">{league.seasonName}</p>
           </div>
           {canEditRoster && (
             <Link to={`/league/${leagueId}/pick`}>
@@ -285,20 +282,19 @@ export function LeagueOverview() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground">
-                {league.mergeEpisode ? "Merge Episode" : "Pick Deadline"}
+                {league.mergeEpisode ? "Merge Episode" : "Picking"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {league.mergeEpisode ? (
                 <div className="text-3xl font-bold text-primary">{league.mergeEpisode}</div>
-              ) : league.pickDeadline ? (
-                <div className="text-sm font-medium">
-                  {new Date(league.pickDeadline).toLocaleDateString(undefined, {
-                    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-                  })}
-                </div>
               ) : (
-                <div className="text-sm text-muted-foreground">Not set</div>
+                <Badge
+                  variant="outline"
+                  className={league.pickingOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}
+                >
+                  {league.pickingOpen ? "Open" : "Closed"}
+                </Badge>
               )}
             </CardContent>
           </Card>
@@ -334,8 +330,8 @@ export function LeagueOverview() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {/* Removed contestant — shown at top when a swap occurred */}
-                {myMergeAction?.actionType === "SWAP" && myMergeAction.removedSeasonContestantId && (() => {
-                  const removed = seasonContestants.find((c) => c.id === myMergeAction.removedSeasonContestantId);
+                {myMergeAction?.actionType === "SWAP" && myMergeAction.removedContestantId && (() => {
+                  const removed = contestants.find((c) => c.id === myMergeAction.removedContestantId);
                   if (!removed) return null;
                   return (
                     <div
@@ -360,8 +356,8 @@ export function LeagueOverview() {
                 })()}
 
                 {myRosterContestants.map((contestant) => {
-                  const isMVP = contestant.id === myRoster.mvpSeasonContestantId;
-                  const isMergeAdded = myMergeAction?.addedSeasonContestantId === contestant.id;
+                  const isMVP = contestant.id === myRoster.mvpContestantId;
+                  const isMergeAdded = myMergeAction?.addedContestantId === contestant.id;
                   return (
                     <div
                       key={contestant.id}
@@ -491,13 +487,14 @@ export function LeagueOverview() {
         </TabsContent>
 
         {/* ── Admin tab ── */}
-        {isAdmin && season && (
+        {isAdmin && (
           <TabsContent value="admin">
             <Tabs defaultValue="rosters" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="rosters">User Rosters</TabsTrigger>
                 <TabsTrigger value="status">User Status</TabsTrigger>
                 <TabsTrigger value="scores">Episode Scores</TabsTrigger>
+                <TabsTrigger value="season">Season</TabsTrigger>
               </TabsList>
 
               <TabsContent value="rosters">
@@ -505,7 +502,7 @@ export function LeagueOverview() {
                   league={league}
                   adminUserId={user!.id}
                   members={leagueMembers}
-                  seasonContestants={seasonContestants}
+                  contestants={contestants}
                   mergeStatus={mergeStatus}
                   maxRosterSize={maxRosterSize}
                   onMergeStatusUpdated={(status) => {
@@ -526,8 +523,19 @@ export function LeagueOverview() {
               <TabsContent value="scores">
                 <EpisodeScores
                   leagueId={numId}
-                  numEpisodes={season.numEpisodes}
-                  seasonContestants={seasonContestants}
+                  adminUserId={user!.id}
+                  contestants={contestants}
+                />
+              </TabsContent>
+
+              <TabsContent value="season">
+                <SeasonManagement
+                  league={league}
+                  adminUserId={user!.id}
+                  tribes={tribes}
+                  contestants={contestants}
+                  onLeagueUpdated={setLeague}
+                  onContestantsChanged={setContestants}
                 />
               </TabsContent>
             </Tabs>
@@ -539,7 +547,7 @@ export function LeagueOverview() {
       <RosterViewModal
         member={viewingMember}
         leagueId={numId}
-        seasonContestants={seasonContestants}
+        contestants={contestants}
         onClose={() => setViewingMember(null)}
       />
 
@@ -551,7 +559,7 @@ export function LeagueOverview() {
           leagueId={numId}
           userId={user.id}
           currentRoster={myRoster}
-          seasonContestants={seasonContestants}
+          contestants={contestants}
           maxRosterSize={maxRosterSize}
           onSuccess={(status) => {
             setMergeStatus(status);

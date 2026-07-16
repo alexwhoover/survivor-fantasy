@@ -30,16 +30,18 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // Permit /api/users/login, /api/users/register, and GET /api/seasons/** without a session
+        // Permit /api/users/login and /api/users/register without a session
         // All other endpoints require a valid session
         // Spring handles logout automatically with POST /api/users/logout
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/users/login", "/api/users/register")
+                    // Allow the servlet ERROR dispatch so exceptions render proper
+                    // status codes and JSON bodies instead of an empty 403
+                    .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR)
                     .permitAll()
-                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/seasons", "/api/seasons/**")
+                    .requestMatchers("/api/users/login", "/api/users/register")
                     .permitAll()
                     .anyRequest().authenticated()
             )

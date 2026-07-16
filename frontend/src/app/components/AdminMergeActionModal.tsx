@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { ArrowLeftRight, Plus, Crown, CheckCircle2, Circle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
-import { adminSetMergeAction, type SeasonContestant, type RosterResponse, type MergeActionResponse, type MergeStatusResponse } from "../../api";
+import { adminSetMergeAction, type Contestant, type RosterResponse, type MergeActionResponse, type MergeStatusResponse } from "../../api";
 
 interface Props {
   open: boolean;
@@ -12,7 +12,7 @@ interface Props {
   targetMember: { userId: number; username: string };
   currentRoster: RosterResponse;
   existingAction: MergeActionResponse | null;
-  seasonContestants: SeasonContestant[];
+  contestants: Contestant[];
   maxRosterSize: number;
   onSuccess: (status: MergeStatusResponse) => void;
 }
@@ -25,12 +25,12 @@ export function AdminMergeActionModal({
   targetMember,
   currentRoster,
   existingAction,
-  seasonContestants,
+  contestants,
   maxRosterSize,
   onSuccess,
 }: Props) {
-  const [addId, setAddId] = useState<number | null>(existingAction?.addedSeasonContestantId ?? null);
-  const [removeId, setRemoveId] = useState<number | null>(existingAction?.removedSeasonContestantId ?? null);
+  const [addId, setAddId] = useState<number | null>(existingAction?.addedContestantId ?? null);
+  const [removeId, setRemoveId] = useState<number | null>(existingAction?.removedContestantId ?? null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,16 +38,16 @@ export function AdminMergeActionModal({
   // If creating new, determine by roster size.
   const isSwap = existingAction
     ? existingAction.actionType === "SWAP"
-    : currentRoster.seasonContestantIds.length >= maxRosterSize;
+    : currentRoster.contestantIds.length >= maxRosterSize;
 
   // Build the "effective pre-merge roster" for computing available contestants:
   // Revert the existing action to get the state before the merge.
   const preMergeRosterIds = useMemo((): Set<number> => {
-    const ids = new Set(currentRoster.seasonContestantIds);
+    const ids = new Set(currentRoster.contestantIds);
     if (existingAction) {
-      ids.delete(existingAction.addedSeasonContestantId);
-      if (existingAction.removedSeasonContestantId != null) {
-        ids.add(existingAction.removedSeasonContestantId);
+      ids.delete(existingAction.addedContestantId);
+      if (existingAction.removedContestantId != null) {
+        ids.add(existingAction.removedContestantId);
       }
     }
     return ids;
@@ -55,14 +55,14 @@ export function AdminMergeActionModal({
 
   // Contestants eligible to add: not in pre-merge roster, not eliminated
   const addableContestants = useMemo(
-    () => seasonContestants.filter((c) => !preMergeRosterIds.has(c.id) && c.eliminatedEpisode === null),
-    [seasonContestants, preMergeRosterIds]
+    () => contestants.filter((c) => !preMergeRosterIds.has(c.id) && c.eliminatedEpisode === null),
+    [contestants, preMergeRosterIds]
   );
 
   // Contestants eligible to remove (swap only): in pre-merge roster, not eliminated
   const removableContestants = useMemo(
-    () => seasonContestants.filter((c) => preMergeRosterIds.has(c.id) && c.eliminatedEpisode === null),
-    [seasonContestants, preMergeRosterIds]
+    () => contestants.filter((c) => preMergeRosterIds.has(c.id) && c.eliminatedEpisode === null),
+    [contestants, preMergeRosterIds]
   );
 
   const tribes = [...new Set(addableContestants.map((c) => c.tribe).filter(Boolean) as string[])];
@@ -85,7 +85,7 @@ export function AdminMergeActionModal({
 
   const contestantName = (id: number | null) => {
     if (!id) return null;
-    const c = seasonContestants.find((sc) => sc.id === id);
+    const c = contestants.find((sc) => sc.id === id);
     return c ? `${c.firstName} ${c.lastName}` : null;
   };
 
@@ -115,7 +115,7 @@ export function AdminMergeActionModal({
               <div className="grid grid-cols-2 gap-2">
                 {removableContestants.map((c) => {
                   const selected = removeId === c.id;
-                  const isMVP = c.id === currentRoster.mvpSeasonContestantId;
+                  const isMVP = c.id === currentRoster.mvpContestantId;
                   return (
                     <div
                       key={c.id}

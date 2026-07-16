@@ -34,8 +34,8 @@ export function Landing() {
             <Link to="/login">
               <Button size="lg">Login</Button>
             </Link>
-            <Link to="/cast">
-              <Button size="lg" variant="outline">Browse the Cast</Button>
+            <Link to="/how-to-play">
+              <Button size="lg" variant="outline">How to Play</Button>
             </Link>
           </div>
         )}

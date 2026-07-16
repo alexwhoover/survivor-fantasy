@@ -3,7 +3,7 @@ import { ArrowLeftRight, Plus, Crown, CheckCircle2, Circle } from "lucide-react"
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Badge } from "./ui/badge";
-import { performMergeAction, type SeasonContestant, type RosterResponse, type MergeStatusResponse } from "../../api";
+import { performMergeAction, type Contestant, type RosterResponse, type MergeStatusResponse } from "../../api";
 
 interface Props {
   open: boolean;
@@ -11,7 +11,7 @@ interface Props {
   leagueId: number;
   userId: number;
   currentRoster: RosterResponse;
-  seasonContestants: SeasonContestant[];
+  contestants: Contestant[];
   maxRosterSize: number;
   onSuccess: (status: MergeStatusResponse) => void;
 }
@@ -22,7 +22,7 @@ export function MergeActionModal({
   leagueId,
   userId,
   currentRoster,
-  seasonContestants,
+  contestants,
   maxRosterSize,
   onSuccess,
 }: Props) {
@@ -31,24 +31,24 @@ export function MergeActionModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const isSwap = currentRoster.seasonContestantIds.length >= maxRosterSize;
+  const isSwap = currentRoster.contestantIds.length >= maxRosterSize;
   const actionType = isSwap ? "SWAP" : "ADD";
 
-  const rosterSet = new Set(currentRoster.seasonContestantIds);
+  const rosterSet = new Set(currentRoster.contestantIds);
 
   // Contestants eligible to be added: not on roster, not eliminated
   const addableContestants = useMemo(
-    () => seasonContestants.filter((c) => !rosterSet.has(c.id) && c.eliminatedEpisode === null),
-    [seasonContestants, currentRoster.seasonContestantIds]
+    () => contestants.filter((c) => !rosterSet.has(c.id) && c.eliminatedEpisode === null),
+    [contestants, currentRoster.contestantIds]
   );
 
   // Contestants eligible to be removed (swap only): on roster, not eliminated
   const removableContestants = useMemo(
     () =>
-      seasonContestants.filter(
+      contestants.filter(
         (c) => rosterSet.has(c.id) && c.eliminatedEpisode === null
       ),
-    [seasonContestants, currentRoster.seasonContestantIds]
+    [contestants, currentRoster.contestantIds]
   );
 
   // Group addable contestants by tribe
@@ -102,7 +102,7 @@ export function MergeActionModal({
               <div className="grid grid-cols-2 gap-2">
                 {removableContestants.map((c) => {
                   const selected = removeId === c.id;
-                  const isMVP = c.id === currentRoster.mvpSeasonContestantId;
+                  const isMVP = c.id === currentRoster.mvpContestantId;
                   return (
                     <div
                       key={c.id}
@@ -201,13 +201,13 @@ export function MergeActionModal({
               {removeId && (
                 <div className="flex items-center gap-2">
                   <span className="text-destructive font-medium">Remove:</span>
-                  <span>{seasonContestants.find((c) => c.id === removeId)?.firstName} {seasonContestants.find((c) => c.id === removeId)?.lastName}</span>
+                  <span>{contestants.find((c) => c.id === removeId)?.firstName} {contestants.find((c) => c.id === removeId)?.lastName}</span>
                 </div>
               )}
               {addId && (
                 <div className="flex items-center gap-2">
                   <span className="text-primary font-medium">Add:</span>
-                  <span>{seasonContestants.find((c) => c.id === addId)?.firstName} {seasonContestants.find((c) => c.id === addId)?.lastName}</span>
+                  <span>{contestants.find((c) => c.id === addId)?.firstName} {contestants.find((c) => c.id === addId)?.lastName}</span>
                 </div>
               )}
             </div>

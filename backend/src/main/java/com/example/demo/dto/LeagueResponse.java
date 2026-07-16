@@ -6,11 +6,11 @@ public record LeagueResponse(
         Long id,
         String name,
         String code,
-        Long seasonId,
+        String seasonName,
         Long createdBy,
         LocalDateTime createdAt,
         int contestantsPerTribe,
-        LocalDateTime pickDeadline,
+        boolean pickingOpen,
         Integer mergeEpisode,
         LocalDateTime mergeDeadline
 ) {}

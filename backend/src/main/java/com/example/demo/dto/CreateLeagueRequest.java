@@ -1,11 +1,12 @@
 package com.example.demo.dto;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 public record CreateLeagueRequest(
         String name,
-        Long seasonId,
+        String seasonName,
         Long userId,
-        LocalDateTime pickDeadline,
-        Integer contestantsPerTribe
+        Integer contestantsPerTribe,
+        List<TribeSetupItem> tribes,
+        List<ContestantSetupItem> contestants
 ) {}

@@ -5,7 +5,8 @@ import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.MergeActionDao;
 import com.example.demo.dao.RosterDao;
 import com.example.demo.dao.RosterPickDao;
-import com.example.demo.dao.SeasonDao;
+import com.example.demo.dao.ContestantDao;
+import com.example.demo.dao.TribeDao;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MergeActionRequest;
 import com.example.demo.dto.MergeActionResponse;
@@ -16,7 +17,7 @@ import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.MergeAction;
 import com.example.demo.entity.Roster;
 import com.example.demo.entity.RosterPick;
-import com.example.demo.entity.SeasonContestant;
+import com.example.demo.entity.Contestant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,19 +39,21 @@ public class MergeService {
     private final MergeActionDao mergeActionDao;
     private final RosterDao rosterDao;
     private final RosterPickDao rosterPickDao;
-    private final SeasonDao seasonDao;
+    private final ContestantDao contestantDao;
+    private final TribeDao tribeDao;
     private final LeagueService leagueService;
 
     @Autowired
     public MergeService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao, MergeActionDao mergeActionDao,
-                        RosterDao rosterDao, RosterPickDao rosterPickDao, SeasonDao seasonDao,
+                        RosterDao rosterDao, RosterPickDao rosterPickDao, ContestantDao contestantDao, TribeDao tribeDao,
                         LeagueService leagueService) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
         this.mergeActionDao = mergeActionDao;
         this.rosterDao = rosterDao;
         this.rosterPickDao = rosterPickDao;
-        this.seasonDao = seasonDao;
+        this.contestantDao = contestantDao;
+        this.tribeDao = tribeDao;
         this.leagueService = leagueService;
     }
 
@@ -98,7 +101,7 @@ public class MergeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "User has not submitted a roster"));
 
         List<RosterPick> currentPicks = rosterPickDao.findByRosterId(roster.getId());
-        int maxRosterSize = league.getContestantsPerTribe() * seasonDao.countTribesBySeasonId(league.getSeasonId());
+        int maxRosterSize = league.getContestantsPerTribe() * tribeDao.countByLeagueId(league.getId());
         boolean isFull = currentPicks.size() >= maxRosterSize;
 
         if (isFull) {
@@ -111,20 +114,20 @@ public class MergeService {
     }
 
     private void performAdd(League league, Roster roster, List<RosterPick> currentPicks, MergeActionRequest request) {
-        if (request.addedSeasonContestantId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "addedSeasonContestantId is required");
+        if (request.addedContestantId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "addedContestantId is required");
         }
 
-        SeasonContestant toAdd = seasonDao.findSeasonContestantById(request.addedSeasonContestantId())
+        Contestant toAdd = contestantDao.findById(request.addedContestantId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contestant not found"));
 
-        validateBelongsToLeagueSeason(toAdd, league);
+        validateBelongsToLeague(toAdd, league);
 
         if (toAdd.getEliminatedEpisode() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add an eliminated contestant");
         }
 
-        Set<Long> existingIds = currentPicks.stream().map(RosterPick::getSeasonContestantId).collect(Collectors.toSet());
+        Set<Long> existingIds = currentPicks.stream().map(RosterPick::getContestantId).collect(Collectors.toSet());
         if (existingIds.contains(toAdd.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contestant is already on this roster");
         }
@@ -134,17 +137,17 @@ public class MergeService {
     }
 
     private void performSwap(League league, Roster roster, List<RosterPick> currentPicks, MergeActionRequest request) {
-        if (request.addedSeasonContestantId() == null || request.removedSeasonContestantId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Both addedSeasonContestantId and removedSeasonContestantId are required for a swap");
+        if (request.addedContestantId() == null || request.removedContestantId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Both addedContestantId and removedContestantId are required for a swap");
         }
 
-        SeasonContestant toAdd = seasonDao.findSeasonContestantById(request.addedSeasonContestantId())
+        Contestant toAdd = contestantDao.findById(request.addedContestantId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contestant to add not found"));
-        SeasonContestant toRemove = seasonDao.findSeasonContestantById(request.removedSeasonContestantId())
+        Contestant toRemove = contestantDao.findById(request.removedContestantId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contestant to remove not found"));
 
-        validateBelongsToLeagueSeason(toAdd, league);
-        validateBelongsToLeagueSeason(toRemove, league);
+        validateBelongsToLeague(toAdd, league);
+        validateBelongsToLeague(toRemove, league);
 
         if (toAdd.getEliminatedEpisode() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot add an eliminated contestant");
@@ -153,7 +156,7 @@ public class MergeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot swap out an eliminated contestant");
         }
 
-        Set<Long> existingIds = currentPicks.stream().map(RosterPick::getSeasonContestantId).collect(Collectors.toSet());
+        Set<Long> existingIds = currentPicks.stream().map(RosterPick::getContestantId).collect(Collectors.toSet());
         if (!existingIds.contains(toRemove.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contestant to remove is not on this roster");
         }
@@ -161,14 +164,14 @@ public class MergeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contestant to add is already on this roster");
         }
 
-        rosterPickDao.deletePickByRosterIdAndSeasonContestantId(roster.getId(), toRemove.getId());
+        rosterPickDao.deletePickByRosterIdAndContestantId(roster.getId(), toRemove.getId());
         rosterPickDao.save(new RosterPick(roster.getId(), toAdd.getId()));
         mergeActionDao.save(new MergeAction(league.getId(), roster.getUserId(), MergeAction.ActionType.SWAP, toAdd.getId(), toRemove.getId()));
     }
 
-    private void validateBelongsToLeagueSeason(SeasonContestant sc, League league) {
-        if (!sc.getSeasonId().equals(league.getSeasonId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contestant does not belong to this league's season");
+    private void validateBelongsToLeague(Contestant sc, League league) {
+        if (!sc.getLeagueId().equals(league.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contestant does not belong to this league");
         }
     }
 
@@ -188,7 +191,7 @@ public class MergeService {
 
     @Transactional
     public MergeStatusResponse adminSetMergeAction(Long leagueId, Long adminUserId, Long targetUserId,
-                                                   Long addedSeasonContestantId, Long removedSeasonContestantId) {
+                                                   Long addedContestantId, Long removedContestantId) {
         leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
                 .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Only league admins can override merge actions"));
@@ -206,32 +209,32 @@ public class MergeService {
         // Revert any existing merge action for this user
         mergeActionDao.findByLeagueIdAndUserId(leagueId, targetUserId).ifPresent(existing -> {
             // Remove the previously-added contestant from the roster
-            rosterPickDao.deletePickByRosterIdAndSeasonContestantId(roster.getId(), existing.getAddedSeasonContestantId());
+            rosterPickDao.deletePickByRosterIdAndContestantId(roster.getId(), existing.getAddedContestantId());
             // For a swap, restore the previously-removed contestant
-            if (existing.getRemovedSeasonContestantId() != null) {
-                rosterPickDao.save(new RosterPick(roster.getId(), existing.getRemovedSeasonContestantId()));
+            if (existing.getRemovedContestantId() != null) {
+                rosterPickDao.save(new RosterPick(roster.getId(), existing.getRemovedContestantId()));
             }
             mergeActionDao.deleteByLeagueIdAndUserId(leagueId, targetUserId);
         });
 
         // Validate new contestants
-        SeasonContestant toAdd = seasonDao.findSeasonContestantById(addedSeasonContestantId)
+        Contestant toAdd = contestantDao.findById(addedContestantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contestant to add not found"));
-        validateBelongsToLeagueSeason(toAdd, league);
+        validateBelongsToLeague(toAdd, league);
 
-        if (removedSeasonContestantId != null) {
-            SeasonContestant toRemove = seasonDao.findSeasonContestantById(removedSeasonContestantId)
+        if (removedContestantId != null) {
+            Contestant toRemove = contestantDao.findById(removedContestantId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contestant to remove not found"));
-            validateBelongsToLeagueSeason(toRemove, league);
-            rosterPickDao.deletePickByRosterIdAndSeasonContestantId(roster.getId(), toRemove.getId());
+            validateBelongsToLeague(toRemove, league);
+            rosterPickDao.deletePickByRosterIdAndContestantId(roster.getId(), toRemove.getId());
         }
 
         rosterPickDao.save(new RosterPick(roster.getId(), toAdd.getId()));
 
-        MergeAction.ActionType actionType = removedSeasonContestantId != null
+        MergeAction.ActionType actionType = removedContestantId != null
                 ? MergeAction.ActionType.SWAP
                 : MergeAction.ActionType.ADD;
-        mergeActionDao.save(new MergeAction(leagueId, targetUserId, actionType, addedSeasonContestantId, removedSeasonContestantId));
+        mergeActionDao.save(new MergeAction(leagueId, targetUserId, actionType, addedContestantId, removedContestantId));
 
         return getMergeStatus(leagueId);
     }
@@ -241,8 +244,8 @@ public class MergeService {
         return mergeActionDao.findByLeagueIdAndUserId(leagueId, userId)
                 .map(ma -> new MergeActionResponse(
                         ma.getActionType().name(),
-                        ma.getAddedSeasonContestantId(),
-                        ma.getRemovedSeasonContestantId()
+                        ma.getAddedContestantId(),
+                        ma.getRemovedContestantId()
                 ));
     }
 

@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { CheckCircle2, Circle, Crown, Clock } from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { CheckCircle2, Circle, Crown, Lock } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { useAuth } from "../context/AuthContext";
 import {
   getLeagueById,
-  getSeasonContestants,
+  getLeagueContestants,
   getMyRoster,
+  getMyLeagueRole,
   submitRoster,
   type LeagueApiResponse,
-  type SeasonContestant,
+  type Contestant,
 } from "../../api";
 
 export function RosterPicker() {
@@ -19,10 +20,10 @@ export function RosterPicker() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [league, setLeague] = useState<LeagueApiResponse | null>(null);
-  const [contestants, setContestants] = useState<SeasonContestant[]>([]);
+  const [contestants, setContestants] = useState<Contestant[]>([]);
+  const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [mvpId, setMvpId] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,7 +32,7 @@ export function RosterPicker() {
     getLeagueById(Number(leagueId))
       .then((l) => {
         setLeague(l);
-        return getSeasonContestants(l.seasonId);
+        return getLeagueContestants(l.id);
       })
       .then(setContestants);
   }, [leagueId]);
@@ -40,30 +41,32 @@ export function RosterPicker() {
     if (!leagueId || !user) return;
     getMyRoster(Number(leagueId), user.id).then((r) => {
       if (r) {
-        setSelectedIds(r.seasonContestantIds);
-        setMvpId(r.mvpSeasonContestantId);
+        setSelectedIds(r.contestantIds);
+        setMvpId(r.mvpContestantId);
       }
     });
+    getMyLeagueRole(Number(leagueId), user.id).then(setMyRole);
   }, [leagueId, user]);
-
-  useEffect(() => {
-    if (!league?.pickDeadline) return;
-    const deadline = new Date(league.pickDeadline);
-    const updateCountdown = () => {
-      const diff = deadline.getTime() - Date.now();
-      if (diff <= 0) { setTimeLeft("Deadline passed"); return; }
-      const days = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const minutes = Math.floor((diff % 3600000) / 60000);
-      setTimeLeft(`${days}d ${hours}h ${minutes}m`);
-    };
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 60000);
-    return () => clearInterval(interval);
-  }, [league]);
 
   if (!league || !user) {
     return <div className="p-8 text-muted-foreground">Loading...</div>;
+  }
+
+  const isAdmin = myRole === "ADMIN";
+
+  if (!league.pickingOpen && !isAdmin) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8 text-center">
+        <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-60" />
+        <h1 className="mb-2">Picking Is Closed</h1>
+        <p className="text-muted-foreground mb-6">
+          The league admin has closed roster picking for {league.name}. Contact them if you think this is a mistake.
+        </p>
+        <Link to={`/league/${leagueId}`}>
+          <Button variant="outline">Back to League</Button>
+        </Link>
+      </div>
+    );
   }
 
   const tribes = [...new Set(contestants.map((c) => c.tribe).filter(Boolean) as string[])];
@@ -110,19 +113,12 @@ export function RosterPicker() {
             <h1 className="mb-2">Pick Your Roster</h1>
             <p className="text-muted-foreground">{league.name}</p>
           </div>
-          {league.pickDeadline && (
-            <Card className="bg-accent border-primary">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Deadline</div>
-                    <div className="font-semibold text-primary">{timeLeft}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <Badge
+            variant="outline"
+            className={league.pickingOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}
+          >
+            {league.pickingOpen ? "Picking Open" : "Picking Closed (Admin)"}
+          </Badge>
         </div>
 
         <Card className="bg-card/50">

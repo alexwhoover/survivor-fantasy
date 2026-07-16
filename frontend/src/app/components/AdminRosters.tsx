@@ -11,7 +11,7 @@ import {
   getMyMergeAction,
   type LeagueApiResponse,
   type LeagueMember,
-  type SeasonContestant,
+  type Contestant,
   type RosterResponse,
   type MergeActionResponse,
   type MergeStatusResponse,
@@ -21,7 +21,7 @@ interface Props {
   league: LeagueApiResponse;
   adminUserId: number;
   members: LeagueMember[];
-  seasonContestants: SeasonContestant[];
+  contestants: Contestant[];
   mergeStatus: MergeStatusResponse | null;
   maxRosterSize: number;
   onMergeStatusUpdated: (status: MergeStatusResponse) => void;
@@ -40,7 +40,7 @@ interface MergeEditTarget {
 }
 
 export function AdminRosters({
-  league, adminUserId, members, seasonContestants,
+  league, adminUserId, members, contestants,
   mergeStatus, maxRosterSize, onMergeStatusUpdated,
 }: Props) {
   const [rosters, setRosters] = useState<Record<number, RosterResponse | null>>({});
@@ -63,14 +63,14 @@ export function AdminRosters({
     });
   }, [league.id, members, mergeStatus?.initiated]);
 
-  const tribes = [...new Set(seasonContestants.map((c) => c.tribe).filter(Boolean) as string[])];
+  const tribes = [...new Set(contestants.map((c) => c.tribe).filter(Boolean) as string[])];
 
   const openRosterEdit = (member: LeagueMember) => {
     const roster = rosters[member.userId] ?? null;
     setEditState({
       member,
-      selectedIds: roster?.seasonContestantIds ?? [],
-      mvpId: roster?.mvpSeasonContestantId ?? null,
+      selectedIds: roster?.contestantIds ?? [],
+      mvpId: roster?.mvpContestantId ?? null,
     });
     setSaveError("");
   };
@@ -86,11 +86,11 @@ export function AdminRosters({
   };
 
   const countByTribe = (tribe: string, selectedIds: number[]) =>
-    selectedIds.filter((id) => seasonContestants.find((c) => c.id === id)?.tribe === tribe).length;
+    selectedIds.filter((id) => contestants.find((c) => c.id === id)?.tribe === tribe).length;
 
   const handleToggle = (contestantId: number) => {
     if (!editState) return;
-    const contestant = seasonContestants.find((c) => c.id === contestantId);
+    const contestant = contestants.find((c) => c.id === contestantId);
     if (!contestant) return;
     const { selectedIds } = editState;
     if (selectedIds.includes(contestantId)) {
@@ -125,20 +125,20 @@ export function AdminRosters({
     }
   };
 
-  const getRosterContestants = (userId: number): SeasonContestant[] => {
+  const getRosterContestants = (userId: number): Contestant[] => {
     const roster = rosters[userId];
     if (!roster) return [];
-    return roster.seasonContestantIds
-      .map((id) => seasonContestants.find((c) => c.id === id))
-      .filter(Boolean) as SeasonContestant[];
+    return roster.contestantIds
+      .map((id) => contestants.find((c) => c.id === id))
+      .filter(Boolean) as Contestant[];
   };
 
   const mergeActionLabel = (action: MergeActionResponse | null | undefined): string | null => {
     if (!action) return null;
-    const added = seasonContestants.find((c) => c.id === action.addedSeasonContestantId);
+    const added = contestants.find((c) => c.id === action.addedContestantId);
     const addedName = added ? `${added.firstName} ${added.lastName}` : "?";
     if (action.actionType === "ADD") return `Added ${addedName}`;
-    const removed = seasonContestants.find((c) => c.id === action.removedSeasonContestantId);
+    const removed = contestants.find((c) => c.id === action.removedContestantId);
     const removedName = removed ? `${removed.firstName} ${removed.lastName}` : "?";
     return `${removedName} → ${addedName}`;
   };
@@ -148,7 +148,7 @@ export function AdminRosters({
       {members.map((member) => {
         const rosterContestants = getRosterContestants(member.userId);
         const roster = rosters[member.userId];
-        const mvp = roster ? seasonContestants.find((c) => c.id === roster.mvpSeasonContestantId) : null;
+        const mvp = roster ? contestants.find((c) => c.id === roster.mvpContestantId) : null;
         const hasRoster = !!roster;
         const mergeAction = mergeActions[member.userId];
         const canEditMerge = mergeStatus?.initiated && hasRoster;
@@ -188,8 +188,8 @@ export function AdminRosters({
                 {/* Picks */}
                 <div className="flex flex-wrap gap-2">
                   {rosterContestants.map((c) => {
-                    const isMVP = c.id === roster?.mvpSeasonContestantId;
-                    const isMergeAdded = mergeAction?.addedSeasonContestantId === c.id;
+                    const isMVP = c.id === roster?.mvpContestantId;
+                    const isMergeAdded = mergeAction?.addedContestantId === c.id;
                     return (
                       <div
                         key={c.id}
@@ -239,14 +239,14 @@ export function AdminRosters({
                     <span className="text-muted-foreground">MVP: </span>
                     <span className="font-semibold">
                       {editState.mvpId
-                        ? (() => { const c = seasonContestants.find((sc) => sc.id === editState.mvpId); return c ? `${c.firstName} ${c.lastName}` : "—"; })()
+                        ? (() => { const c = contestants.find((sc) => sc.id === editState.mvpId); return c ? `${c.firstName} ${c.lastName}` : "—"; })()
                         : "Not selected"}
                     </span>
                   </span>
                 </div>
 
                 {tribes.map((tribe) => {
-                  const tribeContestants = seasonContestants.filter((c) => c.tribe === tribe);
+                  const tribeContestants = contestants.filter((c) => c.tribe === tribe);
                   const selected = countByTribe(tribe, editState.selectedIds);
                   const tribeColor = tribeContestants[0]?.tribeColour ?? "#6B7280";
 
@@ -330,7 +330,7 @@ export function AdminRosters({
           targetMember={mergeEditTarget.member}
           currentRoster={mergeEditTarget.roster}
           existingAction={mergeEditTarget.existingAction}
-          seasonContestants={seasonContestants}
+          contestants={contestants}
           maxRosterSize={maxRosterSize}
           onSuccess={(status) => {
             // Refresh this member's merge action

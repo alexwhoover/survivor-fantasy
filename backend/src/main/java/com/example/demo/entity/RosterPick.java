@@ -13,17 +13,17 @@ public class RosterPick {
     @Column(name = "roster_id", nullable = false)
     private Long rosterId;
 
-    @Column(name = "season_contestant_id", nullable = false)
-    private Long seasonContestantId;
+    @Column(name = "contestant_id", nullable = false)
+    private Long contestantId;
 
     public RosterPick() {}
 
-    public RosterPick(Long rosterId, Long seasonContestantId) {
+    public RosterPick(Long rosterId, Long contestantId) {
         this.rosterId = rosterId;
-        this.seasonContestantId = seasonContestantId;
+        this.contestantId = contestantId;
     }
 
     public Long getId() { return id; }
     public Long getRosterId() { return rosterId; }
-    public Long getSeasonContestantId() { return seasonContestantId; }
+    public Long getContestantId() { return contestantId; }
 }

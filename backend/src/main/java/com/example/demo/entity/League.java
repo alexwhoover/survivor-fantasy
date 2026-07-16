@@ -18,20 +18,17 @@ public class League {
     @Column(name = "code", nullable = false, unique = true)
     private String code;
 
-    @Column(name = "season_id", nullable = false)
-    private Long seasonId;
+    @Column(name = "season_name", nullable = false)
+    private String seasonName;
 
-    @Column(name = "pick_deadline")
-    private LocalDateTime pickDeadline;
+    @Column(name = "picking_open", nullable = false)
+    private boolean pickingOpen = true;
 
     @Column(name = "merge_episode")
     private Integer mergeEpisode;
 
     @Column(name = "merge_deadline")
     private LocalDateTime mergeDeadline;
-
-    @Column(name = "current_episode")
-    private int currentEpisode = 1;
 
     @Column(name = "contestants_per_tribe")
     private int contestantsPerTribe = 2;
@@ -44,10 +41,10 @@ public class League {
 
     public League() {}
 
-    public League(String name, String code, Long seasonId, Long createdBy, LocalDateTime createdAt) {
+    public League(String name, String code, String seasonName, Long createdBy, LocalDateTime createdAt) {
         this.name = name;
         this.code = code;
-        this.seasonId = seasonId;
+        this.seasonName = seasonName;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
     }
@@ -55,14 +52,13 @@ public class League {
     public Long getId() { return id; }
     public String getName() { return name; }
     public String getCode() { return code; }
-    public Long getSeasonId() { return seasonId; }
-    public LocalDateTime getPickDeadline() { return pickDeadline; }
-    public void setPickDeadline(LocalDateTime pickDeadline) { this.pickDeadline = pickDeadline; }
+    public String getSeasonName() { return seasonName; }
+    public boolean isPickingOpen() { return pickingOpen; }
+    public void setPickingOpen(boolean pickingOpen) { this.pickingOpen = pickingOpen; }
     public Integer getMergeEpisode() { return mergeEpisode; }
     public void setMergeEpisode(Integer mergeEpisode) { this.mergeEpisode = mergeEpisode; }
     public LocalDateTime getMergeDeadline() { return mergeDeadline; }
     public void setMergeDeadline(LocalDateTime mergeDeadline) { this.mergeDeadline = mergeDeadline; }
-    public int getCurrentEpisode() { return currentEpisode; }
     public int getContestantsPerTribe() { return contestantsPerTribe; }
     public void setContestantsPerTribe(int contestantsPerTribe) { this.contestantsPerTribe = contestantsPerTribe; }
     public Long getCreatedBy() { return createdBy; }

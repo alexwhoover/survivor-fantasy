@@ -1,8 +1,12 @@
 package com.example.demo.controller;
 
 import com.example.demo.dao.LeagueMemberDao;
+import com.example.demo.dto.AddEpisodeRequest;
 import com.example.demo.dto.AdminMergeActionRequest;
+import com.example.demo.dto.ContestantDto;
+import com.example.demo.dto.ContestantStatusRequest;
 import com.example.demo.dto.CreateLeagueRequest;
+import com.example.demo.dto.EpisodeDto;
 import com.example.demo.dto.EpisodeScoreItem;
 import com.example.demo.dto.InitiateMergeRequest;
 import com.example.demo.dto.JoinLeagueRequest;
@@ -13,9 +17,13 @@ import com.example.demo.dto.MergeActionRequest;
 import com.example.demo.dto.MemberRoleResponse;
 import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.MergeStatusResponse;
+import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.RosterResponse;
 import com.example.demo.dto.SubmitRosterRequest;
+import com.example.demo.dto.TribeDto;
+import com.example.demo.service.CastService;
 import com.example.demo.service.EpisodeScoreService;
+import com.example.demo.service.EpisodeService;
 import com.example.demo.service.LeaderboardService;
 import com.example.demo.service.LeagueService;
 import com.example.demo.service.MergeService;
@@ -35,19 +43,24 @@ public class LeagueController {
     private final RosterService rosterService;
     private final LeagueMemberDao leagueMemberDao;
     private final EpisodeScoreService episodeScoreService;
+    private final EpisodeService episodeService;
     private final MergeService mergeService;
     private final LeaderboardService leaderboardService;
+    private final CastService castService;
 
     @Autowired
     public LeagueController(LeagueService leagueService, RosterService rosterService,
                             LeagueMemberDao leagueMemberDao, EpisodeScoreService episodeScoreService,
-                            MergeService mergeService, LeaderboardService leaderboardService) {
+                            EpisodeService episodeService, MergeService mergeService,
+                            LeaderboardService leaderboardService, CastService castService) {
         this.leagueService = leagueService;
         this.rosterService = rosterService;
         this.leagueMemberDao = leagueMemberDao;
         this.episodeScoreService = episodeScoreService;
+        this.episodeService = episodeService;
         this.mergeService = mergeService;
         this.leaderboardService = leaderboardService;
+        this.castService = castService;
     }
 
     @GetMapping
@@ -72,16 +85,64 @@ public class LeagueController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /** Creates a fully configured league (with its tribes and contestants) in one atomic step. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public LeagueResponse createLeague(@RequestBody CreateLeagueRequest request) {
-        return leagueService.createLeague(request.name(), request.seasonId(), request.userId(),
-                request.pickDeadline(), request.contestantsPerTribe());
+        return leagueService.createLeague(request.name(), request.seasonName(), request.userId(),
+                request.contestantsPerTribe(), request.tribes(), request.contestants());
     }
 
     @PostMapping("/join")
     public LeagueResponse joinLeague(@RequestBody JoinLeagueRequest request) {
         return leagueService.joinLeague(request.code(), request.userId());
+    }
+
+    /** Admin-only: manually open or close roster picking for the league. */
+    @PutMapping("/{id}/picking")
+    public LeagueResponse setPickingOpen(@PathVariable Long id, @RequestBody PickingRequest request) {
+        return leagueService.setPickingOpen(id, request.adminUserId(), request.open());
+    }
+
+    // --- Season configuration: tribes & contestants (read-only after wizard setup) ---
+
+    @GetMapping("/{id}/tribes")
+    public List<TribeDto> getTribes(@PathVariable Long id) {
+        return castService.getTribes(id);
+    }
+
+    @GetMapping("/{id}/contestants")
+    public List<ContestantDto> getContestants(@PathVariable Long id) {
+        return castService.getContestants(id);
+    }
+
+    /** Admin-only: record a contestant's elimination episode and/or winner status. */
+    @PutMapping("/{id}/contestants/{contestantId}/status")
+    public ContestantDto updateContestantStatus(@PathVariable Long id, @PathVariable Long contestantId,
+                                                @RequestBody ContestantStatusRequest request) {
+        return castService.updateContestantStatus(id, request.adminUserId(), contestantId,
+                request.eliminatedEpisode(), request.winner());
+    }
+
+    // --- Episodes ---
+
+    @GetMapping("/{id}/episodes")
+    public List<EpisodeDto> getEpisodes(@PathVariable Long id) {
+        return episodeService.getEpisodes(id);
+    }
+
+    /** Admin-only: adds the next episode in sequence. */
+    @PostMapping("/{id}/episodes")
+    @ResponseStatus(HttpStatus.CREATED)
+    public EpisodeDto addEpisode(@PathVariable Long id, @RequestBody AddEpisodeRequest request) {
+        return episodeService.addEpisode(id, request.adminUserId());
+    }
+
+    /** Admin-only: removes the most recently added episode, if it has no scores yet. */
+    @DeleteMapping("/{id}/episodes/{episodeId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteEpisode(@PathVariable Long id, @PathVariable Long episodeId, @RequestParam Long adminUserId) {
+        episodeService.deleteEpisode(id, adminUserId, episodeId);
     }
 
     // --- Roster endpoints ---
@@ -103,7 +164,7 @@ public class LeagueController {
     @PostMapping("/{id}/rosters")
     @ResponseStatus(HttpStatus.CREATED)
     public RosterResponse submitRoster(@PathVariable Long id, @RequestBody SubmitRosterRequest request) {
-        return rosterService.submitRoster(id, request.userId(), request.mvpSeasonContestantId(), request.seasonContestantIds());
+        return rosterService.submitRoster(id, request.userId(), request.mvpContestantId(), request.contestantIds());
     }
 
     @GetMapping("/{id}/rosters")
@@ -111,12 +172,12 @@ public class LeagueController {
         return rosterService.getAllRostersForLeague(id);
     }
 
-    /** Admin-only: modify any user's roster, bypassing the pick deadline. */
+    /** Admin-only: modify any user's roster, bypassing the picking-open state. */
     @PutMapping("/{id}/rosters/{targetUserId}")
     public RosterResponse adminUpdateRoster(@PathVariable Long id, @PathVariable Long targetUserId,
                                             @RequestBody SubmitRosterRequest request) {
         return rosterService.adminUpdateRoster(id, request.userId(), targetUserId,
-                request.mvpSeasonContestantId(), request.seasonContestantIds());
+                request.mvpContestantId(), request.contestantIds());
     }
 
     // --- Episode score endpoints ---
@@ -162,7 +223,7 @@ public class LeagueController {
     public MergeStatusResponse adminSetMergeAction(@PathVariable Long id, @PathVariable Long targetUserId,
                                                    @RequestBody AdminMergeActionRequest request) {
         return mergeService.adminSetMergeAction(id, request.adminUserId(), targetUserId,
-                request.addedSeasonContestantId(), request.removedSeasonContestantId());
+                request.addedContestantId(), request.removedContestantId());
     }
 
     // --- Leaderboard ---

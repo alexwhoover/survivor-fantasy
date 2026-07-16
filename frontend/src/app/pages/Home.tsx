@@ -4,33 +4,22 @@ import { Plus, LogIn, Trophy, Users } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { getMyLeagues, createLeague, joinLeague, getSeasons, type LeagueApiResponse, type Season } from "../../api";
+import { getMyLeagues, joinLeague, type LeagueApiResponse } from "../../api";
 
 export function Home() {
   const { user, loading } = useAuth();
   const [leagues, setLeagues] = useState<LeagueApiResponse[]>([]);
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
-  const [leagueName, setLeagueName] = useState("");
-  const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
-  const [pickDeadline, setPickDeadline] = useState("");
-  const [contestantsPerTribe, setContestantsPerTribe] = useState("2");
   const [joinCode, setJoinCode] = useState("");
-  const [createError, setCreateError] = useState("");
   const [joinError, setJoinError] = useState("");
 
   useEffect(() => {
     if (user) getMyLeagues(user.id).then(setLeagues);
   }, [user]);
-
-  useEffect(() => {
-    getSeasons().then(setSeasons).catch(() => {});
-  }, []);
 
   if (loading) return null;
 
@@ -55,45 +44,6 @@ export function Home() {
     );
   }
 
-  const handleCreateLeague = async () => {
-    setCreateError("");
-    if (!leagueName.trim()) {
-      setCreateError("League name is required");
-      return;
-    }
-    if (!selectedSeasonId) {
-      setCreateError("Please select a season");
-      return;
-    }
-    if (!pickDeadline) {
-      setCreateError("Pick deadline is required");
-      return;
-    }
-    const perTribe = Number(contestantsPerTribe);
-    if (!perTribe || perTribe < 1 || perTribe > 10) {
-      setCreateError("Contestants per tribe must be between 1 and 10");
-      return;
-    }
-    try {
-      // datetime-local gives "YYYY-MM-DDTHH:mm", backend expects ISO LocalDateTime
-      const league = await createLeague(
-        leagueName.trim(),
-        Number(selectedSeasonId),
-        user.id,
-        pickDeadline,
-        perTribe
-      );
-      setLeagues((prev) => [...prev, league]);
-      setCreateDialogOpen(false);
-      setLeagueName("");
-      setSelectedSeasonId("");
-      setPickDeadline("");
-      setContestantsPerTribe("2");
-    } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Failed to create league");
-    }
-  };
-
   const handleJoinLeague = async () => {
     setJoinError("");
     if (!joinCode.trim()) {
@@ -108,21 +58,6 @@ export function Home() {
     } catch (err) {
       setJoinError(err instanceof Error ? err.message : "Failed to join league");
     }
-  };
-
-  const getSeasonName = (seasonId: number) => {
-    const season = seasons.find((s) => s.id === seasonId);
-    return season ? season.name : `Season ${seasonId}`;
-  };
-
-  const formatDeadline = (deadline: string | null) => {
-    if (!deadline) return null;
-    return new Date(deadline).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
   };
 
   return (
@@ -166,75 +101,12 @@ export function Home() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={createDialogOpen} onOpenChange={(open) => { setCreateDialogOpen(open); if (!open) setCreateError(""); }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create League
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create a New League</DialogTitle>
-                <DialogDescription>
-                  Start a new Survivor fantasy league and invite your friends
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="league-name">League Name</Label>
-                  <Input
-                    id="league-name"
-                    placeholder="e.g., Office Survivor League"
-                    value={leagueName}
-                    onChange={(e) => setLeagueName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="season-select">Season</Label>
-                  <Select value={selectedSeasonId} onValueChange={setSelectedSeasonId}>
-                    <SelectTrigger id="season-select">
-                      <SelectValue placeholder="Select a season" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {seasons.map((season) => (
-                        <SelectItem key={season.id} value={String(season.id)}>
-                          {season.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pick-deadline">Pick Deadline</Label>
-                  <Input
-                    id="pick-deadline"
-                    type="datetime-local"
-                    value={pickDeadline}
-                    onChange={(e) => setPickDeadline(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Members cannot change their roster after this date and time
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contestants-per-tribe">Contestants Per Tribe</Label>
-                  <Input
-                    id="contestants-per-tribe"
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={contestantsPerTribe}
-                    onChange={(e) => setContestantsPerTribe(e.target.value)}
-                  />
-                </div>
-                {createError && <p className="text-sm text-destructive">{createError}</p>}
-                <Button onClick={handleCreateLeague} className="w-full">
-                  Create League
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Link to="/leagues/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create League
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -253,7 +125,7 @@ export function Home() {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="mb-1">{league.name}</CardTitle>
-                      <CardDescription>{getSeasonName(league.seasonId)}</CardDescription>
+                      <CardDescription>{league.seasonName}</CardDescription>
                     </div>
                     <Trophy className="h-5 w-5 text-primary shrink-0" />
                   </div>
@@ -268,11 +140,12 @@ export function Home() {
                       <span className="text-muted-foreground">Code: </span>
                       <span className="font-mono text-primary">{league.code}</span>
                     </div>
-                    {league.pickDeadline && (
-                      <div className="text-muted-foreground">
-                        Picks due {formatDeadline(league.pickDeadline)}
-                      </div>
-                    )}
+                    <Badge
+                      variant="outline"
+                      className={league.pickingOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}
+                    >
+                      {league.pickingOpen ? "Picking Open" : "Picking Closed"}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>

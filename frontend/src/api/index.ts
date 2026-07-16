@@ -1,40 +1,23 @@
-import type { Contestant, League, UserRoster } from "../app/data/mockData";
-import {
-  mockContestants,
-  mockLeagues,
-  myRoster,
-  otherRosters,
-} from "../app/data/mockData";
-
-export type { Contestant, League, UserRoster };
-
-export interface Season {
-  id: number;
-  name: string;
-  seasonNumber: number;
-  location: string | null;
-  premiereDate: string | null;
-  finaleDate: string | null;
-  mergeEpisode: number | null;
-  numEpisodes: number;
-  status: "UPCOMING" | "ACTIVE" | "COMPLETED";
-  winnerContestantId: number | null;
-}
-
 export interface EpisodeScoreItem {
-  seasonContestantId: number;
+  contestantId: number;
   points: number;
 }
 
-export interface SeasonContestant {
+export interface Tribe {
+  id: number;
+  name: string;
+  colour: string;
+}
+
+export interface Contestant {
   id: number;
   firstName: string;
   lastName: string;
   hometown: string | null;
   state: string | null;
+  tribeId: number | null;
   tribe: string | null;
   tribeColour: string | null;
-  finishPlace: number | null;
   eliminatedEpisode: number | null;
   winner: boolean;
   imageUrl: string | null;
@@ -50,13 +33,32 @@ export interface LeagueApiResponse {
   id: number;
   name: string;
   code: string;
-  seasonId: number;
+  seasonName: string;
   createdBy: number;
   createdAt: string;
   contestantsPerTribe: number;
-  pickDeadline: string | null;
+  pickingOpen: boolean;
   mergeEpisode: number | null;
   mergeDeadline: string | null;
+}
+
+export interface Episode {
+  id: number;
+  episodeNumber: number;
+}
+
+export interface TribeSetupItem {
+  name: string;
+  colour: string;
+}
+
+export interface ContestantSetupItem {
+  firstName: string;
+  lastName: string;
+  hometown: string | null;
+  state: string | null;
+  imageUrl: string | null;
+  tribeIndex: number;
 }
 
 export interface LeagueMember {
@@ -70,8 +72,8 @@ export interface RosterResponse {
   id: number;
   leagueId: number;
   userId: number;
-  mvpSeasonContestantId: number;
-  seasonContestantIds: number[];
+  mvpContestantId: number;
+  contestantIds: number[];
   submittedAt: string;
 }
 
@@ -98,8 +100,8 @@ export interface MergeStatusResponse {
 
 export interface MergeActionResponse {
   actionType: "ADD" | "SWAP";
-  addedSeasonContestantId: number;
-  removedSeasonContestantId: number | null;
+  addedContestantId: number;
+  removedContestantId: number | null;
 }
 
 const API_BASE = "/api";
@@ -159,26 +161,6 @@ export async function logout(): Promise<void> {
   sessionStorage.removeItem("survivor_session");
 }
 
-// --- Seasons ---
-
-export async function getSeasons(): Promise<Season[]> {
-  const res = await apiFetch(`${API_BASE}/seasons`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch seasons: ${res.status}`);
-  return res.json();
-}
-
-export async function getSeasonById(id: number): Promise<Season> {
-  const res = await apiFetch(`${API_BASE}/seasons/${id}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch season: ${res.status}`);
-  return res.json();
-}
-
-export async function getSeasonContestants(seasonId: number): Promise<SeasonContestant[]> {
-  const res = await apiFetch(`${API_BASE}/seasons/${seasonId}/contestants`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch contestants: ${res.status}`);
-  return res.json();
-}
-
 // --- Leagues ---
 
 export async function getMyLeagues(userId: number): Promise<LeagueApiResponse[]> {
@@ -193,22 +175,42 @@ export async function getLeagueById(id: number): Promise<LeagueApiResponse> {
   return res.json();
 }
 
+/**
+ * Creates a fully configured league in one atomic step — the league itself, its
+ * tribes, and its contestants. This is the only way a league's season data is
+ * ever created; there is no separate season-setup step afterward.
+ */
 export async function createLeague(
   name: string,
-  seasonId: number,
+  seasonName: string,
   userId: number,
-  pickDeadline: string,
-  contestantsPerTribe?: number
+  contestantsPerTribe: number,
+  tribes: TribeSetupItem[],
+  contestants: ContestantSetupItem[]
 ): Promise<LeagueApiResponse> {
   const res = await apiFetch(`${API_BASE}/leagues`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, seasonId, userId, pickDeadline, contestantsPerTribe }),
+    body: JSON.stringify({ name, seasonName, userId, contestantsPerTribe, tribes, contestants }),
   });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || "Failed to create league");
+  }
+  return res.json();
+}
+
+export async function setPicking(leagueId: number, adminUserId: number, open: boolean): Promise<LeagueApiResponse> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/picking`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adminUserId, open }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to update picking state");
   }
   return res.json();
 }
@@ -241,6 +243,76 @@ export async function getMyLeagueRole(leagueId: number, userId: number): Promise
   return data.role;
 }
 
+// --- Season configuration (tribes + contestants, owned by the league) ---
+// Tribe and contestant identity is fixed by the creation wizard; the only
+// ongoing mutation is tracking a contestant's elimination/winner status.
+
+export async function getLeagueTribes(leagueId: number): Promise<Tribe[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/tribes`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch tribes: ${res.status}`);
+  return res.json();
+}
+
+export async function getLeagueContestants(leagueId: number): Promise<Contestant[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/contestants`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch contestants: ${res.status}`);
+  return res.json();
+}
+
+export async function updateContestantStatus(
+  leagueId: number,
+  adminUserId: number,
+  contestantId: number,
+  eliminatedEpisode: number | null,
+  winner: boolean
+): Promise<Contestant> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/contestants/${contestantId}/status`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adminUserId, eliminatedEpisode, winner }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to update contestant status");
+  }
+  return res.json();
+}
+
+// --- Episodes ---
+// Episodes are created manually by the admin as the season progresses.
+
+export async function getEpisodes(leagueId: number): Promise<Episode[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch episodes: ${res.status}`);
+  return res.json();
+}
+
+export async function addEpisode(leagueId: number, adminUserId: number): Promise<Episode> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adminUserId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to add episode");
+  }
+  return res.json();
+}
+
+export async function deleteEpisode(leagueId: number, adminUserId: number, episodeId: number): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeId}?adminUserId=${adminUserId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to remove episode");
+  }
+}
+
 // --- Rosters ---
 
 export async function getMyRoster(leagueId: number, userId: number): Promise<RosterResponse | null> {
@@ -260,14 +332,14 @@ export async function getRosterForUser(leagueId: number, userId: number): Promis
 export async function submitRoster(
   leagueId: number,
   userId: number,
-  seasonContestantIds: number[],
-  mvpSeasonContestantId: number
+  contestantIds: number[],
+  mvpContestantId: number
 ): Promise<RosterResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, seasonContestantIds, mvpSeasonContestantId }),
+    body: JSON.stringify({ userId, contestantIds, mvpContestantId }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -280,14 +352,14 @@ export async function adminUpdateRoster(
   leagueId: number,
   adminUserId: number,
   targetUserId: number,
-  seasonContestantIds: number[],
-  mvpSeasonContestantId: number
+  contestantIds: number[],
+  mvpContestantId: number
 ): Promise<RosterResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/${targetUserId}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: adminUserId, seasonContestantIds, mvpSeasonContestantId }),
+    body: JSON.stringify({ userId: adminUserId, contestantIds, mvpContestantId }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -348,14 +420,14 @@ export async function adminSetMergeAction(
   leagueId: number,
   adminUserId: number,
   targetUserId: number,
-  addedSeasonContestantId: number,
-  removedSeasonContestantId: number | null
+  addedContestantId: number,
+  removedContestantId: number | null
 ): Promise<MergeStatusResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action/${targetUserId}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, addedSeasonContestantId, removedSeasonContestantId }),
+    body: JSON.stringify({ adminUserId, addedContestantId, removedContestantId }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -393,32 +465,18 @@ export async function initiateMerge(
 export async function performMergeAction(
   leagueId: number,
   userId: number,
-  addedSeasonContestantId: number,
-  removedSeasonContestantId: number | null
+  addedContestantId: number,
+  removedContestantId: number | null
 ): Promise<MergeStatusResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, addedSeasonContestantId, removedSeasonContestantId }),
+    body: JSON.stringify({ userId, addedContestantId, removedContestantId }),
   });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || "Failed to perform merge action");
   }
   return res.json();
-}
-
-// --- Legacy mock-backed functions (kept for compatibility) ---
-
-export async function getLeague(leagueId: string): Promise<League | null> {
-  return mockLeagues.find((l) => l.id === leagueId) ?? null;
-}
-
-export async function getLeagueRosters(_leagueId: string): Promise<UserRoster[]> {
-  return [myRoster, ...otherRosters];
-}
-
-export async function getContestants(season: string): Promise<Contestant[]> {
-  return mockContestants.filter((c) => c.season === season);
 }

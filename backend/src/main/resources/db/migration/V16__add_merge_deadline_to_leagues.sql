@@ -1,1 +1,0 @@
-ALTER TABLE leagues ADD COLUMN merge_deadline DATETIME NULL;

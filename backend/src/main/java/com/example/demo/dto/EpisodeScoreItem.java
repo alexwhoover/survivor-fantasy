@@ -1,3 +1,3 @@
 package com.example.demo.dto;
 
-public record EpisodeScoreItem(Long seasonContestantId, int points) {}
+public record EpisodeScoreItem(Long contestantId, int points) {}

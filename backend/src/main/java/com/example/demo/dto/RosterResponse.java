@@ -7,7 +7,7 @@ public record RosterResponse(
         Long id,
         Long leagueId,
         Long userId,
-        Long mvpSeasonContestantId,
-        List<Long> seasonContestantIds,
+        Long mvpContestantId,
+        List<Long> contestantIds,
         LocalDateTime submittedAt
 ) {}

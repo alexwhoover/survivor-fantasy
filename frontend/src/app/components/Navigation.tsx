@@ -38,16 +38,6 @@ export function Navigation() {
               My Leagues
             </Link>
             <Link
-              to="/cast"
-              className={`px-4 py-2 rounded-md transition-colors ${
-                isActive("/cast")
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              Cast
-            </Link>
-            <Link
               to="/how-to-play"
               className={`px-4 py-2 rounded-md transition-colors ${
                 isActive("/how-to-play")

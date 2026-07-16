@@ -4,6 +4,6 @@ import java.util.List;
 
 public record SubmitRosterRequest(
         Long userId,
-        Long mvpSeasonContestantId,
-        List<Long> seasonContestantIds
+        Long mvpContestantId,
+        List<Long> contestantIds
 ) {}

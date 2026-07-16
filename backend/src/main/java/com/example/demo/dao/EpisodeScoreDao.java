@@ -18,37 +18,40 @@ public class EpisodeScoreDao {
         entityManager.persist(score);
     }
 
-    public Optional<EpisodeScore> findBySeasonContestantIdAndEpisodeNumberAndLeagueId(Long seasonContestantId, int episodeNumber, Long leagueId) {
+    public Optional<EpisodeScore> findByContestantIdAndEpisodeNumber(Long contestantId, int episodeNumber) {
         return entityManager.createQuery(
-                "SELECT es FROM EpisodeScore es WHERE es.seasonContestantId = :scId AND es.episodeNumber = :ep AND es.leagueId = :leagueId",
+                "SELECT es FROM EpisodeScore es WHERE es.contestantId = :cId AND es.episodeNumber = :ep",
                 EpisodeScore.class)
-                .setParameter("scId", seasonContestantId)
+                .setParameter("cId", contestantId)
                 .setParameter("ep", episodeNumber)
-                .setParameter("leagueId", leagueId)
                 .getResultStream()
                 .findFirst();
     }
 
-    public List<EpisodeScore> findBySeasonIdAndEpisodeNumberAndLeagueId(Long seasonId, int episodeNumber, Long leagueId) {
+    public List<EpisodeScore> findByLeagueIdAndEpisodeNumber(Long leagueId, int episodeNumber) {
         return entityManager.createQuery(
                 "SELECT es FROM EpisodeScore es " +
-                "JOIN SeasonContestant sc ON es.seasonContestantId = sc.id " +
-                "WHERE sc.seasonId = :seasonId AND es.episodeNumber = :ep AND es.leagueId = :leagueId",
+                "JOIN Contestant c ON es.contestantId = c.id " +
+                "WHERE c.leagueId = :leagueId AND es.episodeNumber = :ep",
                 EpisodeScore.class)
-                .setParameter("seasonId", seasonId)
+                .setParameter("leagueId", leagueId)
                 .setParameter("ep", episodeNumber)
+                .getResultList();
+    }
+
+    public List<EpisodeScore> findAllByLeagueId(Long leagueId) {
+        return entityManager.createQuery(
+                "SELECT es FROM EpisodeScore es " +
+                "JOIN Contestant c ON es.contestantId = c.id " +
+                "WHERE c.leagueId = :leagueId",
+                EpisodeScore.class)
                 .setParameter("leagueId", leagueId)
                 .getResultList();
     }
 
-    public List<EpisodeScore> findAllBySeasonIdAndLeagueId(Long seasonId, Long leagueId) {
-        return entityManager.createQuery(
-                "SELECT es FROM EpisodeScore es " +
-                "JOIN SeasonContestant sc ON es.seasonContestantId = sc.id " +
-                "WHERE sc.seasonId = :seasonId AND es.leagueId = :leagueId",
-                EpisodeScore.class)
-                .setParameter("seasonId", seasonId)
-                .setParameter("leagueId", leagueId)
-                .getResultList();
+    public void deleteByContestantId(Long contestantId) {
+        entityManager.createQuery("DELETE FROM EpisodeScore es WHERE es.contestantId = :cId")
+                .setParameter("cId", contestantId)
+                .executeUpdate();
     }
 }

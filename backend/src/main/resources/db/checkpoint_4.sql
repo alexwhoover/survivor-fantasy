@@ -11,109 +11,68 @@
 
 -- ─── Variables ────────────────────────────────────────────────────────────────
 
-SET @sid = (SELECT id FROM seasons WHERE season_number = 51);
-
-SET @cid_maya    = (SELECT id FROM contestants WHERE first_name = 'Maya'    AND last_name = 'Chen');
-SET @cid_tyler   = (SELECT id FROM contestants WHERE first_name = 'Tyler'   AND last_name = 'Brooks');
-SET @cid_priya   = (SELECT id FROM contestants WHERE first_name = 'Priya'   AND last_name = 'Patel');
-SET @cid_danny   = (SELECT id FROM contestants WHERE first_name = 'Danny'   AND last_name = 'Kim');
-SET @cid_sofia   = (SELECT id FROM contestants WHERE first_name = 'Sofia'   AND last_name = 'Martinez');
-SET @cid_marcus  = (SELECT id FROM contestants WHERE first_name = 'Marcus'  AND last_name = 'Johnson');
-SET @cid_rachel  = (SELECT id FROM contestants WHERE first_name = 'Rachel'  AND last_name = 'Thompson');
-SET @cid_kevin   = (SELECT id FROM contestants WHERE first_name = 'Kevin'   AND last_name = 'Walsh');
-SET @cid_aisha   = (SELECT id FROM contestants WHERE first_name = 'Aisha'   AND last_name = 'Washington');
-SET @cid_jake    = (SELECT id FROM contestants WHERE first_name = 'Jake'    AND last_name = 'Morrison');
-SET @cid_elena   = (SELECT id FROM contestants WHERE first_name = 'Elena'   AND last_name = 'Rivera');
-SET @cid_noah    = (SELECT id FROM contestants WHERE first_name = 'Noah'    AND last_name = 'Bennett');
-SET @cid_zoe     = (SELECT id FROM contestants WHERE first_name = 'Zoe'     AND last_name = 'Clarke');
-SET @cid_carlos  = (SELECT id FROM contestants WHERE first_name = 'Carlos'  AND last_name = 'Reyes');
-SET @cid_hannah  = (SELECT id FROM contestants WHERE first_name = 'Hannah'  AND last_name = 'Lee');
-SET @cid_brandon = (SELECT id FROM contestants WHERE first_name = 'Brandon' AND last_name = 'Scott');
-SET @cid_natalie = (SELECT id FROM contestants WHERE first_name = 'Natalie' AND last_name = 'Adams');
-SET @cid_drew    = (SELECT id FROM contestants WHERE first_name = 'Drew'    AND last_name = 'Parker');
-
-SET @sc_maya    = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_maya);
-SET @sc_tyler   = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_tyler);
-SET @sc_priya   = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_priya);
-SET @sc_danny   = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_danny);
-SET @sc_sofia   = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_sofia);
-SET @sc_marcus  = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_marcus);
-SET @sc_rachel  = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_rachel);
-SET @sc_kevin   = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_kevin);
-SET @sc_aisha   = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_aisha);
-SET @sc_jake    = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_jake);
-SET @sc_elena   = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_elena);
-SET @sc_noah    = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_noah);
-SET @sc_zoe     = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_zoe);
-SET @sc_carlos  = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_carlos);
-SET @sc_hannah  = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_hannah);
-SET @sc_brandon = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_brandon);
-SET @sc_natalie = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_natalie);
-SET @sc_drew    = (SELECT id FROM season_contestants WHERE season_id = @sid AND contestant_id = @cid_drew);
-
--- ─── Cleanup ──────────────────────────────────────────────────────────────────
-
-DELETE ma FROM merge_actions ma JOIN leagues l ON ma.league_id = l.id WHERE l.season_id = @sid;
-DELETE es FROM episode_scores  es JOIN leagues l ON es.league_id = l.id WHERE l.season_id = @sid;
-DELETE rp FROM roster_picks    rp JOIN rosters  r ON rp.roster_id = r.id JOIN leagues l ON r.league_id = l.id WHERE l.season_id = @sid;
-DELETE r  FROM rosters          r JOIN leagues  l ON  r.league_id = l.id WHERE l.season_id = @sid;
-DELETE lm FROM league_members  lm JOIN leagues  l ON lm.league_id = l.id WHERE l.season_id = @sid;
-DELETE FROM leagues WHERE season_id = @sid;
-DELETE FROM users   WHERE username IN ('alex', 'jordan', 'sam', 'casey');
-DELETE FROM SPRING_SESSION_ATTRIBUTES;
-DELETE FROM SPRING_SESSION;
-
-UPDATE season_contestants SET eliminated_episode = NULL, finish_place = NULL, winner = FALSE WHERE season_id = @sid;
-UPDATE seasons SET status = 'UPCOMING', winner_contestant_id = NULL WHERE id = @sid;
-
--- ─── Season state ─────────────────────────────────────────────────────────────
-
-UPDATE seasons SET status = 'COMPLETED', winner_contestant_id = @cid_maya WHERE id = @sid;
-
-UPDATE season_contestants SET eliminated_episode =  1, finish_place = 18 WHERE id = @sc_brandon;
-UPDATE season_contestants SET eliminated_episode =  2, finish_place = 17 WHERE id = @sc_natalie;
-UPDATE season_contestants SET eliminated_episode =  3, finish_place = 16 WHERE id = @sc_danny;
-UPDATE season_contestants SET eliminated_episode =  4, finish_place = 15 WHERE id = @sc_priya;
-UPDATE season_contestants SET eliminated_episode =  5, finish_place = 14 WHERE id = @sc_marcus;
-UPDATE season_contestants SET eliminated_episode =  6, finish_place = 13 WHERE id = @sc_kevin;
-UPDATE season_contestants SET eliminated_episode =  7, finish_place = 12 WHERE id = @sc_rachel;
-UPDATE season_contestants SET eliminated_episode =  8, finish_place = 11 WHERE id = @sc_tyler;
-UPDATE season_contestants SET eliminated_episode =  9, finish_place = 10 WHERE id = @sc_carlos;
-UPDATE season_contestants SET eliminated_episode = 10, finish_place =  9 WHERE id = @sc_aisha;
-UPDATE season_contestants SET eliminated_episode = 11, finish_place =  8 WHERE id = @sc_jake;
-UPDATE season_contestants SET eliminated_episode = 12, finish_place =  7 WHERE id = @sc_sofia;
-UPDATE season_contestants SET eliminated_episode = 13, finish_place =  6 WHERE id = @sc_noah;
-UPDATE season_contestants SET eliminated_episode = 14, finish_place =  5             WHERE id = @sc_drew;
-UPDATE season_contestants SET eliminated_episode = 14, finish_place =  4             WHERE id = @sc_hannah;
-UPDATE season_contestants SET eliminated_episode = 14, finish_place =  3             WHERE id = @sc_zoe;
-UPDATE season_contestants SET finish_place = 2                                        WHERE id = @sc_elena;
-UPDATE season_contestants SET finish_place = 1, winner = TRUE                         WHERE id = @sc_maya;
-
--- ─── Users (password: "password") ─────────────────────────────────────────────
-
-INSERT INTO users (username, password_hash) VALUES
-('alex',   '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('jordan', '$2b$10$HQgVmAe6pvRoqGFhmEL1MuNdQnTK08U4khsM72v/VVpnXWwV5OCl6'),
-('sam',    '$2b$10$l4OrCgQWYT/4B4tfGnoQqegoa0a8d.b7HQ8KpcmtdpXzAQRmSHx8e'),
-('casey',  '$2b$10$NRYKi8nMQOdxvNMlrEF0XeSL4u9.RM/IdFHE3NkeI5kEaUCFikpTW');
+SET @lid = (SELECT id FROM leagues WHERE code = 'SURV51');
 
 SET @uid_alex   = (SELECT id FROM users WHERE username = 'alex');
 SET @uid_jordan = (SELECT id FROM users WHERE username = 'jordan');
 SET @uid_sam    = (SELECT id FROM users WHERE username = 'sam');
 SET @uid_casey  = (SELECT id FROM users WHERE username = 'casey');
 
--- ─── League ────────────────────────────────────────────────────────────────────
+SET @c_maya    = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Maya');
+SET @c_tyler   = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Tyler');
+SET @c_priya   = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Priya');
+SET @c_danny   = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Danny');
+SET @c_sofia   = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Sofia');
+SET @c_marcus  = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Marcus');
+SET @c_rachel  = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Rachel');
+SET @c_kevin   = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Kevin');
+SET @c_aisha   = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Aisha');
+SET @c_jake    = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Jake');
+SET @c_elena   = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Elena');
+SET @c_noah    = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Noah');
+SET @c_zoe     = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Zoe');
+SET @c_carlos  = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Carlos');
+SET @c_hannah  = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Hannah');
+SET @c_brandon = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Brandon');
+SET @c_natalie = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Natalie');
+SET @c_drew    = (SELECT id FROM contestants WHERE league_id = @lid AND first_name = 'Drew');
 
-INSERT INTO leagues (name, code, season_id, pick_deadline, merge_episode, merge_deadline, current_episode, contestants_per_tribe, created_by)
-VALUES ('Season 51 League', 'SURV51', @sid, '2026-05-30 23:59:59', 7, '2026-11-08 23:59:59', 14, 2, @uid_alex);
+-- ─── Reset league state ───────────────────────────────────────────────────────
 
-SET @lid = LAST_INSERT_ID();
+DELETE FROM merge_actions WHERE league_id = @lid;
+DELETE es FROM episode_scores es JOIN contestants c ON es.contestant_id = c.id WHERE c.league_id = @lid;
+DELETE FROM episodes WHERE league_id = @lid;
+DELETE rp FROM roster_picks   rp JOIN rosters     r ON rp.roster_id     = r.id WHERE r.league_id = @lid;
+DELETE FROM rosters WHERE league_id = @lid;
+UPDATE contestants SET eliminated_episode = NULL, winner = FALSE WHERE league_id = @lid;
 
-INSERT INTO league_members (league_id, user_id, role) VALUES
-(@lid, @uid_alex,   'ADMIN'),
-(@lid, @uid_jordan, 'MEMBER'),
-(@lid, @uid_sam,    'MEMBER'),
-(@lid, @uid_casey,  'MEMBER');
+-- ─── League state (season over) ───────────────────────────────────────────────
+
+UPDATE leagues
+SET picking_open = FALSE, merge_episode = 7, merge_deadline = '2026-11-08 23:59:59'
+WHERE id = @lid;
+
+INSERT INTO episodes (league_id, episode_number) VALUES
+(@lid, 1), (@lid, 2), (@lid, 3), (@lid, 4), (@lid, 5), (@lid, 6), (@lid, 7),
+(@lid, 8), (@lid, 9), (@lid, 10), (@lid, 11), (@lid, 12), (@lid, 13), (@lid, 14);
+
+UPDATE contestants SET eliminated_episode =  1 WHERE id = @c_brandon;
+UPDATE contestants SET eliminated_episode =  2 WHERE id = @c_natalie;
+UPDATE contestants SET eliminated_episode =  3 WHERE id = @c_danny;
+UPDATE contestants SET eliminated_episode =  4 WHERE id = @c_priya;
+UPDATE contestants SET eliminated_episode =  5 WHERE id = @c_marcus;
+UPDATE contestants SET eliminated_episode =  6 WHERE id = @c_kevin;
+UPDATE contestants SET eliminated_episode =  7 WHERE id = @c_rachel;
+UPDATE contestants SET eliminated_episode =  8 WHERE id = @c_tyler;
+UPDATE contestants SET eliminated_episode =  9 WHERE id = @c_carlos;
+UPDATE contestants SET eliminated_episode = 10 WHERE id = @c_aisha;
+UPDATE contestants SET eliminated_episode = 11 WHERE id = @c_jake;
+UPDATE contestants SET eliminated_episode = 12 WHERE id = @c_sofia;
+UPDATE contestants SET eliminated_episode = 13 WHERE id = @c_noah;
+UPDATE contestants SET eliminated_episode = 14 WHERE id = @c_drew;
+UPDATE contestants SET eliminated_episode = 14 WHERE id = @c_hannah;
+UPDATE contestants SET eliminated_episode = 14 WHERE id = @c_zoe;
+UPDATE contestants SET winner = TRUE           WHERE id = @c_maya;
 
 -- ─── Rosters (post-merge picks) ────────────────────────────────────────────────
 -- Alex:   Tyler→Noah  (Tyler scores pre-merge; Noah scores post-merge)
@@ -121,11 +80,11 @@ INSERT INTO league_members (league_id, user_id, role) VALUES
 -- Sam:    Noah→Jake   (Noah scores pre-merge; Jake scores post-merge)
 -- Casey:  Aisha→Elena (Aisha scores pre-merge; Elena scores post-merge)
 
-INSERT INTO rosters (league_id, user_id, mvp_season_contestant_id, submitted_at) VALUES
-(@lid, @uid_alex,   @sc_maya,  '2026-05-28 10:00:00'),
-(@lid, @uid_jordan, @sc_jake,  '2026-05-28 12:30:00'),
-(@lid, @uid_sam,    @sc_elena, '2026-05-28 18:45:00'),
-(@lid, @uid_casey,  @sc_priya, '2026-05-28 22:00:00');
+INSERT INTO rosters (league_id, user_id, mvp_contestant_id, submitted_at) VALUES
+(@lid, @uid_alex,   @c_maya,  '2026-05-28 10:00:00'),
+(@lid, @uid_jordan, @c_jake,  '2026-05-28 12:30:00'),
+(@lid, @uid_sam,    @c_elena, '2026-05-28 18:45:00'),
+(@lid, @uid_casey,  @c_priya, '2026-05-28 22:00:00');
 
 SET @rid_alex   = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_alex);
 SET @rid_jordan = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_jordan);
@@ -133,99 +92,99 @@ SET @rid_sam    = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @
 SET @rid_casey  = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_casey);
 
 -- alex: Noah in (Tyler out via merge action)
-INSERT INTO roster_picks (roster_id, season_contestant_id) VALUES
-(@rid_alex, @sc_maya), (@rid_alex, @sc_rachel), (@rid_alex, @sc_kevin),
-(@rid_alex, @sc_zoe), (@rid_alex, @sc_carlos), (@rid_alex, @sc_noah);
+INSERT INTO roster_picks (roster_id, contestant_id) VALUES
+(@rid_alex, @c_maya), (@rid_alex, @c_rachel), (@rid_alex, @c_kevin),
+(@rid_alex, @c_zoe), (@rid_alex, @c_carlos), (@rid_alex, @c_noah);
 
 -- jordan: Tyler in (Aisha out via merge action)
-INSERT INTO roster_picks (roster_id, season_contestant_id) VALUES
-(@rid_jordan, @sc_priya), (@rid_jordan, @sc_danny),
-(@rid_jordan, @sc_jake), (@rid_jordan, @sc_hannah), (@rid_jordan, @sc_brandon),
-(@rid_jordan, @sc_tyler);
+INSERT INTO roster_picks (roster_id, contestant_id) VALUES
+(@rid_jordan, @c_priya), (@rid_jordan, @c_danny),
+(@rid_jordan, @c_jake), (@rid_jordan, @c_hannah), (@rid_jordan, @c_brandon),
+(@rid_jordan, @c_tyler);
 
 -- sam: Jake in (Noah out via merge action)
-INSERT INTO roster_picks (roster_id, season_contestant_id) VALUES
-(@rid_sam, @sc_sofia), (@rid_sam, @sc_marcus),
-(@rid_sam, @sc_elena), (@rid_sam, @sc_natalie), (@rid_sam, @sc_drew),
-(@rid_sam, @sc_jake);
+INSERT INTO roster_picks (roster_id, contestant_id) VALUES
+(@rid_sam, @c_sofia), (@rid_sam, @c_marcus),
+(@rid_sam, @c_elena), (@rid_sam, @c_natalie), (@rid_sam, @c_drew),
+(@rid_sam, @c_jake);
 
 -- casey: Elena in (Aisha out via merge action)
-INSERT INTO roster_picks (roster_id, season_contestant_id) VALUES
-(@rid_casey, @sc_maya), (@rid_casey, @sc_priya),
-(@rid_casey, @sc_kevin), (@rid_casey, @sc_carlos), (@rid_casey, @sc_hannah),
-(@rid_casey, @sc_elena);
+INSERT INTO roster_picks (roster_id, contestant_id) VALUES
+(@rid_casey, @c_maya), (@rid_casey, @c_priya),
+(@rid_casey, @c_kevin), (@rid_casey, @c_carlos), (@rid_casey, @c_hannah),
+(@rid_casey, @c_elena);
 
 -- ─── Merge actions ────────────────────────────────────────────────────────────
 
-INSERT INTO merge_actions (league_id, user_id, action_type, added_season_contestant_id, removed_season_contestant_id) VALUES
-(@lid, @uid_alex,   'SWAP', @sc_noah,  @sc_tyler),
-(@lid, @uid_jordan, 'SWAP', @sc_tyler, @sc_aisha),
-(@lid, @uid_sam,    'SWAP', @sc_jake,  @sc_noah),
-(@lid, @uid_casey,  'SWAP', @sc_elena, @sc_aisha);
+INSERT INTO merge_actions (league_id, user_id, action_type, added_contestant_id, removed_contestant_id) VALUES
+(@lid, @uid_alex,   'SWAP', @c_noah,  @c_tyler),
+(@lid, @uid_jordan, 'SWAP', @c_tyler, @c_aisha),
+(@lid, @uid_sam,    'SWAP', @c_jake,  @c_noah),
+(@lid, @uid_casey,  'SWAP', @c_elena, @c_aisha);
 
 -- ─── Episode scores (eps 2–14) ────────────────────────────────────────────────
 
-INSERT INTO episode_scores (season_contestant_id, league_id, episode_number, points) VALUES
+INSERT INTO episode_scores (contestant_id, episode_number, points) VALUES
 -- Ep 2
-(@sc_maya,    @lid, 2,  8), (@sc_tyler,   @lid, 2,  4), (@sc_priya,   @lid, 2,  3), (@sc_danny,   @lid, 2,  2),
-(@sc_sofia,   @lid, 2,  5), (@sc_marcus,  @lid, 2,  6), (@sc_rachel,  @lid, 2,  9), (@sc_kevin,   @lid, 2,  3),
-(@sc_aisha,   @lid, 2,  7), (@sc_jake,    @lid, 2, 10), (@sc_elena,   @lid, 2,  8), (@sc_noah,    @lid, 2,  4),
-(@sc_zoe,     @lid, 2,  6), (@sc_carlos,  @lid, 2,  5), (@sc_hannah,  @lid, 2,  7), (@sc_natalie, @lid, 2,  2),
-(@sc_drew,    @lid, 2,  6),
+(@c_maya,    2,  8), (@c_tyler,   2,  4), (@c_priya,   2,  3), (@c_danny,   2,  2),
+(@c_sofia,   2,  5), (@c_marcus,  2,  6), (@c_rachel,  2,  9), (@c_kevin,   2,  3),
+(@c_aisha,   2,  7), (@c_jake,    2, 10), (@c_elena,   2,  8), (@c_noah,    2,  4),
+(@c_zoe,     2,  6), (@c_carlos,  2,  5), (@c_hannah,  2,  7), (@c_natalie, 2,  2),
+(@c_drew,    2,  6),
 -- Ep 3
-(@sc_maya,    @lid, 3,  7), (@sc_tyler,   @lid, 3,  5), (@sc_priya,   @lid, 3,  4), (@sc_danny,   @lid, 3,  3),
-(@sc_sofia,   @lid, 3,  6), (@sc_marcus,  @lid, 3,  5), (@sc_rachel,  @lid, 3,  8), (@sc_kevin,   @lid, 3,  4),
-(@sc_aisha,   @lid, 3,  6), (@sc_jake,    @lid, 3,  8), (@sc_elena,   @lid, 3,  9), (@sc_noah,    @lid, 3,  5),
-(@sc_zoe,     @lid, 3,  7), (@sc_carlos,  @lid, 3,  6), (@sc_hannah,  @lid, 3,  5), (@sc_drew,    @lid, 3,  7),
+(@c_maya,    3,  7), (@c_tyler,   3,  5), (@c_priya,   3,  4), (@c_danny,   3,  3),
+(@c_sofia,   3,  6), (@c_marcus,  3,  5), (@c_rachel,  3,  8), (@c_kevin,   3,  4),
+(@c_aisha,   3,  6), (@c_jake,    3,  8), (@c_elena,   3,  9), (@c_noah,    3,  5),
+(@c_zoe,     3,  7), (@c_carlos,  3,  6), (@c_hannah,  3,  5), (@c_drew,    3,  7),
 -- Ep 4
-(@sc_maya,    @lid, 4,  9), (@sc_tyler,   @lid, 4,  4), (@sc_priya,   @lid, 4,  2),
-(@sc_sofia,   @lid, 4,  5), (@sc_marcus,  @lid, 4,  4), (@sc_rachel,  @lid, 4,  7), (@sc_kevin,   @lid, 4,  5),
-(@sc_aisha,   @lid, 4,  8), (@sc_jake,    @lid, 4,  9), (@sc_elena,   @lid, 4,  7), (@sc_noah,    @lid, 4,  6),
-(@sc_zoe,     @lid, 4,  5), (@sc_carlos,  @lid, 4,  7), (@sc_hannah,  @lid, 4,  8), (@sc_drew,    @lid, 4,  5),
+(@c_maya,    4,  9), (@c_tyler,   4,  4), (@c_priya,   4,  2),
+(@c_sofia,   4,  5), (@c_marcus,  4,  4), (@c_rachel,  4,  7), (@c_kevin,   4,  5),
+(@c_aisha,   4,  8), (@c_jake,    4,  9), (@c_elena,   4,  7), (@c_noah,    4,  6),
+(@c_zoe,     4,  5), (@c_carlos,  4,  7), (@c_hannah,  4,  8), (@c_drew,    4,  5),
 -- Ep 5 (Priya eliminated ep 4)
-(@sc_maya,    @lid, 5,  8), (@sc_tyler,   @lid, 5,  6),
-(@sc_sofia,   @lid, 5,  4), (@sc_marcus,  @lid, 5,  3), (@sc_rachel,  @lid, 5,  9), (@sc_kevin,   @lid, 5,  6),
-(@sc_aisha,   @lid, 5,  7), (@sc_jake,    @lid, 5, 10), (@sc_elena,   @lid, 5,  8), (@sc_noah,    @lid, 5,  5),
-(@sc_zoe,     @lid, 5,  6), (@sc_carlos,  @lid, 5,  8), (@sc_hannah,  @lid, 5,  7), (@sc_drew,    @lid, 5,  6),
+(@c_maya,    5,  8), (@c_tyler,   5,  6),
+(@c_sofia,   5,  4), (@c_marcus,  5,  3), (@c_rachel,  5,  9), (@c_kevin,   5,  6),
+(@c_aisha,   5,  7), (@c_jake,    5, 10), (@c_elena,   5,  8), (@c_noah,    5,  5),
+(@c_zoe,     5,  6), (@c_carlos,  5,  8), (@c_hannah,  5,  7), (@c_drew,    5,  6),
 -- Ep 6 (Marcus eliminated ep 5)
-(@sc_maya,    @lid, 6, 10), (@sc_tyler,   @lid, 6,  5),
-(@sc_sofia,   @lid, 6,  6), (@sc_rachel,  @lid, 6,  8), (@sc_kevin,   @lid, 6,  4),
-(@sc_aisha,   @lid, 6,  9), (@sc_jake,    @lid, 6,  7), (@sc_elena,   @lid, 6,  9), (@sc_noah,    @lid, 6,  7),
-(@sc_zoe,     @lid, 6,  8), (@sc_carlos,  @lid, 6,  6), (@sc_hannah,  @lid, 6,  6), (@sc_drew,    @lid, 6,  8),
+(@c_maya,    6, 10), (@c_tyler,   6,  5),
+(@c_sofia,   6,  6), (@c_rachel,  6,  8), (@c_kevin,   6,  4),
+(@c_aisha,   6,  9), (@c_jake,    6,  7), (@c_elena,   6,  9), (@c_noah,    6,  7),
+(@c_zoe,     6,  8), (@c_carlos,  6,  6), (@c_hannah,  6,  6), (@c_drew,    6,  8),
 -- Ep 7 / merge (Kevin eliminated ep 6)
-(@sc_maya,    @lid, 7,  9), (@sc_tyler,   @lid, 7,  7),
-(@sc_sofia,   @lid, 7,  5), (@sc_rachel,  @lid, 7,  3),
-(@sc_aisha,   @lid, 7,  8), (@sc_jake,    @lid, 7,  9), (@sc_elena,   @lid, 7, 10), (@sc_noah,    @lid, 7,  6),
-(@sc_zoe,     @lid, 7,  9), (@sc_carlos,  @lid, 7,  7), (@sc_hannah,  @lid, 7,  8), (@sc_drew,    @lid, 7,  7),
+(@c_maya,    7,  9), (@c_tyler,   7,  7),
+(@c_sofia,   7,  5), (@c_rachel,  7,  3),
+(@c_aisha,   7,  8), (@c_jake,    7,  9), (@c_elena,   7, 10), (@c_noah,    7,  6),
+(@c_zoe,     7,  9), (@c_carlos,  7,  7), (@c_hannah,  7,  8), (@c_drew,    7,  7),
 -- Ep 8 (Rachel eliminated ep 7, Tyler eliminated this ep)
-(@sc_maya,    @lid, 8, 11), (@sc_tyler,   @lid, 8,  4),
-(@sc_sofia,   @lid, 8,  7), (@sc_aisha,   @lid, 8,  9), (@sc_jake,    @lid, 8,  8),
-(@sc_elena,   @lid, 8, 11), (@sc_noah,    @lid, 8,  7), (@sc_zoe,     @lid, 8, 10),
-(@sc_carlos,  @lid, 8,  8), (@sc_hannah,  @lid, 8,  9), (@sc_drew,    @lid, 8,  8),
+(@c_maya,    8, 11), (@c_tyler,   8,  4),
+(@c_sofia,   8,  7), (@c_aisha,   8,  9), (@c_jake,    8,  8),
+(@c_elena,   8, 11), (@c_noah,    8,  7), (@c_zoe,     8, 10),
+(@c_carlos,  8,  8), (@c_hannah,  8,  9), (@c_drew,    8,  8),
 -- Ep 9 (Tyler eliminated ep 8, Carlos eliminated this ep)
-(@sc_maya,    @lid, 9, 10),
-(@sc_sofia,   @lid, 9,  6), (@sc_aisha,   @lid, 9,  8), (@sc_jake,    @lid, 9, 10),
-(@sc_elena,   @lid, 9, 12), (@sc_noah,    @lid, 9,  8), (@sc_zoe,     @lid, 9,  9),
-(@sc_carlos,  @lid, 9,  3), (@sc_hannah,  @lid, 9, 10), (@sc_drew,    @lid, 9,  9),
+(@c_maya,    9, 10),
+(@c_sofia,   9,  6), (@c_aisha,   9,  8), (@c_jake,    9, 10),
+(@c_elena,   9, 12), (@c_noah,    9,  8), (@c_zoe,     9,  9),
+(@c_carlos,  9,  3), (@c_hannah,  9, 10), (@c_drew,    9,  9),
 -- Ep 10 (Carlos eliminated ep 9, Aisha eliminated this ep)
-(@sc_maya,    @lid, 10, 12),
-(@sc_sofia,   @lid, 10,  8), (@sc_aisha,   @lid, 10,  5), (@sc_jake,    @lid, 10,  9),
-(@sc_elena,   @lid, 10, 11), (@sc_noah,    @lid, 10,  9), (@sc_zoe,     @lid, 10, 10),
-(@sc_hannah,  @lid, 10, 11), (@sc_drew,    @lid, 10, 10),
+(@c_maya,    10, 12),
+(@c_sofia,   10,  8), (@c_aisha,   10,  5), (@c_jake,    10,  9),
+(@c_elena,   10, 11), (@c_noah,    10,  9), (@c_zoe,     10, 10),
+(@c_hannah,  10, 11), (@c_drew,    10, 10),
 -- Ep 11 (Aisha eliminated ep 10, Jake eliminated this ep)
-(@sc_maya,    @lid, 11, 11),
-(@sc_sofia,   @lid, 11,  9), (@sc_jake,    @lid, 11,  6),
-(@sc_elena,   @lid, 11, 13), (@sc_noah,    @lid, 11,  8), (@sc_zoe,     @lid, 11, 11),
-(@sc_hannah,  @lid, 11, 10), (@sc_drew,    @lid, 11,  9),
+(@c_maya,    11, 11),
+(@c_sofia,   11,  9), (@c_jake,    11,  6),
+(@c_elena,   11, 13), (@c_noah,    11,  8), (@c_zoe,     11, 11),
+(@c_hannah,  11, 10), (@c_drew,    11,  9),
 -- Ep 12 (Jake eliminated ep 11, Sofia eliminated this ep)
-(@sc_maya,    @lid, 12, 13),
-(@sc_sofia,   @lid, 12,  4),
-(@sc_elena,   @lid, 12, 12), (@sc_noah,    @lid, 12, 10), (@sc_zoe,     @lid, 12, 12),
-(@sc_hannah,  @lid, 12, 11), (@sc_drew,    @lid, 12, 11),
+(@c_maya,    12, 13),
+(@c_sofia,   12,  4),
+(@c_elena,   12, 12), (@c_noah,    12, 10), (@c_zoe,     12, 12),
+(@c_hannah,  12, 11), (@c_drew,    12, 11),
 -- Ep 13 (Sofia eliminated ep 12, Noah eliminated this ep)
-(@sc_maya,    @lid, 13, 12),
-(@sc_elena,   @lid, 13, 14), (@sc_noah,    @lid, 13,  5), (@sc_zoe,     @lid, 13, 11),
-(@sc_hannah,  @lid, 13, 12), (@sc_drew,    @lid, 13, 10),
+(@c_maya,    13, 12),
+(@c_elena,   13, 14), (@c_noah,    13,  5), (@c_zoe,     13, 11),
+(@c_hannah,  13, 12), (@c_drew,    13, 10),
 -- Ep 14 finale (Noah eliminated ep 13)
-(@sc_maya,    @lid, 14, 16), (@sc_elena,   @lid, 14, 15), (@sc_zoe,     @lid, 14,  9),
-(@sc_hannah,  @lid, 14,  8), (@sc_drew,    @lid, 14,  6);
+(@c_maya,    14, 16), (@c_elena,   14, 15), (@c_zoe,     14,  9),
+(@c_hannah,  14,  8), (@c_drew,    14,  6);
