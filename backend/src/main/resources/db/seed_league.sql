@@ -3,19 +3,45 @@
 -- Run manually against local DB via ./seed.sh [1|2|3|4]. NOT a Flyway migration.
 
 -- ─── Cleanup any previous seed data ───────────────────────────────────────────
+-- Test users are fully disposable, so wipe every league they created (not just
+-- the SURV51 seed league) plus any membership/roster rows tied to them directly —
+-- they may have created or joined other leagues manually while testing the app.
 
-SET @lid = (SELECT id FROM leagues WHERE code = 'SURV51');
+CREATE TEMPORARY TABLE _seed_user_ids AS
+    SELECT id FROM users WHERE username IN ('alex', 'jordan', 'sam', 'casey');
 
-DELETE FROM merge_actions WHERE league_id = @lid;
-DELETE es FROM episode_scores es JOIN contestants c ON es.contestant_id = c.id WHERE c.league_id = @lid;
-DELETE FROM episodes       WHERE league_id = @lid;
-DELETE rp FROM roster_picks   rp JOIN rosters     r ON rp.roster_id     = r.id WHERE r.league_id = @lid;
-DELETE FROM rosters        WHERE league_id = @lid;
-DELETE FROM league_members WHERE league_id = @lid;
-DELETE FROM contestants    WHERE league_id = @lid;
-DELETE FROM tribes         WHERE league_id = @lid;
-DELETE FROM leagues        WHERE id = @lid;
-DELETE FROM users          WHERE username IN ('alex', 'jordan', 'sam', 'casey');
+CREATE TEMPORARY TABLE _seed_league_ids AS
+    SELECT id FROM leagues WHERE created_by IN (SELECT id FROM _seed_user_ids);
+
+DELETE FROM merge_actions
+    WHERE league_id IN (SELECT id FROM _seed_league_ids)
+       OR user_id   IN (SELECT id FROM _seed_user_ids);
+
+DELETE es FROM episode_scores es JOIN contestants c ON es.contestant_id = c.id
+    WHERE c.league_id IN (SELECT id FROM _seed_league_ids);
+
+DELETE FROM episodes WHERE league_id IN (SELECT id FROM _seed_league_ids);
+
+DELETE rp FROM roster_picks rp JOIN rosters r ON rp.roster_id = r.id
+    WHERE r.league_id IN (SELECT id FROM _seed_league_ids)
+       OR r.user_id   IN (SELECT id FROM _seed_user_ids);
+
+DELETE FROM rosters
+    WHERE league_id IN (SELECT id FROM _seed_league_ids)
+       OR user_id   IN (SELECT id FROM _seed_user_ids);
+
+DELETE FROM league_members
+    WHERE league_id IN (SELECT id FROM _seed_league_ids)
+       OR user_id   IN (SELECT id FROM _seed_user_ids);
+
+DELETE FROM contestants WHERE league_id IN (SELECT id FROM _seed_league_ids);
+DELETE FROM tribes      WHERE league_id IN (SELECT id FROM _seed_league_ids);
+DELETE FROM leagues     WHERE id IN (SELECT id FROM _seed_league_ids);
+DELETE FROM users       WHERE id IN (SELECT id FROM _seed_user_ids);
+
+DROP TEMPORARY TABLE _seed_user_ids;
+DROP TEMPORARY TABLE _seed_league_ids;
+
 DELETE FROM SPRING_SESSION_ATTRIBUTES;
 DELETE FROM SPRING_SESSION;
 
