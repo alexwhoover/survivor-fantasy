@@ -1,6 +1,64 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Users, Trophy, Star, TrendingUp, Crown } from "lucide-react";
+import { Badge } from "../components/ui/badge";
+import { Users, Trophy, Star, Crown, GitMerge } from "lucide-react";
 import jeffProbstField from "../../assets/jeff-probst-field.jpg";
+
+function PointBadge({ pts }: { pts: number }) {
+  const colour =
+    pts === 15 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" :
+    pts === 10 ? "bg-blue-500/15 text-blue-400 border-blue-500/30" :
+                 "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${colour}`}>
+      +{pts} pts
+    </span>
+  );
+}
+
+const FIVE_PT = [
+  "Wins a group Immunity Challenge",
+  "Wins a group Reward Challenge",
+  "Gets chosen to go on reward",
+  "Finds or gets a game advantage",
+  "Plays a hidden immunity idol on themselves at Tribal Council",
+  "Uses a game advantage at Tribal Council",
+  "Visibly cries with tears on camera",
+  "Says a curse word that is bleeped/censored",
+  'Says "I miss…"',
+  "Kisses another player still in the game",
+  "Gets into a heated argument and shouts at another player",
+  "Has a wardrobe malfunction / shows nudity blurred on screen",
+  "Chooses to risk their vote",
+  "Finds a fake immunity idol",
+  "Hugs Jeff",
+  "Is chosen to go on a journey",
+];
+
+const TEN_PT = [
+  "Wins an individual Reward Challenge",
+  "Finds a hidden immunity idol",
+  "Voted out while in possession of a hidden immunity idol or game advantage",
+  "Plays their Shot in the Dark",
+  "Torch gets snuffed as a result of a blindside",
+  "Gets treated for a medical emergency",
+  "Chooses to forfeit the game",
+  "Catches seafood or wildlife",
+  "Tampers with or steals the tribe's food",
+  "Plays a fake immunity idol at Tribal Council",
+  "Searches through someone else's bag",
+  "Voted out unanimously",
+  "A hidden immunity idol is played on them by another player",
+];
+
+const FIFTEEN_PT = [
+  "Wins an individual Immunity Challenge",
+  "Draws a SAFE scroll as a result of playing their Shot in the Dark",
+  "Wins a fire-making challenge",
+  "Gives an immunity idol / necklace away or plays it for another player",
+  "Creates a fake immunity idol",
+  "Successfully gets another player to play their fake idol at Tribal Council",
+  "Is forced to leave the game by no choice of their own (aside from being voted off)",
+];
 
 export function HowToPlay() {
   return (
@@ -9,125 +67,186 @@ export function HowToPlay() {
         <div className="flex justify-center mb-6">
           <img src={jeffProbstField} alt="Jeff Probst" className="w-full max-w-2xl rounded-lg" />
         </div>
-        <div className="mb-4">
-          <h1>How to Play</h1>
-        </div>
+        <h1 className="mb-3">How to Play</h1>
         <p className="text-lg text-muted-foreground">
-          Welcome to Survivor Fantasy! Compete with your friends to pick the best contestants and
-          earn points throughout the season.
+          Build your Fantasy Tribe, earn points every episode, and outlast your friends to win the
+          league.
         </p>
       </div>
 
       <div className="space-y-6">
+
+        {/* Steps */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
               <Users className="h-6 w-6 text-primary" />
-              <CardTitle>Draft Your Roster</CardTitle>
+              <CardTitle>The Steps</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p>
-              At the start of each Survivor season, you'll draft your roster of contestants:
-            </p>
-            <ul className="space-y-2 list-disc list-inside text-muted-foreground">
-              <li>Pick an <strong className="text-foreground">equal number of contestants from each starting tribe</strong></li>
-              <li>Typically, this is <strong className="text-foreground">2 contestants per tribe</strong> for a total of 6</li>
-              <li>Numbers may vary based on the season's tribe structure</li>
-            </ul>
+          <CardContent className="space-y-5">
+
+            <div className="space-y-1">
+              <p className="font-semibold">Step 1 — Draft Your Fantasy Tribe</p>
+              <p className="text-muted-foreground">
+                Pick <strong className="text-foreground">3 castaways from each starting tribe</strong> that
+                you think will make it to the end of the game. With 3 tribes that gives you{" "}
+                <strong className="text-foreground">9 picks total</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold">Step 2 — Choose Your MVP</p>
+              <p className="text-muted-foreground">
+                Out of your 9 picks, designate <strong className="text-foreground">one castaway as your MVP</strong> —
+                the player you think will win the whole game. If your MVP is the Sole Survivor you earn a{" "}
+                <strong className="text-foreground">30-point bonus</strong> at the end of the season.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold">Step 3 — Designate a League Commissioner</p>
+              <p className="text-muted-foreground">
+                One person in your league should be the <strong className="text-foreground">Commissioner</strong> (Admin).
+                They're responsible for entering each episode's points after it airs.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-semibold">Step 4 — Check Results Each Week</p>
+              <p className="text-muted-foreground">
+                After each episode airs, the Commissioner enters scores and the leaderboard updates.{" "}
+                <strong className="text-foreground">Points begin accumulating from Episode 2</strong> — Episode 1
+                airs before picks are locked.
+              </p>
+            </div>
+
           </CardContent>
         </Card>
 
+        {/* Merge */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <TrendingUp className="h-6 w-6 text-primary" />
-              <CardTitle>Earn Points Each Episode</CardTitle>
+              <GitMerge className="h-6 w-6 text-primary" />
+              <CardTitle>Merge Bonus</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p>
-              Contestants on your roster earn points each episode based on their actions:
+          <CardContent className="space-y-3">
+            <p className="text-muted-foreground">
+              After the tribes merge you get one opportunity to adjust your Fantasy Tribe:
             </p>
-            <ul className="space-y-2 list-disc list-inside text-muted-foreground">
-              <li><strong className="text-foreground">Finding idols or advantages</strong> - Big points!</li>
-              <li><strong className="text-foreground">Winning immunity challenges</strong> - Individual or tribal</li>
-              <li><strong className="text-foreground">Strategic gameplay</strong> - Shown in confessionals</li>
-              <li><strong className="text-foreground">Dramatic moments</strong> - Crying, conflicts, memorable quotes</li>
+            <ul className="space-y-2 text-muted-foreground list-disc list-inside">
+              <li>
+                If you <strong className="text-foreground">lost players before the merge</strong> and have
+                fewer than 9 picks, you can <strong className="text-foreground">add one new castaway</strong>.
+              </li>
+              <li>
+                If you still have all 9 picks you can{" "}
+                <strong className="text-foreground">swap one of your current players</strong> for someone new.
+              </li>
             </ul>
             <p className="text-sm text-muted-foreground">
-              Points are typically tracked by a third party (like a TV network's official scoring) and
-              entered by your league admin after each episode airs.
+              Points for your added/swapped-in pick are <strong className="text-foreground">not retroactive</strong> — they
+              start from the episode after the merge. You keep all points already earned by a
+              player you swap out.
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Star className="h-6 w-6 text-primary" />
-              <CardTitle>The Merge Twist</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p>
-              When the tribes merge into one (usually around episode 7):
-            </p>
-            <ul className="space-y-2 list-disc list-inside text-muted-foreground">
-              <li>You can <strong className="text-foreground">add one new contestant</strong> to your roster</li>
-              <li>OR <strong className="text-foreground">swap one of your current contestants</strong> if your roster is full</li>
-              <li>This is your chance to adjust your strategy mid-season!</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Crown className="h-6 w-6 text-primary" />
-              <CardTitle>Choose Your MVP</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p>
-              At the start of the season, designate one of your contestants as your MVP:
-            </p>
-            <ul className="space-y-2 list-disc list-inside text-muted-foreground">
-              <li>Your MVP must be someone on your roster</li>
-              <li>If your MVP <strong className="text-foreground">wins the entire season</strong>, you earn bonus points</li>
-              <li>The bonus amount is set by your league (typically 50-100 points)</li>
-              <li>Choose wisely - it's a big gamble that could win you the league!</li>
-            </ul>
-          </CardContent>
-        </Card>
-
+        {/* Season scoring */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
               <Trophy className="h-6 w-6 text-primary" />
-              <CardTitle>Win Your League</CardTitle>
+              <CardTitle>Season Scoring</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p>
-              The player with the highest total points at the end of the season wins!
-            </p>
-            <p className="text-muted-foreground">
-              Track your progress throughout the season, check the standings, and see if your picks
-              can outwit, outplay, and outlast the competition.
-            </p>
+          <CardContent>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-border">
+                {[
+                  ["1 point", "per castaway for each episode they survive pre-merge"],
+                  ["3 points", "per castaway for each episode they survive post-merge"],
+                  ["10 bonus points", "if any of your picks finishes in 3rd place"],
+                  ["20 bonus points", "if any of your picks finishes in 2nd place"],
+                  ["30 bonus points", "if any of your picks wins the game"],
+                  ["30 bonus points", "if your MVP wins the game"],
+                ].map(([pts, desc]) => (
+                  <tr key={pts} className="flex gap-4 py-2.5">
+                    <td className="w-36 shrink-0 font-semibold text-foreground">{pts}</td>
+                    <td className="text-muted-foreground">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
 
-        <Card className="bg-accent border-primary">
-          <CardContent className="p-6">
+        {/* Weekly bonus */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Star className="h-6 w-6 text-primary" />
+              <CardTitle>Additional Weekly Bonus Points</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
             <p className="text-sm text-muted-foreground">
-              <strong className="text-foreground">League Admin Note:</strong> As the league
-              organizer, you'll be responsible for entering contestant points after each episode.
-              You can also customize rules and point values to fit your league's preferences.
+              Earn bonus points each episode when your Fantasy Tribe castaways do any of the
+              following on screen. Limited to one occurrence per castaway per episode — if your
+              castaway cries twice, that's still 5 points for the week. Excludes recaps and "next
+              time on" previews.
             </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <PointBadge pts={5} />
+                <span className="text-sm font-semibold">5-Point Actions</span>
+              </div>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground list-disc list-inside">
+                {FIVE_PT.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <PointBadge pts={10} />
+                <span className="text-sm font-semibold">10-Point Actions</span>
+              </div>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground list-disc list-inside">
+                {TEN_PT.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <PointBadge pts={15} />
+                <span className="text-sm font-semibold">15-Point Actions</span>
+              </div>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground list-disc list-inside">
+                {FIFTEEN_PT.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+
           </CardContent>
         </Card>
+
+        {/* Commissioner note */}
+        <Card className="bg-accent border-primary">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <Crown className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">Commissioner Note:</strong> As the league Admin
+                you enter each episode's scores after it airs. Use the scoring categories above to
+                tally up each castaway's weekly total. Scores and the leaderboard update immediately
+                once you save.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
