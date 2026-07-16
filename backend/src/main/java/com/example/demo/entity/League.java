@@ -21,14 +21,11 @@ public class League {
     @Column(name = "season_name", nullable = false)
     private String seasonName;
 
-    @Column(name = "picking_open", nullable = false)
-    private boolean pickingOpen = true;
+    @Column(name = "initial_picks_open", nullable = false)
+    private boolean initialPicksOpen = true;
 
-    @Column(name = "merge_episode")
-    private Integer mergeEpisode;
-
-    @Column(name = "merge_deadline")
-    private LocalDateTime mergeDeadline;
+    @Column(name = "merge_picks_open", nullable = false)
+    private boolean mergePicksOpen = false;
 
     @Column(name = "contestants_per_tribe")
     private int contestantsPerTribe = 2;
@@ -53,12 +50,10 @@ public class League {
     public String getName() { return name; }
     public String getCode() { return code; }
     public String getSeasonName() { return seasonName; }
-    public boolean isPickingOpen() { return pickingOpen; }
-    public void setPickingOpen(boolean pickingOpen) { this.pickingOpen = pickingOpen; }
-    public Integer getMergeEpisode() { return mergeEpisode; }
-    public void setMergeEpisode(Integer mergeEpisode) { this.mergeEpisode = mergeEpisode; }
-    public LocalDateTime getMergeDeadline() { return mergeDeadline; }
-    public void setMergeDeadline(LocalDateTime mergeDeadline) { this.mergeDeadline = mergeDeadline; }
+    public boolean isInitialPicksOpen() { return initialPicksOpen; }
+    public void setInitialPicksOpen(boolean initialPicksOpen) { this.initialPicksOpen = initialPicksOpen; }
+    public boolean isMergePicksOpen() { return mergePicksOpen; }
+    public void setMergePicksOpen(boolean mergePicksOpen) { this.mergePicksOpen = mergePicksOpen; }
     public int getContestantsPerTribe() { return contestantsPerTribe; }
     public void setContestantsPerTribe(int contestantsPerTribe) { this.contestantsPerTribe = contestantsPerTribe; }
     public Long getCreatedBy() { return createdBy; }

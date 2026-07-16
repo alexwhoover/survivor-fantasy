@@ -1,3 +1,3 @@
 package com.example.demo.dto;
 
-public record EpisodeDto(Long id, int episodeNumber) {}
+public record EpisodeDto(Long id, int episodeNumber, boolean isMergeEpisode) {}

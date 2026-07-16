@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.dao.ContestantDao;
+import com.example.demo.dao.EpisodeDao;
 import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.TribeDao;
@@ -36,14 +37,16 @@ public class LeagueService {
     private final LeagueMemberDao leagueMemberDao;
     private final TribeDao tribeDao;
     private final ContestantDao contestantDao;
+    private final EpisodeDao episodeDao;
 
     @Autowired
     public LeagueService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao,
-                         TribeDao tribeDao, ContestantDao contestantDao) {
+                         TribeDao tribeDao, ContestantDao contestantDao, EpisodeDao episodeDao) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
         this.tribeDao = tribeDao;
         this.contestantDao = contestantDao;
+        this.episodeDao = episodeDao;
     }
 
     public List<LeagueResponse> getLeaguesForUser(Long userId) {
@@ -141,7 +144,26 @@ public class LeagueService {
     }
 
     @Transactional
-    public LeagueResponse setPickingOpen(Long leagueId, Long adminUserId, boolean open) {
+    public LeagueResponse setInitialPicksOpen(Long leagueId, Long adminUserId, boolean open) {
+        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can control picking");
+        league.setInitialPicksOpen(open);
+        return toResponse(league);
+    }
+
+    @Transactional
+    public LeagueResponse setMergePicksOpen(Long leagueId, Long adminUserId, boolean open) {
+        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can control picking");
+
+        if (open && episodeDao.findMergeEpisode(leagueId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Flag an episode as the merge episode before opening merge picks");
+        }
+
+        league.setMergePicksOpen(open);
+        return toResponse(league);
+    }
+
+    private League requireAdminLeague(Long leagueId, Long adminUserId, String forbiddenMessage) {
         if (adminUserId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "adminUserId is required");
         }
@@ -151,10 +173,9 @@ public class LeagueService {
 
         leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
                 .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Only league admins can control picking"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, forbiddenMessage));
 
-        league.setPickingOpen(open);
-        return toResponse(league);
+        return league;
     }
 
     @Transactional
@@ -213,9 +234,8 @@ public class LeagueService {
                 league.getCreatedBy(),
                 league.getCreatedAt(),
                 league.getContestantsPerTribe(),
-                league.isPickingOpen(),
-                league.getMergeEpisode(),
-                league.getMergeDeadline()
+                league.isInitialPicksOpen(),
+                league.isMergePicksOpen()
         );
     }
 }

@@ -23,11 +23,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Fires whenever any API call comes back 401 (missing/expired/invalid session),
+  // so a session that goes stale mid-navigation clears client state immediately
+  // instead of waiting for the next full page load.
   useEffect(() => {
-    const handler = () => {
-      sessionStorage.removeItem("survivor_session");
-      setUser(null);
-    };
+    const handler = () => setUser(null);
     window.addEventListener("auth:unauthorized", handler);
     return () => window.removeEventListener("auth:unauthorized", handler);
   }, []);

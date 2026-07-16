@@ -8,7 +8,6 @@ import com.example.demo.dto.ContestantStatusRequest;
 import com.example.demo.dto.CreateLeagueRequest;
 import com.example.demo.dto.EpisodeDto;
 import com.example.demo.dto.EpisodeScoreItem;
-import com.example.demo.dto.InitiateMergeRequest;
 import com.example.demo.dto.JoinLeagueRequest;
 import com.example.demo.dto.LeaderboardEntry;
 import com.example.demo.dto.LeagueMemberResponse;
@@ -19,6 +18,7 @@ import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.MergeStatusResponse;
 import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.RosterResponse;
+import com.example.demo.dto.SetMergeEpisodeRequest;
 import com.example.demo.dto.SubmitRosterRequest;
 import com.example.demo.dto.TribeDto;
 import com.example.demo.service.CastService;
@@ -98,10 +98,16 @@ public class LeagueController {
         return leagueService.joinLeague(request.code(), request.userId());
     }
 
-    /** Admin-only: manually open or close roster picking for the league. */
-    @PutMapping("/{id}/picking")
-    public LeagueResponse setPickingOpen(@PathVariable Long id, @RequestBody PickingRequest request) {
-        return leagueService.setPickingOpen(id, request.adminUserId(), request.open());
+    /** Admin-only: manually open or close initial roster picking for the league. */
+    @PutMapping("/{id}/initial-picking")
+    public LeagueResponse setInitialPicksOpen(@PathVariable Long id, @RequestBody PickingRequest request) {
+        return leagueService.setInitialPicksOpen(id, request.adminUserId(), request.open());
+    }
+
+    /** Admin-only: manually open or close merge picking for the league. */
+    @PutMapping("/{id}/merge-picking")
+    public LeagueResponse setMergePicksOpen(@PathVariable Long id, @RequestBody PickingRequest request) {
+        return leagueService.setMergePicksOpen(id, request.adminUserId(), request.open());
     }
 
     // --- Season configuration: tribes & contestants (read-only after wizard setup) ---
@@ -143,6 +149,13 @@ public class LeagueController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteEpisode(@PathVariable Long id, @PathVariable Long episodeId, @RequestParam Long adminUserId) {
         episodeService.deleteEpisode(id, adminUserId, episodeId);
+    }
+
+    /** Admin-only: flags (or unflags) an episode as the season's merge episode. */
+    @PutMapping("/{id}/episodes/{episodeId}/merge-flag")
+    public EpisodeDto setMergeEpisode(@PathVariable Long id, @PathVariable Long episodeId,
+                                      @RequestBody SetMergeEpisodeRequest request) {
+        return episodeService.setMergeEpisode(id, request.adminUserId(), episodeId, request.isMergeEpisode());
     }
 
     // --- Roster endpoints ---
@@ -196,11 +209,6 @@ public class LeagueController {
     }
 
     // --- Merge endpoints ---
-
-    @PostMapping("/{id}/merge/initiate")
-    public LeagueResponse initiateMerge(@PathVariable Long id, @RequestBody InitiateMergeRequest request) {
-        return mergeService.initiateMerge(id, request.adminUserId(), request.mergeEpisode(), request.mergeDeadline());
-    }
 
     @PostMapping("/{id}/merge/action")
     public MergeStatusResponse performMergeAction(@PathVariable Long id, @RequestBody MergeActionRequest request) {

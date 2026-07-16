@@ -6,12 +6,13 @@ import com.example.demo.dao.MergeActionDao;
 import com.example.demo.dao.RosterDao;
 import com.example.demo.dao.RosterPickDao;
 import com.example.demo.dao.ContestantDao;
+import com.example.demo.dao.EpisodeDao;
 import com.example.demo.dao.TribeDao;
-import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MergeActionRequest;
 import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.MergeMemberStatus;
 import com.example.demo.dto.MergeStatusResponse;
+import com.example.demo.entity.Episode;
 import com.example.demo.entity.League;
 import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.MergeAction;
@@ -24,10 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,39 +39,21 @@ public class MergeService {
     private final RosterDao rosterDao;
     private final RosterPickDao rosterPickDao;
     private final ContestantDao contestantDao;
+    private final EpisodeDao episodeDao;
     private final TribeDao tribeDao;
-    private final LeagueService leagueService;
 
     @Autowired
     public MergeService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao, MergeActionDao mergeActionDao,
-                        RosterDao rosterDao, RosterPickDao rosterPickDao, ContestantDao contestantDao, TribeDao tribeDao,
-                        LeagueService leagueService) {
+                        RosterDao rosterDao, RosterPickDao rosterPickDao, ContestantDao contestantDao,
+                        EpisodeDao episodeDao, TribeDao tribeDao) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
         this.mergeActionDao = mergeActionDao;
         this.rosterDao = rosterDao;
         this.rosterPickDao = rosterPickDao;
         this.contestantDao = contestantDao;
+        this.episodeDao = episodeDao;
         this.tribeDao = tribeDao;
-        this.leagueService = leagueService;
-    }
-
-    @Transactional
-    public LeagueResponse initiateMerge(Long leagueId, Long adminUserId, int mergeEpisode, LocalDateTime mergeDeadline) {
-        League league = leagueDao.findById(leagueId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-
-        leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
-                .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Only league admins can initiate a merge"));
-
-        if (mergeDeadline == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "mergeDeadline is required");
-        }
-
-        league.setMergeEpisode(mergeEpisode);
-        league.setMergeDeadline(mergeDeadline);
-        return leagueService.toResponse(league);
     }
 
     @Transactional
@@ -80,13 +61,11 @@ public class MergeService {
         League league = leagueDao.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
 
-        if (league.getMergeEpisode() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Merge has not been initiated for this league");
+        if (episodeDao.findMergeEpisode(leagueId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No episode has been flagged as the merge episode yet");
         }
-
-        LocalDateTime deadline = league.getMergeDeadline();
-        if (deadline != null && LocalDateTime.now().isAfter(deadline)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Merge deadline has passed");
+        if (!league.isMergePicksOpen()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Merge picks are currently closed for this league");
         }
 
         Long userId = request.userId();
@@ -180,13 +159,17 @@ public class MergeService {
         League league = leagueDao.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
 
-        boolean initiated = league.getMergeEpisode() != null;
-        LocalDateTime deadline = league.getMergeDeadline();
-        boolean deadlinePassed = deadline != null && LocalDateTime.now().isAfter(deadline);
+        Optional<Episode> mergeEpisode = episodeDao.findMergeEpisode(leagueId);
+        boolean initiated = mergeEpisode.isPresent();
 
         List<MergeMemberStatus> memberStatuses = buildMemberStatuses(leagueId);
 
-        return new MergeStatusResponse(initiated, league.getMergeEpisode(), deadline, deadlinePassed, memberStatuses);
+        return new MergeStatusResponse(
+                initiated,
+                mergeEpisode.map(Episode::getEpisodeNumber).orElse(null),
+                league.isMergePicksOpen(),
+                memberStatuses
+        );
     }
 
     @Transactional
@@ -199,8 +182,8 @@ public class MergeService {
         League league = leagueDao.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
 
-        if (league.getMergeEpisode() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Merge has not been initiated for this league");
+        if (episodeDao.findMergeEpisode(leagueId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No episode has been flagged as the merge episode yet");
         }
 
         Roster roster = rosterDao.findByLeagueIdAndUserId(leagueId, targetUserId)

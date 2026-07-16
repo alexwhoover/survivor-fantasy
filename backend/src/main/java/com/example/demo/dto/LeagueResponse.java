@@ -10,7 +10,6 @@ public record LeagueResponse(
         Long createdBy,
         LocalDateTime createdAt,
         int contestantsPerTribe,
-        boolean pickingOpen,
-        Integer mergeEpisode,
-        LocalDateTime mergeDeadline
+        boolean initialPicksOpen,
+        boolean mergePicksOpen
 ) {}

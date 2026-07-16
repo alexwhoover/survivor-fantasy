@@ -47,6 +47,21 @@ public class EpisodeDao {
         return count > 0;
     }
 
+    public Optional<Episode> findMergeEpisode(Long leagueId) {
+        return entityManager.createQuery(
+                "SELECT e FROM Episode e WHERE e.leagueId = :leagueId AND e.mergeEpisode = true", Episode.class)
+                .setParameter("leagueId", leagueId)
+                .getResultStream()
+                .findFirst();
+    }
+
+    /** Clears the merge flag on every episode in the league; used before setting a new one. */
+    public void clearMergeFlag(Long leagueId) {
+        entityManager.createQuery("UPDATE Episode e SET e.mergeEpisode = false WHERE e.leagueId = :leagueId")
+                .setParameter("leagueId", leagueId)
+                .executeUpdate();
+    }
+
     public void delete(Episode episode) {
         entityManager.remove(episode);
     }

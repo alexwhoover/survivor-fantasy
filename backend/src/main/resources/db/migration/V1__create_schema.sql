@@ -15,9 +15,8 @@ CREATE TABLE leagues (
     name                  VARCHAR(100) NOT NULL,
     code                  VARCHAR(10)  NOT NULL,
     season_name           VARCHAR(100) NOT NULL,
-    picking_open          BOOLEAN      NOT NULL DEFAULT TRUE,
-    merge_episode         INT          NULL,
-    merge_deadline        DATETIME     NULL,
+    initial_picks_open    BOOLEAN      NOT NULL DEFAULT TRUE,
+    merge_picks_open      BOOLEAN      NOT NULL DEFAULT FALSE,
     contestants_per_tribe INT          DEFAULT 2,
     created_by            BIGINT       NOT NULL,
     created_at            TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
@@ -88,10 +87,11 @@ CREATE TABLE roster_picks (
 );
 
 CREATE TABLE episodes (
-    id             BIGINT    NOT NULL AUTO_INCREMENT,
-    league_id      BIGINT    NOT NULL,
-    episode_number INT       NOT NULL,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id               BIGINT    NOT NULL AUTO_INCREMENT,
+    league_id        BIGINT    NOT NULL,
+    episode_number   INT       NOT NULL,
+    is_merge_episode BOOLEAN   NOT NULL DEFAULT FALSE,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_episode (league_id, episode_number),
     CONSTRAINT fk_episode_league FOREIGN KEY (league_id) REFERENCES leagues(id)

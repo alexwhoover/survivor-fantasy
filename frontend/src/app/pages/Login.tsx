@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, type Location } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -15,7 +15,12 @@ export function Login() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser } = useAuth();
+
+  // If the user was bounced here from a protected page, send them back there
+  // after they sign in instead of always landing on My Leagues.
+  const from = (location.state as { from?: Location } | null)?.from ?? "/leagues";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +37,7 @@ export function Login() {
         const user = await login(username, password);
         setUser(user);
       }
-      navigate("/leagues");
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     }

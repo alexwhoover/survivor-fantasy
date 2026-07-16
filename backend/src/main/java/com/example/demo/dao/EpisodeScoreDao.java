@@ -5,7 +5,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -53,5 +55,22 @@ public class EpisodeScoreDao {
         entityManager.createQuery("DELETE FROM EpisodeScore es WHERE es.contestantId = :cId")
                 .setParameter("cId", contestantId)
                 .executeUpdate();
+    }
+
+    /** Each contestant's summed points across all episodes, keyed by contestant id. */
+    public Map<Long, Integer> sumPointsByLeagueId(Long leagueId) {
+        List<Object[]> rows = entityManager.createQuery(
+                "SELECT es.contestantId, SUM(es.points) FROM EpisodeScore es " +
+                "JOIN Contestant c ON es.contestantId = c.id " +
+                "WHERE c.leagueId = :leagueId GROUP BY es.contestantId",
+                Object[].class)
+                .setParameter("leagueId", leagueId)
+                .getResultList();
+
+        Map<Long, Integer> totals = new HashMap<>();
+        for (Object[] row : rows) {
+            totals.put((Long) row[0], ((Number) row[1]).intValue());
+        }
+        return totals;
     }
 }

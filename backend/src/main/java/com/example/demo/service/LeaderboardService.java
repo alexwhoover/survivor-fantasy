@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.dao.EpisodeDao;
 import com.example.demo.dao.EpisodeScoreDao;
 import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
@@ -7,6 +8,7 @@ import com.example.demo.dao.MergeActionDao;
 import com.example.demo.dao.RosterDao;
 import com.example.demo.dao.RosterPickDao;
 import com.example.demo.dao.ContestantDao;
+import com.example.demo.entity.Episode;
 import com.example.demo.dto.LeaderboardEntry;
 import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.entity.EpisodeScore;
@@ -42,12 +44,13 @@ public class LeaderboardService {
     private final MergeActionDao mergeActionDao;
     private final EpisodeScoreDao episodeScoreDao;
     private final ContestantDao contestantDao;
+    private final EpisodeDao episodeDao;
 
     @Autowired
     public LeaderboardService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao,
                               RosterDao rosterDao, RosterPickDao rosterPickDao,
                               MergeActionDao mergeActionDao, EpisodeScoreDao episodeScoreDao,
-                              ContestantDao contestantDao) {
+                              ContestantDao contestantDao, EpisodeDao episodeDao) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
         this.rosterDao = rosterDao;
@@ -55,6 +58,7 @@ public class LeaderboardService {
         this.mergeActionDao = mergeActionDao;
         this.episodeScoreDao = episodeScoreDao;
         this.contestantDao = contestantDao;
+        this.episodeDao = episodeDao;
     }
 
     @Transactional(readOnly = true)
@@ -91,6 +95,8 @@ public class LeaderboardService {
                 .stream()
                 .collect(Collectors.toMap(Roster::getUserId, r -> r));
 
+        Integer mergeEpisode = episodeDao.findMergeEpisode(leagueId).map(Episode::getEpisodeNumber).orElse(null);
+
         List<LeaderboardEntry> entries = new ArrayList<>();
         for (LeagueMemberResponse member : members) {
             Long userId = member.userId();
@@ -104,7 +110,6 @@ public class LeaderboardService {
 
             List<RosterPick> picks = rosterPickDao.findByRosterId(roster.getId());
             MergeAction mergeAction = mergeActionByUser.get(userId);
-            Integer mergeEpisode = league.getMergeEpisode();
 
             int score = calculateScore(picks, mergeAction, mergeEpisode, scoresByContestantAndEpisode, contestantMap);
 

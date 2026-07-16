@@ -17,6 +17,9 @@ public class Episode {
     @Column(name = "episode_number", nullable = false)
     private int episodeNumber;
 
+    @Column(name = "is_merge_episode", nullable = false)
+    private boolean mergeEpisode = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -31,5 +34,7 @@ public class Episode {
     public Long getId() { return id; }
     public Long getLeagueId() { return leagueId; }
     public int getEpisodeNumber() { return episodeNumber; }
+    public boolean isMergeEpisode() { return mergeEpisode; }
+    public void setMergeEpisode(boolean mergeEpisode) { this.mergeEpisode = mergeEpisode; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

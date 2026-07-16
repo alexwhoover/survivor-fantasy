@@ -1,28 +1,29 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import torchIcon from "../../assets/torch.png";
-import { LogOut, LogIn } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../context/AuthContext";
 import { logout } from "../../api";
 
+// Only ever rendered inside the authenticated layout, so a valid session is guaranteed.
 export function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { setUser } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogout = async () => {
     await logout();
     setUser(null);
-    navigate("/login");
+    navigate("/");
   };
 
   return (
     <nav className="border-b border-border bg-card shadow-lg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <Link to="/" className="flex items-center gap-3" aria-label="Home">
+          <Link to="/leagues" className="flex items-center gap-3" aria-label="Home">
             <img src={torchIcon} alt="" className="h-10 w-auto" />
             <span className="text-xl font-semibold text-foreground">Survivor Fantasy</span>
           </Link>
@@ -47,28 +48,15 @@ export function Navigation() {
             >
               How to Play
             </Link>
-            {user ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="ml-2 text-muted-foreground hover:text-primary gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
-            ) : (
-              <Link to="/login">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-2 text-muted-foreground hover:text-primary gap-2"
-                >
-                  <LogIn className="h-4 w-4" />
-                  Login
-                </Button>
-              </Link>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="ml-2 text-muted-foreground hover:text-primary gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </div>

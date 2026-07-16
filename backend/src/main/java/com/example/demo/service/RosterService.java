@@ -59,8 +59,8 @@ public class RosterService {
         LeagueMember member = leagueMemberDao.findByLeagueIdAndUserId(leagueId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a member of this league"));
 
-        if (member.getRole() != LeagueMember.Role.ADMIN && !league.isPickingOpen()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Picking is currently closed for this league");
+        if (member.getRole() != LeagueMember.Role.ADMIN && !league.isInitialPicksOpen()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Initial picks are currently closed for this league");
         }
 
         validatePicksInput(mvpContestantId, contestantIds);

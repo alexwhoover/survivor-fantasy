@@ -115,10 +115,14 @@ async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
 }
 
 // --- Auth ---
+// The server session (a cookie validated on every request) is the sole source
+// of truth for auth state — nothing is cached client-side across page loads.
 
+/** Validates the current session against the server. Resolves null if it's missing, expired, or invalid. */
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  const raw = sessionStorage.getItem("survivor_session");
-  return raw ? (JSON.parse(raw) as AuthUser) : null;
+  const res = await apiFetch(`${API_BASE}/users/me`, { credentials: "include" });
+  if (!res.ok) return null;
+  return res.json();
 }
 
 export async function login(username: string, password: string): Promise<AuthUser> {
@@ -132,9 +136,7 @@ export async function login(username: string, password: string): Promise<AuthUse
     const text = await res.text();
     throw new Error(text || "Invalid credentials");
   }
-  const user: AuthUser = await res.json();
-  sessionStorage.setItem("survivor_session", JSON.stringify(user));
-  return user;
+  return res.json();
 }
 
 export async function register(username: string, password: string): Promise<AuthUser> {
@@ -148,9 +150,7 @@ export async function register(username: string, password: string): Promise<Auth
     const text = await res.text();
     throw new Error(text || "Registration failed");
   }
-  const user: AuthUser = await res.json();
-  sessionStorage.setItem("survivor_session", JSON.stringify(user));
-  return user;
+  return res.json();
 }
 
 export async function logout(): Promise<void> {
@@ -158,7 +158,6 @@ export async function logout(): Promise<void> {
     method: "POST",
     credentials: "include",
   });
-  sessionStorage.removeItem("survivor_session");
 }
 
 // --- Leagues ---

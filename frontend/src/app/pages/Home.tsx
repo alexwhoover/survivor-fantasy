@@ -11,7 +11,8 @@ import { Label } from "../components/ui/label";
 import { getMyLeagues, joinLeague, type LeagueApiResponse } from "../../api";
 
 export function Home() {
-  const { user, loading } = useAuth();
+  // RequireAuth guarantees a valid user by the time this page can render.
+  const { user } = useAuth();
   const [leagues, setLeagues] = useState<LeagueApiResponse[]>([]);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
@@ -21,28 +22,7 @@ export function Home() {
     if (user) getMyLeagues(user.id).then(setLeagues);
   }, [user]);
 
-  if (loading) return null;
-
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 text-center">
-        <Trophy className="h-16 w-16 text-primary mx-auto mb-6 opacity-60" />
-        <h1 className="mb-4">My Leagues</h1>
-        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Sign in to view and manage your Survivor fantasy leagues.
-        </p>
-        <Link to="/login">
-          <Button size="lg" className="gap-2">
-            <LogIn className="h-4 w-4" />
-            Sign In
-          </Button>
-        </Link>
-        <Link to="/" className="block mt-4 text-sm text-muted-foreground hover:text-primary transition-colors">
-          Learn more about Survivor Fantasy
-        </Link>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   const handleJoinLeague = async () => {
     setJoinError("");

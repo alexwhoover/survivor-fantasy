@@ -39,6 +39,16 @@ public class UserController {
         return authenticateAndCreateSession(request.username(), request.password(), httpRequest);
     }
 
+    /**
+     * Validates the caller's session against the server and returns the current user.
+     * Unauthenticated/expired/invalid sessions never reach this method — Spring
+     * Security's entry point rejects them with 401 first.
+     */
+    @GetMapping("/me")
+    public UserResponse getCurrentUser(Authentication authentication) {
+        return userService.findByUsername(authentication.getName());
+    }
+
     private UserResponse authenticateAndCreateSession(String username, String password, HttpServletRequest httpRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password)

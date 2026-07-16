@@ -71,8 +71,27 @@ public class EpisodeService {
         if (!episodeScoreDao.findByLeagueIdAndEpisodeNumber(leagueId, episode.getEpisodeNumber()).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot remove an episode that already has scores recorded");
         }
+        if (episode.isMergeEpisode()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot remove the merge episode. Unmark it as the merge episode first.");
+        }
 
         episodeDao.delete(episode);
+    }
+
+    /** Admin-only: flags (or unflags) this episode as the season's merge episode. At most one may be flagged. */
+    @Transactional
+    public EpisodeDto setMergeEpisode(Long leagueId, Long adminUserId, Long episodeId, boolean isMergeEpisode) {
+        requireAdmin(leagueId, adminUserId);
+        Episode episode = episodeDao.findById(episodeId)
+                .filter(e -> e.getLeagueId().equals(leagueId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Episode not found in this league"));
+
+        if (isMergeEpisode) {
+            episodeDao.clearMergeFlag(leagueId);
+        }
+        episode.setMergeEpisode(isMergeEpisode);
+        return toDto(episode);
     }
 
     private void requireLeague(Long leagueId) {
@@ -90,6 +109,6 @@ public class EpisodeService {
     }
 
     private EpisodeDto toDto(Episode episode) {
-        return new EpisodeDto(episode.getId(), episode.getEpisodeNumber());
+        return new EpisodeDto(episode.getId(), episode.getEpisodeNumber(), episode.isMergeEpisode());
     }
 }

@@ -31,7 +31,7 @@ SET @uid_alex = (SELECT id FROM users WHERE username = 'alex');
 
 -- ─── League with its own season configuration ─────────────────────────────────
 
-INSERT INTO leagues (name, code, season_name, picking_open, contestants_per_tribe, created_by)
+INSERT INTO leagues (name, code, season_name, initial_picks_open, contestants_per_tribe, created_by)
 VALUES ('Season 51 League', 'SURV51', 'Survivor: New Horizons', TRUE, 2, @uid_alex);
 
 SET @lid = LAST_INSERT_ID();

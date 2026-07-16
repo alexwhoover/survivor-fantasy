@@ -16,6 +16,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @Configuration
@@ -45,6 +46,14 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest().authenticated()
             )
+            // Without an explicit entry point, Spring Security's default for a
+            // missing/invalid/expired session is a bare 403. The frontend needs to
+            // tell "not logged in" apart from "logged in but not allowed" (which
+            // application code already reports as 403), so a missing/invalid
+            // session is reported as 401 here instead.
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(
+                    (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+            ))
             .logout(logout -> logout
                     .logoutUrl("/api/users/logout")
                     .deleteCookies("SESSION")
