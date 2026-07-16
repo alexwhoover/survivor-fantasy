@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 @Table(name = "merge_actions")
 public class MergeAction {
 
-    public enum ActionType { ADD, SWAP }
+    public enum ActionType { ADD, SWAP, NONE }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,7 +23,7 @@ public class MergeAction {
     @Column(name = "action_type", nullable = false)
     private ActionType actionType;
 
-    @Column(name = "added_contestant_id", nullable = false)
+    @Column(name = "added_contestant_id")
     private Long addedContestantId;
 
     @Column(name = "removed_contestant_id")

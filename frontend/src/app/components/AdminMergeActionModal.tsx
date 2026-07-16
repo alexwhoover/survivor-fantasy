@@ -34,10 +34,11 @@ export function AdminMergeActionModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Determine action type: if editing an existing action, keep its type.
-  // If creating new, determine by roster size.
+  // Determine action type: if editing an existing action, keep its type — both SWAP
+  // and NONE ("kept current roster") only ever happen when the roster was already
+  // full, so either implies swap mode. If creating new, determine by roster size.
   const isSwap = existingAction
-    ? existingAction.actionType === "SWAP"
+    ? existingAction.actionType !== "ADD"
     : currentRoster.contestantIds.length >= maxRosterSize;
 
   // Build the "effective pre-merge roster" for computing available contestants:
@@ -45,7 +46,9 @@ export function AdminMergeActionModal({
   const preMergeRosterIds = useMemo((): Set<number> => {
     const ids = new Set(currentRoster.contestantIds);
     if (existingAction) {
-      ids.delete(existingAction.addedContestantId);
+      if (existingAction.addedContestantId != null) {
+        ids.delete(existingAction.addedContestantId);
+      }
       if (existingAction.removedContestantId != null) {
         ids.add(existingAction.removedContestantId);
       }
@@ -53,15 +56,15 @@ export function AdminMergeActionModal({
     return ids;
   }, [currentRoster, existingAction]);
 
-  // Contestants eligible to add: not in pre-merge roster, not eliminated
+  // Contestants eligible to add: not in pre-merge roster (eliminated contestants are still selectable)
   const addableContestants = useMemo(
-    () => contestants.filter((c) => !preMergeRosterIds.has(c.id) && c.eliminatedEpisode === null),
+    () => contestants.filter((c) => !preMergeRosterIds.has(c.id)),
     [contestants, preMergeRosterIds]
   );
 
-  // Contestants eligible to remove (swap only): in pre-merge roster, not eliminated
+  // Contestants eligible to remove (swap only): in pre-merge roster
   const removableContestants = useMemo(
-    () => contestants.filter((c) => preMergeRosterIds.has(c.id) && c.eliminatedEpisode === null),
+    () => contestants.filter((c) => preMergeRosterIds.has(c.id)),
     [contestants, preMergeRosterIds]
   );
 
@@ -136,6 +139,9 @@ export function AdminMergeActionModal({
                               <span className="text-xs text-muted-foreground">{c.tribe}</span>
                             </div>
                           )}
+                          {c.eliminatedEpisode !== null && (
+                            <span className="text-xs text-muted-foreground">Out Ep. {c.eliminatedEpisode}</span>
+                          )}
                         </div>
                         {selected ? <CheckCircle2 className="h-4 w-4 text-destructive" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
                       </div>
@@ -181,6 +187,9 @@ export function AdminMergeActionModal({
                                 <div>
                                   <div className="text-sm font-medium">{c.firstName} {c.lastName}</div>
                                   {c.hometown && <div className="text-xs text-muted-foreground">{c.hometown}</div>}
+                                  {c.eliminatedEpisode !== null && (
+                                    <div className="text-xs text-muted-foreground">Out Ep. {c.eliminatedEpisode}</div>
+                                  )}
                                 </div>
                                 {selected ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
                               </div>

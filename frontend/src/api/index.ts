@@ -99,8 +99,8 @@ export interface MergeStatusResponse {
 }
 
 export interface MergeActionResponse {
-  actionType: "ADD" | "SWAP";
-  addedContestantId: number;
+  actionType: "ADD" | "SWAP" | "NONE";
+  addedContestantId: number | null;
   removedContestantId: number | null;
 }
 
@@ -479,14 +479,15 @@ export async function getMyMergeAction(leagueId: number, userId: number): Promis
 export async function performMergeAction(
   leagueId: number,
   userId: number,
-  addedContestantId: number,
-  removedContestantId: number | null
+  addedContestantId: number | null,
+  removedContestantId: number | null,
+  noChange = false
 ): Promise<MergeStatusResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, addedContestantId, removedContestantId }),
+    body: JSON.stringify({ userId, addedContestantId, removedContestantId, noChange }),
   });
   if (!res.ok) {
     const text = await res.text();

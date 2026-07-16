@@ -39,6 +39,12 @@ interface MergeEditTarget {
   existingAction: MergeActionResponse | null;
 }
 
+function pickingBadgeClass(active: boolean): string {
+  return active
+    ? "bg-green-500/10 text-green-500 border-green-500"
+    : "bg-red-500/10 text-red-500 border-red-500";
+}
+
 export function AdminPlayers({
   league, adminUserId, members, contestants,
   mergeStatus, maxRosterSize, onMergeStatusUpdated,
@@ -125,18 +131,9 @@ export function AdminPlayers({
     }
   };
 
-  const getRosterContestants = (userId: number): Contestant[] => {
-    const roster = rosters[userId];
-    if (!roster) return [];
-    return roster.contestantIds
-      .map((id) => contestants.find((c) => c.id === id))
-      .filter(Boolean) as Contestant[];
-  };
-
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-2">
       {members.map((member) => {
-        const rosterContestants = getRosterContestants(member.userId);
         const roster = rosters[member.userId];
         const hasRoster = !!roster;
         const mergeAction = mergeActions[member.userId];
@@ -144,13 +141,16 @@ export function AdminPlayers({
         const canEditMerge = mergeInitiated && hasRoster;
 
         return (
-          <Card key={member.userId} style={{ padding: "16px" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[15px] font-medium">{member.username}</span>
-                {member.role === "ADMIN" && <Badge variant="secondary">Admin</Badge>}
-              </div>
-              <div className="flex items-center gap-2">
+          <Card key={member.userId} style={{ padding: "12px 16px" }}>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-sm font-medium">{member.username}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={pickingBadgeClass(hasRoster)}>
+                  Initial Picks
+                </Badge>
+                <Badge variant="outline" className={pickingBadgeClass(!!mergeAction)}>
+                  Merge Pick
+                </Badge>
                 {canEditMerge && (
                   <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openMergeEdit(member)}>
                     {mergeAction
@@ -164,35 +164,6 @@ export function AdminPlayers({
                 </Button>
               </div>
             </div>
-
-            <div className="flex gap-2 flex-wrap mb-3">
-              <Badge variant={hasRoster ? "default" : "outline"}>
-                Initial Picks: {hasRoster ? "Submitted" : "Pending"}
-              </Badge>
-              <Badge variant={!mergeInitiated ? "secondary" : mergeAction ? "default" : "outline"}>
-                Merge Picks: {!mergeInitiated ? "N/A" : mergeAction ? "Submitted" : "Pending"}
-              </Badge>
-            </div>
-
-            {hasRoster && (
-              <div className="flex flex-wrap gap-2">
-                {rosterContestants.map((c) => {
-                  const isMVP = c.id === roster?.mvpContestantId;
-                  return (
-                    <div
-                      key={c.id}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs"
-                      style={{ borderColor: isMVP ? "var(--primary)" : "var(--border)" }}
-                    >
-                      {c.tribeColour && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: c.tribeColour }} />}
-                      <span>{c.firstName} {c.lastName}</span>
-                      {isMVP && <span className="text-primary font-medium">MVP</span>}
-                      {c.eliminatedEpisode !== null && <span className="text-muted-foreground">Out</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </Card>
         );
       })}
@@ -246,13 +217,11 @@ export function AdminPlayers({
                               className={`p-3 rounded-lg border-2 transition-all ${
                                 isSelected
                                   ? "border-primary bg-accent"
-                                  : isEliminated
-                                  ? "border-border opacity-50 cursor-not-allowed"
                                   : canSelect
                                   ? "border-border hover:border-muted-foreground cursor-pointer"
                                   : "border-border opacity-40 cursor-not-allowed"
                               }`}
-                              onClick={() => !isEliminated && handleToggle(contestant.id)}
+                              onClick={() => handleToggle(contestant.id)}
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0">
@@ -260,7 +229,7 @@ export function AdminPlayers({
                                     <span className="font-medium text-sm truncate">{contestant.firstName} {contestant.lastName}</span>
                                     {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0" />}
                                   </div>
-                                  {isEliminated && <span className="text-xs text-destructive">Ep. {contestant.eliminatedEpisode}</span>}
+                                  {isEliminated && <span className="text-xs text-muted-foreground">Out Ep. {contestant.eliminatedEpisode}</span>}
                                 </div>
                                 {isSelected ? <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0" />}
                               </div>

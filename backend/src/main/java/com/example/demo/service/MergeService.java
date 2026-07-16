@@ -83,7 +83,13 @@ public class MergeService {
         int maxRosterSize = league.getContestantsPerTribe() * tribeDao.countByLeagueId(league.getId());
         boolean isFull = currentPicks.size() >= maxRosterSize;
 
-        if (isFull) {
+        if (request.noChange()) {
+            if (!isFull) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "You can only keep your current roster once it's full");
+            }
+            mergeActionDao.save(new MergeAction(league.getId(), userId, MergeAction.ActionType.NONE, null, null));
+        } else if (isFull) {
             performSwap(league, roster, currentPicks, request);
         } else {
             performAdd(league, roster, currentPicks, request);

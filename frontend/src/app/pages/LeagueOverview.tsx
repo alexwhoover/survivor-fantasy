@@ -33,6 +33,12 @@ import {
 type Tab = "roster" | "standings" | "admin";
 type AdminSubtab = "players" | "season";
 
+function pickingBadgeClass(open: boolean): string {
+  return open
+    ? "bg-green-500/10 text-green-500 border-green-500"
+    : "bg-red-500/10 text-red-500 border-red-500";
+}
+
 // ─── Roster view modal ────────────────────────────────────────────────────────
 
 function RosterViewModal({
@@ -352,19 +358,11 @@ export function LeagueOverview() {
           <Card className="p-3">
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Picking</div>
             <div className="flex flex-col gap-1 mt-1">
-              <Badge
-                variant="outline"
-                className={`w-fit ${league.initialPicksOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}`}
-              >
-                Initial: {league.initialPicksOpen ? "Open" : "Closed"}
+              <Badge variant="outline" className={`w-fit ${pickingBadgeClass(league.initialPicksOpen)}`}>
+                Initial Picks
               </Badge>
-              <Badge
-                variant="outline"
-                className={`w-fit ${
-                  !mergeStatus?.initiated ? "" : mergeStatus.mergePicksOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""
-                }`}
-              >
-                Merge: {!mergeStatus?.initiated ? "N/A" : mergeStatus.mergePicksOpen ? "Open" : "Closed"}
+              <Badge variant="outline" className={`w-fit ${pickingBadgeClass(!!mergeStatus?.mergePicksOpen)}`}>
+                Merge Pick
               </Badge>
             </div>
           </Card>
@@ -472,8 +470,7 @@ export function LeagueOverview() {
         {/* ── Standings tab ── */}
         {tab === "standings" && (
           <Card style={{ padding: "16px" }}>
-            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Leaderboard</div>
-            <div className="text-base font-medium mb-2.5">Scores updated after each episode</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-2.5">Leaderboard</div>
             {leaderboard.length === 0 ? (
               <p className="text-sm text-muted-foreground">No scores yet.</p>
             ) : (

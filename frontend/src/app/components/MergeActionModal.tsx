@@ -70,6 +70,20 @@ export function MergeActionModal({
     }
   };
 
+  const handleKeepRoster = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      const status = await performMergeAction(leagueId, userId, null, null, true);
+      onSuccess(status);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to keep your current roster");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const reset = () => {
     setAddId(null);
     setRemoveId(null);
@@ -215,7 +229,12 @@ export function MergeActionModal({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="flex justify-end gap-3">
+          <div className="flex items-center justify-end gap-3">
+            {isSwap && (
+              <Button variant="outline" onClick={handleKeepRoster} disabled={submitting} className="mr-auto">
+                {submitting ? "Submitting..." : "Keep My Roster"}
+              </Button>
+            )}
             <Button variant="outline" onClick={() => { reset(); onClose(); }}>Cancel</Button>
             <Button
               onClick={handleSubmit}

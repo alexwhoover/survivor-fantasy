@@ -102,7 +102,15 @@ export function AdminSeason({
   };
 
   const handleEpisodeChanged = (updated: Episode) => {
-    setEpisodes((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    // Only one episode can be flagged as the merge episode at a time — the backend
+    // already enforces this, but local state needs to reflect the clear too so the
+    // previously-flagged episode doesn't keep showing a stale "Merge" tag.
+    setEpisodes((prev) =>
+      prev.map((e) => {
+        if (e.id === updated.id) return updated;
+        return updated.isMergeEpisode ? { ...e, isMergeEpisode: false } : e;
+      })
+    );
     onMergeStatusChanged();
   };
 
