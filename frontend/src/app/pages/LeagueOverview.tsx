@@ -20,6 +20,7 @@ import {
   getMergeStatus,
   getMyMergeAction,
   getRosterForUser,
+  getContestantPointsForUser,
   type LeagueApiResponse,
   type Tribe,
   type Contestant,
@@ -232,6 +233,7 @@ export function LeagueOverview() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [mergeStatus, setMergeStatus] = useState<MergeStatusResponse | null>(null);
   const [myMergeAction, setMyMergeAction] = useState<MergeActionResponse | null>(null);
+  const [contestantPoints, setContestantPoints] = useState<Record<number, number>>({});
   const [viewingMember, setViewingMember] = useState<LeagueMember | null>(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
 
@@ -268,6 +270,7 @@ export function LeagueOverview() {
     getMyRoster(numId, user.id).then(setMyRoster);
     getMyLeagueRole(numId, user.id).then(setMyRole);
     getMyMergeAction(numId, user.id).then(setMyMergeAction).catch(() => {});
+    getContestantPointsForUser(numId, user.id).then(setContestantPoints).catch(() => {});
   }, [leagueId, user]);
 
   if (!league) {
@@ -283,6 +286,8 @@ export function LeagueOverview() {
   const mvpContestant = myRoster
     ? (contestants.find((c) => c.id === myRoster.mvpContestantId) ?? null)
     : null;
+
+  const myLeaderboardEntry = user ? leaderboard.find((e) => e.userId === user.id) : undefined;
 
   const isAdmin = myRole === "ADMIN";
   const maxRosterSize = league.contestantsPerTribe * tribes.length;
@@ -381,9 +386,17 @@ export function LeagueOverview() {
 
             {myRoster ? (
               <Card style={{ padding: "16px" }}>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Your Picks</div>
-                <div className="text-base font-medium mb-2.5">
-                  {myRosterContestants.length} contestant{myRosterContestants.length !== 1 ? "s" : ""} selected
+                <div className="flex items-start justify-between mb-2.5">
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Your Picks</div>
+                    <div className="text-base font-medium">
+                      {myRosterContestants.length} contestant{myRosterContestants.length !== 1 ? "s" : ""} selected
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Points</div>
+                    <div className="text-lg font-semibold text-primary">{myLeaderboardEntry?.totalScore ?? 0}</div>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   {/* Removed contestant — shown at top when a swap occurred */}
@@ -404,6 +417,7 @@ export function LeagueOverview() {
                           </span>
                           <span className="text-xs text-muted-foreground/70 italic">Removed in Merge Swap</span>
                         </div>
+                        <span className="text-sm font-medium">{contestantPoints[removed.id] ?? removed.totalPoints} pts</span>
                       </div>
                     );
                   })()}
@@ -434,7 +448,7 @@ export function LeagueOverview() {
                             <Badge variant="outline" className="text-muted-foreground">Out</Badge>
                           )}
                         </div>
-                        <span className="text-sm font-medium">{contestant.totalPoints} pts</span>
+                        <span className="text-sm font-medium">{contestantPoints[contestant.id] ?? contestant.totalPoints} pts</span>
                       </div>
                     );
                   })}
@@ -569,6 +583,7 @@ export function LeagueOverview() {
             setMergeStatus(status);
             getMyRoster(numId, user.id).then(setMyRoster);
             getMyMergeAction(numId, user.id).then(setMyMergeAction).catch(() => {});
+            getContestantPointsForUser(numId, user.id).then(setContestantPoints).catch(() => {});
             refreshLeaderboard();
           }}
         />

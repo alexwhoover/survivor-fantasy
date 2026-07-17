@@ -88,8 +88,11 @@ export function HowToPlay() {
               </li>
             </ul>
             <p className="text-sm text-muted-foreground">
-              An added or swapped-in castaway only earns points going forward — you keep whatever
-              points an outgoing pick already earned.
+              <strong className="text-foreground">Scoring at the swap:</strong> a newly added or
+              swapped-in castaway only earns you points from episodes <strong className="text-foreground">after</strong> the
+              merge episode — points they scored before joining your roster don't count. A
+              swapped-out castaway still counts for every episode <strong className="text-foreground">up to and
+              including</strong> the merge episode, but nothing after you drop them.
             </p>
           </CardContent>
         </Card>

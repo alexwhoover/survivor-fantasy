@@ -362,6 +362,17 @@ export async function getRosterForUser(leagueId: number, userId: number): Promis
   return res.json();
 }
 
+export async function getContestantPointsForUser(
+  leagueId: number,
+  userId: number
+): Promise<Record<number, number>> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/${userId}/contestant-points`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch contestant points: ${res.status}`);
+  return res.json();
+}
+
 export async function submitRoster(
   leagueId: number,
   userId: number,
