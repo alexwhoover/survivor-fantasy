@@ -53,8 +53,6 @@ CREATE TABLE contestants (
     tribe_id           BIGINT       NULL,
     first_name         VARCHAR(100) NOT NULL,
     last_name          VARCHAR(100) NOT NULL,
-    hometown           VARCHAR(100),
-    state              VARCHAR(100),
     image_url          VARCHAR(500),
     eliminated_episode INT          NULL,
     winner             BOOLEAN      NOT NULL DEFAULT FALSE,

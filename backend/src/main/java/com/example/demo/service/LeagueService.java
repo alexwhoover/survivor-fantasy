@@ -135,8 +135,7 @@ public class LeagueService {
         for (ContestantSetupItem c : contestantItems) {
             Tribe tribe = savedTribes.get(c.tribeIndex());
             Contestant contestant = new Contestant(league.getId(), tribe,
-                    c.firstName().strip(), c.lastName().strip(),
-                    blankToNull(c.hometown()), blankToNull(c.state()), blankToNull(c.imageUrl()));
+                    c.firstName().strip(), c.lastName().strip(), blankToNull(c.imageUrl()));
             contestantDao.save(contestant);
         }
 

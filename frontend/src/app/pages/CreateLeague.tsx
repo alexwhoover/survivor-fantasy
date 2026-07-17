@@ -22,18 +22,14 @@ interface WizardContestant {
   key: string;
   firstName: string;
   lastName: string;
-  hometown: string;
-  state: string;
 }
 
 interface ContestantForm {
   firstName: string;
   lastName: string;
-  hometown: string;
-  state: string;
 }
 
-const emptyContestantForm: ContestantForm = { firstName: "", lastName: "", hometown: "", state: "" };
+const emptyContestantForm: ContestantForm = { firstName: "", lastName: "" };
 
 let keyCounter = 0;
 function nextKey(): string {
@@ -118,8 +114,6 @@ export function CreateLeague() {
       key: nextKey(),
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
-      hometown: form.hometown.trim(),
-      state: form.state.trim(),
     };
     setContestantsByTribe((prev) => ({ ...prev, [tribeKey]: [...(prev[tribeKey] ?? []), contestant] }));
     setAddForms((prev) => ({ ...prev, [tribeKey]: { ...emptyContestantForm } }));
@@ -161,8 +155,6 @@ export function CreateLeague() {
         (contestantsByTribe[t.key] ?? []).map((c) => ({
           firstName: c.firstName,
           lastName: c.lastName,
-          hometown: c.hometown || null,
-          state: c.state || null,
           imageUrl: null,
           tribeIndex: index,
         }))
@@ -367,11 +359,6 @@ export function CreateLeague() {
                         <div key={c.key} className="flex items-center justify-between px-3 py-2 rounded-lg border bg-card">
                           <div className="min-w-0">
                             <div className="text-sm font-medium truncate">{c.firstName} {c.lastName}</div>
-                            {(c.hometown || c.state) && (
-                              <div className="text-xs text-muted-foreground truncate">
-                                {[c.hometown, c.state].filter(Boolean).join(", ")}
-                              </div>
-                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -387,7 +374,7 @@ export function CreateLeague() {
                     </div>
                   )}
 
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5 items-end">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 items-end">
                     <div className="space-y-1.5">
                       <Label>First Name</Label>
                       <Input value={form.firstName} onChange={(e) => setForm({ firstName: e.target.value })} />
@@ -395,14 +382,6 @@ export function CreateLeague() {
                     <div className="space-y-1.5">
                       <Label>Last Name</Label>
                       <Input value={form.lastName} onChange={(e) => setForm({ lastName: e.target.value })} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Hometown</Label>
-                      <Input value={form.hometown} onChange={(e) => setForm({ hometown: e.target.value })} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>State</Label>
-                      <Input value={form.state} onChange={(e) => setForm({ state: e.target.value })} />
                     </div>
                     <Button
                       size="sm"

@@ -13,8 +13,6 @@ export interface Contestant {
   id: number;
   firstName: string;
   lastName: string;
-  hometown: string | null;
-  state: string | null;
   tribeId: number | null;
   tribe: string | null;
   tribeColour: string | null;
@@ -56,8 +54,6 @@ export interface TribeSetupItem {
 export interface ContestantSetupItem {
   firstName: string;
   lastName: string;
-  hometown: string | null;
-  state: string | null;
   imageUrl: string | null;
   tribeIndex: number;
 }

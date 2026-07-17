@@ -186,7 +186,6 @@ export function AdminMergeActionModal({
                               <div className="flex items-center justify-between">
                                 <div>
                                   <div className="text-sm font-medium">{c.firstName} {c.lastName}</div>
-                                  {c.hometown && <div className="text-xs text-muted-foreground">{c.hometown}</div>}
                                   {c.eliminatedEpisode !== null && (
                                     <div className="text-xs text-muted-foreground">Out Ep. {c.eliminatedEpisode}</div>
                                   )}

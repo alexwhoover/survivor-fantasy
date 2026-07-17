@@ -182,11 +182,6 @@ export function RosterPicker() {
                               <span className="font-semibold">{contestant.firstName} {contestant.lastName}</span>
                               {isMVP && <Crown className="h-4 w-4 text-primary" />}
                             </div>
-                            {contestant.hometown && (
-                              <div className="text-xs text-muted-foreground">
-                                {contestant.hometown}{contestant.state ? `, ${contestant.state}` : ""}
-                              </div>
-                            )}
                           </div>
                           {isSelected ? (
                             <CheckCircle2 className="h-5 w-5 text-primary" />

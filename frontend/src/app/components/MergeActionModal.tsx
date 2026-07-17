@@ -188,9 +188,6 @@ export function MergeActionModal({
                               <div className="flex items-center justify-between">
                                 <div>
                                   <div className="text-sm font-medium">{c.firstName} {c.lastName}</div>
-                                  {c.hometown && (
-                                    <div className="text-xs text-muted-foreground">{c.hometown}</div>
-                                  )}
                                 </div>
                                 {selected ? (
                                   <CheckCircle2 className="h-4 w-4 text-primary" />

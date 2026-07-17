@@ -24,12 +24,6 @@ public class Contestant {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(name = "hometown")
-    private String hometown;
-
-    @Column(name = "state")
-    private String state;
-
     @Column(name = "image_url")
     private String imageUrl;
 
@@ -41,14 +35,11 @@ public class Contestant {
 
     public Contestant() {}
 
-    public Contestant(Long leagueId, Tribe tribe, String firstName, String lastName,
-                      String hometown, String state, String imageUrl) {
+    public Contestant(Long leagueId, Tribe tribe, String firstName, String lastName, String imageUrl) {
         this.leagueId = leagueId;
         this.tribe = tribe;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.hometown = hometown;
-        this.state = state;
         this.imageUrl = imageUrl;
     }
 
@@ -60,10 +51,6 @@ public class Contestant {
     public void setFirstName(String firstName) { this.firstName = firstName; }
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
-    public String getHometown() { return hometown; }
-    public void setHometown(String hometown) { this.hometown = hometown; }
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public Integer getEliminatedEpisode() { return eliminatedEpisode; }
