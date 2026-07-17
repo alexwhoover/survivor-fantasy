@@ -34,13 +34,6 @@ export function AdminMergeActionModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Determine action type: if editing an existing action, keep its type — both SWAP
-  // and NONE ("kept current roster") only ever happen when the roster was already
-  // full, so either implies swap mode. If creating new, determine by roster size.
-  const isSwap = existingAction
-    ? existingAction.actionType !== "ADD"
-    : currentRoster.contestantIds.length >= maxRosterSize;
-
   // Build the "effective pre-merge roster" for computing available contestants:
   // Revert the existing action to get the state before the merge.
   const preMergeRosterIds = useMemo((): Set<number> => {
@@ -55,6 +48,13 @@ export function AdminMergeActionModal({
     }
     return ids;
   }, [currentRoster, existingAction]);
+
+  // Whether the roster was already at capacity at merge time. Recomputed from the
+  // reconstructed pre-merge roster size (not from the stored action type or the live
+  // current roster) so it stays correct even if the roster was touched afterward —
+  // e.g. an admin using "Edit Roster" on this user post-merge, or several episodes'
+  // worth of unrelated state changes since the merge happened.
+  const isSwap = preMergeRosterIds.size >= maxRosterSize;
 
   // Contestants eligible to add: not in pre-merge roster (eliminated contestants are still selectable)
   const addableContestants = useMemo(

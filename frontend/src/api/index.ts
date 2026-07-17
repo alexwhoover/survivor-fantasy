@@ -81,6 +81,17 @@ export interface LeaderboardEntry {
   mvpBonusApplied: boolean;
 }
 
+export interface EpisodePoint {
+  episodeNumber: number;
+  cumulativeScore: number;
+}
+
+export interface LeaderboardHistoryEntry {
+  userId: number;
+  username: string;
+  history: EpisodePoint[];
+}
+
 export interface MergeMemberStatus {
   userId: number;
   username: string;
@@ -439,6 +450,12 @@ export async function saveEpisodeScores(
 export async function getLeaderboard(leagueId: number): Promise<LeaderboardEntry[]> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/leaderboard`, { credentials: "include" });
   if (!res.ok) throw new Error(`Failed to fetch leaderboard: ${res.status}`);
+  return res.json();
+}
+
+export async function getLeaderboardHistory(leagueId: number): Promise<LeaderboardHistoryEntry[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/leaderboard/history`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch leaderboard history: ${res.status}`);
   return res.json();
 }
 

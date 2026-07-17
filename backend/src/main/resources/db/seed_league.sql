@@ -346,20 +346,20 @@ INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 -- reed: Ozzy, Cirie(MVP), Joe / Tiffany, Jonathan / Aubry, Stephenie, Rizo (only 2 Kalo picks, as given)
 INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 (@rid_reed, @c_ozzy), (@rid_reed, @c_cirie), (@rid_reed, @c_joe),
-(@rid_reed, @c_tiffany), (@rid_reed, @c_jonathan),
+(@rid_reed, @c_tiffany), (@rid_reed, @c_jonathan), (@rid_reed, @c_coach),
 (@rid_reed, @c_aubry), (@rid_reed, @c_stephenie), (@rid_reed, @c_rizo);
 
 -- sophia: Cirie, Ozzy, Joe / Coach, Jonathan / Aubry(MVP), Stephenie, Rizo (only 2 Kalo picks, as given)
 INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 (@rid_sophia, @c_cirie), (@rid_sophia, @c_ozzy), (@rid_sophia, @c_joe),
-(@rid_sophia, @c_coach), (@rid_sophia, @c_jonathan),
+(@rid_sophia, @c_coach), (@rid_sophia, @c_jonathan), (@rid_sophia, @c_dee),
 (@rid_sophia, @c_aubry), (@rid_sophia, @c_stephenie), (@rid_sophia, @c_rizo);
 
 -- ─── Merge actions (post-merge add pick; Karen made none) ─────────────────────
 
 INSERT INTO merge_actions (league_id, user_id, action_type, added_contestant_id, removed_contestant_id) VALUES
 (@lid50, @uid_alexf,      'ADD', @c_cirie,     NULL),
-(@lid50, @uid_alex,       'ADD', @c_emily,     NULL),
+(@lid50, @uid_alex,       'SWAP', @c_emily,     @c_colby),
 (@lid50, @uid_ali,        'ADD', @c_cirie,     NULL),
 (@lid50, @uid_antony,     'ADD', @c_rick,      NULL),
 (@lid50, @uid_christophe, 'ADD', @c_stephenie, NULL),
@@ -370,8 +370,8 @@ INSERT INTO merge_actions (league_id, user_id, action_type, added_contestant_id,
 (@lid50, @uid_marko,      'ADD', @c_jonathan,  NULL),
 (@lid50, @uid_norah,      'ADD', @c_chrissy,   NULL),
 (@lid50, @uid_polina,     'ADD', @c_rizo,      NULL),
-(@lid50, @uid_reed,       'ADD', @c_emily,     NULL),
-(@lid50, @uid_sophia,     'ADD', @c_tiffany,   NULL);
+(@lid50, @uid_reed,       'SWAP', @c_emily,     @c_coach),
+(@lid50, @uid_sophia,     'SWAP', @c_tiffany,   @c_dee);
 
 INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 (@rid_alexf, @c_cirie),

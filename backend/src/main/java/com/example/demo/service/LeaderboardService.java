@@ -9,7 +9,9 @@ import com.example.demo.dao.RosterDao;
 import com.example.demo.dao.RosterPickDao;
 import com.example.demo.dao.ContestantDao;
 import com.example.demo.entity.Episode;
+import com.example.demo.dto.EpisodePoint;
 import com.example.demo.dto.LeaderboardEntry;
+import com.example.demo.dto.LeaderboardHistoryEntry;
 import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.entity.EpisodeScore;
 import com.example.demo.entity.League;
@@ -159,22 +161,34 @@ public class LeaderboardService {
                 int ep = entry.getKey();
                 int pts = entry.getValue();
 
-                // Skip episodes after the contestant was eliminated
-                if (sc.getEliminatedEpisode() != null && ep > sc.getEliminatedEpisode()) continue;
-
-                if (mergeEpisode != null && scId.equals(mergeAddedId)) {
-                    // Merge-added: only count episodes strictly after merge
-                    if (ep > mergeEpisode) total += pts;
-                } else if (mergeEpisode != null && scId.equals(mergeRemovedId)) {
-                    // Merge-removed: only count episodes up to and including merge
-                    if (ep <= mergeEpisode) total += pts;
-                } else {
+                if (isPointCounted(scId, ep, sc, mergeAddedId, mergeRemovedId, mergeEpisode)) {
                     total += pts;
                 }
             }
             pointsByContestant.put(scId, total);
         }
         return pointsByContestant;
+    }
+
+    /**
+     * Whether a contestant's episode score counts toward their roster owner's total —
+     * shared by the final-total path ({@link #calculateContestantPoints}) and the
+     * cumulative-per-episode path ({@link #getLeaderboardHistory}) so the elimination
+     * and merge-boundary rules never drift between the two.
+     */
+    private boolean isPointCounted(Long contestantId, int ep, Contestant sc,
+                                    Long mergeAddedId, Long mergeRemovedId, Integer mergeEpisode) {
+        // Skip episodes after the contestant was eliminated
+        if (sc.getEliminatedEpisode() != null && ep > sc.getEliminatedEpisode()) return false;
+
+        if (mergeEpisode != null && contestantId.equals(mergeAddedId)) {
+            // Merge-added: only count episodes strictly after merge
+            return ep > mergeEpisode;
+        } else if (mergeEpisode != null && contestantId.equals(mergeRemovedId)) {
+            // Merge-removed: only count episodes up to and including merge
+            return ep <= mergeEpisode;
+        }
+        return true;
     }
 
     /** Per-contestant point contributions for a single user's roster, respecting the merge boundary. */
@@ -202,5 +216,102 @@ public class LeaderboardService {
         Integer mergeEpisode = episodeDao.findMergeEpisode(leagueId).map(Episode::getEpisodeNumber).orElse(null);
 
         return calculateContestantPoints(picks, mergeAction, mergeEpisode, scoresByContestantAndEpisode, contestantMap);
+    }
+
+    /** Cumulative total score for every member after each episode, for the Standings graph view. */
+    @Transactional(readOnly = true)
+    public List<LeaderboardHistoryEntry> getLeaderboardHistory(Long leagueId) {
+        leagueDao.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
+
+        List<EpisodeScore> allScores = episodeScoreDao.findAllByLeagueId(leagueId);
+        Map<Long, Map<Integer, Integer>> scoresByContestantAndEpisode = new HashMap<>();
+        int maxScoredEpisode = 0;
+        for (EpisodeScore es : allScores) {
+            scoresByContestantAndEpisode
+                    .computeIfAbsent(es.getContestantId(), k -> new HashMap<>())
+                    .put(es.getEpisodeNumber(), es.getPoints());
+            maxScoredEpisode = Math.max(maxScoredEpisode, es.getEpisodeNumber());
+        }
+
+        Integer maxCreatedEpisode = episodeDao.findMaxEpisodeNumber(leagueId);
+        // EpisodeScore.episodeNumber isn't a foreign key to Episode, so take whichever is larger —
+        // otherwise a stray score entered ahead of/beyond the created Episode rows would be silently
+        // dropped and the graph's final point would no longer match the Leaderboard total.
+        int effectiveMaxEpisode = Math.max(maxCreatedEpisode == null ? 0 : maxCreatedEpisode, maxScoredEpisode);
+
+        Map<Long, Contestant> contestantMap = contestantDao.findByLeagueId(leagueId)
+                .stream()
+                .collect(Collectors.toMap(Contestant::getId, sc -> sc));
+
+        Map<Long, MergeAction> mergeActionByUser = mergeActionDao.findByLeagueId(leagueId)
+                .stream()
+                .collect(Collectors.toMap(MergeAction::getUserId, ma -> ma));
+
+        List<LeagueMemberResponse> members = leagueMemberDao.findMembersWithUsernames(leagueId);
+
+        Map<Long, Roster> rosterByUser = rosterDao.findAllByLeagueId(leagueId)
+                .stream()
+                .collect(Collectors.toMap(Roster::getUserId, r -> r));
+
+        Integer mergeEpisode = episodeDao.findMergeEpisode(leagueId).map(Episode::getEpisodeNumber).orElse(null);
+
+        List<LeaderboardHistoryEntry> entries = new ArrayList<>();
+        for (LeagueMemberResponse member : members) {
+            Long userId = member.userId();
+            String username = member.username();
+
+            if (effectiveMaxEpisode == 0) {
+                entries.add(new LeaderboardHistoryEntry(userId, username, List.of()));
+                continue;
+            }
+
+            Roster roster = rosterByUser.get(userId);
+            if (roster == null) {
+                List<EpisodePoint> zeroHistory = new ArrayList<>();
+                for (int ep = 1; ep <= effectiveMaxEpisode; ep++) {
+                    zeroHistory.add(new EpisodePoint(ep, 0));
+                }
+                entries.add(new LeaderboardHistoryEntry(userId, username, zeroHistory));
+                continue;
+            }
+
+            List<RosterPick> picks = rosterPickDao.findByRosterId(roster.getId());
+            MergeAction mergeAction = mergeActionByUser.get(userId);
+            Long mergeAddedId = mergeAction != null ? mergeAction.getAddedContestantId() : null;
+            Long mergeRemovedId = mergeAction != null ? mergeAction.getRemovedContestantId() : null;
+
+            Set<Long> allScoringPickIds = picks.stream().map(RosterPick::getContestantId).collect(Collectors.toSet());
+            if (mergeRemovedId != null) {
+                allScoringPickIds.add(mergeRemovedId);
+            }
+
+            boolean mvpBonusApplies = false;
+            if (roster.getMvpContestantId() != null) {
+                Contestant mvp = contestantMap.get(roster.getMvpContestantId());
+                mvpBonusApplies = mvp != null && mvp.isWinner();
+            }
+
+            List<EpisodePoint> history = new ArrayList<>();
+            int running = 0;
+            for (int ep = 1; ep <= effectiveMaxEpisode; ep++) {
+                for (Long scId : allScoringPickIds) {
+                    Contestant sc = contestantMap.get(scId);
+                    if (sc == null) continue;
+                    Integer pts = scoresByContestantAndEpisode.getOrDefault(scId, Map.of()).get(ep);
+                    if (pts == null) continue;
+                    if (isPointCounted(scId, ep, sc, mergeAddedId, mergeRemovedId, mergeEpisode)) {
+                        running += pts;
+                    }
+                }
+                if (ep == effectiveMaxEpisode && mvpBonusApplies) {
+                    running += MVP_BONUS;
+                }
+                history.add(new EpisodePoint(ep, running));
+            }
+            entries.add(new LeaderboardHistoryEntry(userId, username, history));
+        }
+
+        return entries;
     }
 }

@@ -10,6 +10,7 @@ import com.example.demo.dto.EpisodeDto;
 import com.example.demo.dto.EpisodeScoreItem;
 import com.example.demo.dto.JoinLeagueRequest;
 import com.example.demo.dto.LeaderboardEntry;
+import com.example.demo.dto.LeaderboardHistoryEntry;
 import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MergeActionRequest;
@@ -240,6 +241,11 @@ public class LeagueController {
     @GetMapping("/{id}/leaderboard")
     public List<LeaderboardEntry> getLeaderboard(@PathVariable Long id) {
         return leaderboardService.getLeaderboard(id);
+    }
+
+    @GetMapping("/{id}/leaderboard/history")
+    public List<LeaderboardHistoryEntry> getLeaderboardHistory(@PathVariable Long id) {
+        return leaderboardService.getLeaderboardHistory(id);
     }
 
     /** Per-contestant point contributions for a user's roster (merge-boundary aware). */

@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { AdminPlayers } from "../components/AdminPlayers";
 import { AdminSeason } from "../components/AdminSeason";
 import { MergeActionModal } from "../components/MergeActionModal";
+import { StandingsGraph } from "../components/StandingsGraph";
 import {
   getLeagueById,
   getLeagueContestants,
@@ -32,6 +33,7 @@ import {
 } from "../../api";
 
 type Tab = "roster" | "standings" | "admin";
+type StandingsView = "leaderboard" | "graph";
 type AdminSubtab = "players" | "season";
 
 function pickingBadgeClass(open: boolean): string {
@@ -239,6 +241,7 @@ export function LeagueOverview() {
 
   const [tab, setTab] = useState<Tab>("roster");
   const [adminSubtab, setAdminSubtab] = useState<AdminSubtab>("players");
+  const [standingsView, setStandingsView] = useState<StandingsView>("leaderboard");
 
   const numId = Number(leagueId);
 
@@ -484,8 +487,30 @@ export function LeagueOverview() {
         {/* ── Standings tab ── */}
         {tab === "standings" && (
           <Card style={{ padding: "16px" }}>
-            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-2.5">Leaderboard</div>
-            {leaderboard.length === 0 ? (
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                {standingsView === "leaderboard" ? "Leaderboard" : "Graph"}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={standingsView === "leaderboard" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStandingsView("leaderboard")}
+                >
+                  Leaderboard
+                </Button>
+                <Button
+                  variant={standingsView === "graph" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStandingsView("graph")}
+                >
+                  Graph
+                </Button>
+              </div>
+            </div>
+            {standingsView === "graph" ? (
+              <StandingsGraph leagueId={numId} />
+            ) : leaderboard.length === 0 ? (
               <p className="text-sm text-muted-foreground">No scores yet.</p>
             ) : (
               <div className="space-y-1">
