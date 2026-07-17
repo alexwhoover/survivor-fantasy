@@ -19,6 +19,7 @@ import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.MergeStatusResponse;
 import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.RosterResponse;
+import com.example.demo.dto.SetArchivedRequest;
 import com.example.demo.dto.SetMergeEpisodeRequest;
 import com.example.demo.dto.SubmitRosterRequest;
 import com.example.demo.dto.TribeDto;
@@ -110,6 +111,12 @@ public class LeagueController {
     @PutMapping("/{id}/merge-picking")
     public LeagueResponse setMergePicksOpen(@PathVariable Long id, @RequestBody PickingRequest request) {
         return leagueService.setMergePicksOpen(id, request.adminUserId(), request.open());
+    }
+
+    /** Admin-only: archive or unarchive the league once its season is complete. */
+    @PutMapping("/{id}/archived")
+    public LeagueResponse setArchived(@PathVariable Long id, @RequestBody SetArchivedRequest request) {
+        return leagueService.setArchived(id, request.adminUserId(), request.archived());
     }
 
     // --- Season configuration: tribes & contestants (read-only after wizard setup) ---
@@ -233,7 +240,7 @@ public class LeagueController {
     public MergeStatusResponse adminSetMergeAction(@PathVariable Long id, @PathVariable Long targetUserId,
                                                    @RequestBody AdminMergeActionRequest request) {
         return mergeService.adminSetMergeAction(id, request.adminUserId(), targetUserId,
-                request.addedContestantId(), request.removedContestantId());
+                request.addedContestantId(), request.removedContestantId(), request.noChange());
     }
 
     // --- Leaderboard ---

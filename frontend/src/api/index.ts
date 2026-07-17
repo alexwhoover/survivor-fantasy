@@ -38,6 +38,7 @@ export interface LeagueApiResponse {
   contestantsPerTribe: number;
   initialPicksOpen: boolean;
   mergePicksOpen: boolean;
+  archived: boolean;
 }
 
 export interface Episode {
@@ -231,6 +232,20 @@ export async function setMergePicksOpen(leagueId: number, adminUserId: number, o
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || "Failed to update merge picking state");
+  }
+  return res.json();
+}
+
+export async function setLeagueArchived(leagueId: number, adminUserId: number, archived: boolean): Promise<LeagueApiResponse> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/archived`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adminUserId, archived }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to update archived state");
   }
   return res.json();
 }
@@ -477,14 +492,15 @@ export async function adminSetMergeAction(
   leagueId: number,
   adminUserId: number,
   targetUserId: number,
-  addedContestantId: number,
-  removedContestantId: number | null
+  addedContestantId: number | null,
+  removedContestantId: number | null,
+  noChange: boolean = false
 ): Promise<MergeStatusResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action/${targetUserId}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, addedContestantId, removedContestantId }),
+    body: JSON.stringify({ adminUserId, addedContestantId, removedContestantId, noChange }),
   });
   if (!res.ok) {
     const text = await res.text();

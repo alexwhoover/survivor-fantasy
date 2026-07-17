@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Lock, Plus, Trash2, Unlock } from "lucide-react";
+import { Archive, ArchiveRestore, Lock, Plus, Trash2, Unlock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -7,6 +7,7 @@ import { EpisodeModal } from "./EpisodeModal";
 import {
   setInitialPicksOpen,
   setMergePicksOpen,
+  setLeagueArchived,
   getEpisodes,
   addEpisode,
   deleteEpisode,
@@ -35,6 +36,7 @@ export function AdminSeason({
   const [openEpisodeId, setOpenEpisodeId] = useState<number | null>(null);
   const [togglingInitial, setTogglingInitial] = useState(false);
   const [togglingMerge, setTogglingMerge] = useState(false);
+  const [togglingArchived, setTogglingArchived] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,6 +76,19 @@ export function AdminSeason({
       setError(e instanceof Error ? e.message : "Failed to update merge picks state");
     } finally {
       setTogglingMerge(false);
+    }
+  };
+
+  const handleToggleArchived = async () => {
+    setError("");
+    setTogglingArchived(true);
+    try {
+      const updated = await setLeagueArchived(league.id, adminUserId, !league.archived);
+      onLeagueUpdated(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update archived state");
+    } finally {
+      setTogglingArchived(false);
     }
   };
 
@@ -132,7 +147,7 @@ export function AdminSeason({
             {league.initialPicksOpen ? "Open" : "Closed"}
           </Button>
         </div>
-        <div className="flex items-center justify-between py-2">
+        <div className="flex items-center justify-between py-2 border-b border-border">
           <span className="text-sm text-muted-foreground">Merge Picks</span>
           <Button
             variant={league.mergePicksOpen ? "secondary" : "outline"}
@@ -144,6 +159,19 @@ export function AdminSeason({
           >
             {league.mergePicksOpen ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
             {league.mergePicksOpen ? "Open" : "Closed"}
+          </Button>
+        </div>
+        <div className="flex items-center justify-between py-2">
+          <span className="text-sm text-muted-foreground">Archive League</span>
+          <Button
+            variant={league.archived ? "secondary" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={handleToggleArchived}
+            disabled={togglingArchived}
+          >
+            {league.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+            {league.archived ? "Unarchive" : "Archive"}
           </Button>
         </div>
       </Card>

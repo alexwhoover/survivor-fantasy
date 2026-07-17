@@ -180,7 +180,7 @@ public class MergeService {
 
     @Transactional
     public MergeStatusResponse adminSetMergeAction(Long leagueId, Long adminUserId, Long targetUserId,
-                                                   Long addedContestantId, Long removedContestantId) {
+                                                   Long addedContestantId, Long removedContestantId, boolean noChange) {
         leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
                 .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Only league admins can override merge actions"));
@@ -205,6 +205,17 @@ public class MergeService {
             }
             mergeActionDao.deleteByLeagueIdAndUserId(leagueId, targetUserId);
         });
+
+        if (noChange) {
+            int maxRosterSize = league.getContestantsPerTribe() * tribeDao.countByLeagueId(league.getId());
+            int rosterSize = rosterPickDao.findByRosterId(roster.getId()).size();
+            if (rosterSize < maxRosterSize) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "The roster can only be kept unchanged once it's full");
+            }
+            mergeActionDao.save(new MergeAction(leagueId, targetUserId, MergeAction.ActionType.NONE, null, null));
+            return getMergeStatus(leagueId);
+        }
 
         // Validate new contestants
         Contestant toAdd = contestantDao.findById(addedContestantId)

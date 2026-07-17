@@ -24,6 +24,9 @@ export function Home() {
 
   if (!user) return null;
 
+  const activeLeagues = leagues.filter((l) => !l.archived);
+  const archivedLeagues = leagues.filter((l) => l.archived);
+
   const handleJoinLeague = async () => {
     setJoinError("");
     if (!joinCode.trim()) {
@@ -97,42 +100,56 @@ export function Home() {
           <p className="text-sm text-muted-foreground">Create a new league or join one with a code.</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {leagues.map((league) => (
-            <Link key={league.id} to={`/league/${league.id}`}>
-              <Card className="transition-all hover:border-primary hover:fire-glow cursor-pointer h-full">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="mb-1">{league.name}</CardTitle>
-                      <CardDescription>{league.seasonName}</CardDescription>
-                    </div>
-                    <Trophy className="h-5 w-5 text-primary shrink-0" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>{league.contestantsPerTribe} per tribe</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Code: </span>
-                      <span className="font-mono text-primary">{league.code}</span>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={league.initialPicksOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}
-                    >
-                      {league.initialPicksOpen ? "Picking Open" : "Picking Closed"}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <>
+          <LeagueGrid leagues={activeLeagues} />
+          {archivedLeagues.length > 0 && (
+            <div className="mt-10">
+              <h2 className="mb-4 text-sm text-muted-foreground uppercase tracking-wide">Archived</h2>
+              <LeagueGrid leagues={archivedLeagues} />
+            </div>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function LeagueGrid({ leagues }: { leagues: LeagueApiResponse[] }) {
+  return (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {leagues.map((league) => (
+        <Link key={league.id} to={`/league/${league.id}`}>
+          <Card className="transition-all hover:border-primary hover:fire-glow cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="mb-1">{league.name}</CardTitle>
+                  <CardDescription>{league.seasonName}</CardDescription>
+                </div>
+                <Trophy className="h-5 w-5 text-primary shrink-0" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>{league.contestantsPerTribe} per tribe</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Code: </span>
+                  <span className="font-mono text-primary">{league.code}</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={league.initialPicksOpen ? "bg-green-500/10 text-green-500 border-green-500" : ""}
+                >
+                  {league.initialPicksOpen ? "Picking Open" : "Picking Closed"}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      ))}
     </div>
   );
 }

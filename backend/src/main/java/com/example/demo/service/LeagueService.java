@@ -162,6 +162,13 @@ public class LeagueService {
         return toResponse(league);
     }
 
+    @Transactional
+    public LeagueResponse setArchived(Long leagueId, Long adminUserId, boolean archived) {
+        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can archive this league");
+        league.setArchived(archived);
+        return toResponse(league);
+    }
+
     private League requireAdminLeague(Long leagueId, Long adminUserId, String forbiddenMessage) {
         if (adminUserId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "adminUserId is required");
@@ -234,7 +241,8 @@ public class LeagueService {
                 league.getCreatedAt(),
                 league.getContestantsPerTribe(),
                 league.isInitialPicksOpen(),
-                league.isMergePicksOpen()
+                league.isMergePicksOpen(),
+                league.isArchived()
         );
     }
 }

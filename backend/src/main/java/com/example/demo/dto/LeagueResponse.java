@@ -11,5 +11,6 @@ public record LeagueResponse(
         LocalDateTime createdAt,
         int contestantsPerTribe,
         boolean initialPicksOpen,
-        boolean mergePicksOpen
+        boolean mergePicksOpen,
+        boolean archived
 ) {}

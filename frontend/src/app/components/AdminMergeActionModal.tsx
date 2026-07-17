@@ -86,6 +86,20 @@ export function AdminMergeActionModal({
     }
   };
 
+  const handleKeepRoster = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      const status = await adminSetMergeAction(leagueId, adminUserId, targetMember.userId, null, null, true);
+      onSuccess(status);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to keep the roster unchanged");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const contestantName = (id: number | null) => {
     if (!id) return null;
     const c = contestants.find((sc) => sc.id === id);
@@ -224,6 +238,11 @@ export function AdminMergeActionModal({
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-3">
+            {isSwap && (
+              <Button variant="outline" onClick={handleKeepRoster} disabled={submitting} className="mr-auto">
+                {submitting ? "Saving..." : "Keep Roster As-Is"}
+              </Button>
+            )}
             <Button variant="outline" onClick={onClose}>Cancel</Button>
             <Button
               onClick={handleSubmit}

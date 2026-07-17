@@ -27,6 +27,9 @@ public class League {
     @Column(name = "merge_picks_open", nullable = false)
     private boolean mergePicksOpen = false;
 
+    @Column(name = "archived", nullable = false)
+    private boolean archived = false;
+
     @Column(name = "contestants_per_tribe")
     private int contestantsPerTribe = 2;
 
@@ -54,6 +57,8 @@ public class League {
     public void setInitialPicksOpen(boolean initialPicksOpen) { this.initialPicksOpen = initialPicksOpen; }
     public boolean isMergePicksOpen() { return mergePicksOpen; }
     public void setMergePicksOpen(boolean mergePicksOpen) { this.mergePicksOpen = mergePicksOpen; }
+    public boolean isArchived() { return archived; }
+    public void setArchived(boolean archived) { this.archived = archived; }
     public int getContestantsPerTribe() { return contestantsPerTribe; }
     public void setContestantsPerTribe(int contestantsPerTribe) { this.contestantsPerTribe = contestantsPerTribe; }
     public Long getCreatedBy() { return createdBy; }
