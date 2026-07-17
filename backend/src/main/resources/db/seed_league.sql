@@ -392,81 +392,81 @@ INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 -- ─── Episode scores (placeholders — fill in points manually) ──────────────────
 
 INSERT INTO episode_scores (contestant_id, episode_number, points) VALUES
--- Ep 1
+-- Ep 1 - checked
  (@c_jenna, 1, 0), (@c_savannah, 1, 0), (@c_christian, 1, 0), (@c_emily, 1, 0),
  (@c_ozzy, 1, 0), (@c_rick, 1, 0), (@c_cirie, 1, 0), (@c_joe, 1, 0),
  (@c_mike, 1, 0), (@c_charlie, 1, 0), (@c_kamilla, 1, 0), (@c_dee, 1, 0),
  (@c_chrissy, 1, 0), (@c_coach, 1, 0), (@c_tiffany, 1, 0), (@c_jonathan, 1, 0),
  (@c_kyle, 1, 0), (@c_q, 1, 0), (@c_angelina, 1, 0), (@c_genevieve, 1, 0),
  (@c_colby, 1, 0), (@c_stephenie, 1, 0), (@c_rizo, 1, 0), (@c_aubry, 1, 0),
--- Ep 2
+-- Ep 2 - checked
  (@c_jenna, 2, 0), (@c_savannah, 2, 40), (@c_christian, 2, 41), (@c_emily, 2, 6),
  (@c_ozzy, 2, 6), (@c_rick, 2, 26), (@c_cirie, 2, 11), (@c_joe, 2, 11),
  (@c_mike, 2, 11), (@c_charlie, 2, 11), (@c_kamilla, 2, 16), (@c_dee, 2, 11),
  (@c_chrissy, 2, 11), (@c_coach, 2, 26), (@c_tiffany, 2, 11), (@c_jonathan, 2, 21),
  (@c_kyle, 2, 0), (@c_q, 2, 21), (@c_angelina, 2, 6), (@c_genevieve, 2, 21),
  (@c_colby, 2, 6), (@c_stephenie, 2, 6), (@c_rizo, 2, 6), (@c_aubry, 2, 21),
--- Ep 3
+-- Ep 3 - checked
  (@c_jenna, 3, 0), (@c_savannah, 3, 0), (@c_christian, 3, 6), (@c_emily, 3, 6),
  (@c_ozzy, 3, 1), (@c_rick, 3, 11), (@c_cirie, 3, 11), (@c_joe, 3, 16),
  (@c_mike, 3, 1), (@c_charlie, 3, 11), (@c_kamilla, 3, 16), (@c_dee, 3, 11),
  (@c_chrissy, 3, 16), (@c_coach, 3, 16), (@c_tiffany, 3, 11), (@c_jonathan, 3, 11),
  (@c_kyle, 3, 0), (@c_q, 3, 15), (@c_angelina, 3, 6), (@c_genevieve, 3, 11),
  (@c_colby, 3, 11), (@c_stephenie, 3, 1), (@c_rizo, 3, 11), (@c_aubry, 3, 16),
--- Ep 4
+-- Ep 4 - checked
  (@c_jenna, 4, 0), (@c_savannah, 4, 0), (@c_christian, 4, 11), (@c_emily, 4, 1),
  (@c_ozzy, 4, 16), (@c_rick, 4, 6), (@c_cirie, 4, 6), (@c_joe, 4, 11),
  (@c_mike, 4, 10), (@c_charlie, 4, 6), (@c_kamilla, 4, 6), (@c_dee, 4, 11),
- (@c_chrissy, 4, 6), (@c_coach, 4, 16), (@c_tiffany, 4, 11), (@c_jonathan, 4, 6),
+ (@c_chrissy, 4, 11), (@c_coach, 4, 16), (@c_tiffany, 4, 11), (@c_jonathan, 4, 6),
  (@c_kyle, 4, 0), (@c_q, 4, 0), (@c_angelina, 4, 6), (@c_genevieve, 4, 36),
  (@c_colby, 4, 11), (@c_stephenie, 4, 6), (@c_rizo, 4, 21), (@c_aubry, 4, 11),
--- Ep 5
+-- Ep 5 - checked
  (@c_jenna, 5, 0), (@c_savannah, 5, 0), (@c_christian, 5, 6), (@c_emily, 5, 1),
  (@c_ozzy, 5, 6), (@c_rick, 5, 1), (@c_cirie, 5, 1), (@c_joe, 5, 6),
  (@c_mike, 5, 0), (@c_charlie, 5, 15), (@c_kamilla, 5, 1), (@c_dee, 5, 1),
  (@c_chrissy, 5, 6), (@c_coach, 5, 6), (@c_tiffany, 5, 6), (@c_jonathan, 5, 1),
  (@c_kyle, 5, 0), (@c_q, 5, 0), (@c_angelina, 5, 20), (@c_genevieve, 5, 6),
  (@c_colby, 5, 11), (@c_stephenie, 5, 1), (@c_rizo, 5, 6), (@c_aubry, 5, 6),
--- Ep 6
+-- Ep 6 - checked
  (@c_jenna, 6, 0), (@c_savannah, 6, 0), (@c_christian, 6, 23), (@c_emily, 6, 8),
  (@c_ozzy, 6, 8), (@c_rick, 6, 3), (@c_cirie, 6, 8), (@c_joe, 6, 3),
  (@c_mike, 6, 0), (@c_charlie, 6, 0), (@c_kamilla, 6, 15), (@c_dee, 6, 23),
  (@c_chrissy, 6, 8), (@c_coach, 6, 8), (@c_tiffany, 6, 8), (@c_jonathan, 6, 8),
  (@c_kyle, 6, 0), (@c_q, 6, 0), (@c_angelina, 6, 0), (@c_genevieve, 6, 25),
  (@c_colby, 6, 15), (@c_stephenie, 6, 23), (@c_rizo, 6, 8), (@c_aubry, 6, 8),
--- Ep 7
+-- Ep 7 - checked
  (@c_jenna, 7, 0), (@c_savannah, 7, 0), (@c_christian, 7, 8), (@c_emily, 7, 13),
  (@c_ozzy, 7, 23), (@c_rick, 7, 13), (@c_cirie, 7, 3), (@c_joe, 7, 8),
  (@c_mike, 7, 0), (@c_charlie, 7, 0), (@c_kamilla, 7, 0), (@c_dee, 7, 20),
  (@c_chrissy, 7, 3), (@c_coach, 7, 8), (@c_tiffany, 7, 8), (@c_jonathan, 7, 3),
  (@c_kyle, 7, 0), (@c_q, 7, 0), (@c_angelina, 7, 0), (@c_genevieve, 7, 0),
- (@c_colby, 7, 0), (@c_stephenie, 7, 23), (@c_rizo, 7, 3), (@c_aubry, 7, 8),
--- Ep 8
+ (@c_colby, 7, 0), (@c_stephenie, 7, 18), (@c_rizo, 7, 3), (@c_aubry, 7, 8),
+-- Ep 8 - checked
  (@c_jenna, 8, 0), (@c_savannah, 8, 0), (@c_christian, 8, 3), (@c_emily, 8, 3),
- (@c_ozzy, 8, 3), (@c_rick, 8, 8), (@c_cirie, 8, 13), (@c_joe, 8, 13),
+ (@c_ozzy, 8, 3), (@c_rick, 8, 3), (@c_cirie, 8, 8), (@c_joe, 8, 13),
  (@c_mike, 8, 0), (@c_charlie, 8, 0), (@c_kamilla, 8, 0), (@c_dee, 8, 0),
  (@c_chrissy, 8, 5), (@c_coach, 8, 10), (@c_tiffany, 8, 18), (@c_jonathan, 8, 3),
  (@c_kyle, 8, 0), (@c_q, 8, 0), (@c_angelina, 8, 0), (@c_genevieve, 8, 0),
  (@c_colby, 8, 0), (@c_stephenie, 8, 3), (@c_rizo, 8, 8), (@c_aubry, 8, 3),
--- Ep 9
- (@c_jenna, 9, 0), (@c_savannah, 9, 0), (@c_christian, 9, 20), (@c_emily, 9, 3),
- (@c_ozzy, 9, 8), (@c_rick, 9, 8), (@c_cirie, 9, 3), (@c_joe, 9, 23),
+-- Ep 9 - checked
+ (@c_jenna, 9, 0), (@c_savannah, 9, 0), (@c_christian, 9, 5), (@c_emily, 9, 3),
+ (@c_ozzy, 9, 8), (@c_rick, 9, 3), (@c_cirie, 9, 3), (@c_joe, 9, 23),
  (@c_mike, 9, 0), (@c_charlie, 9, 0), (@c_kamilla, 9, 0), (@c_dee, 9, 0),
  (@c_chrissy, 9, 0), (@c_coach, 9, 0), (@c_tiffany, 9, 3), (@c_jonathan, 9, 3),
  (@c_kyle, 9, 0), (@c_q, 9, 0), (@c_angelina, 9, 0), (@c_genevieve, 9, 0),
  (@c_colby, 9, 0), (@c_stephenie, 9, 8), (@c_rizo, 9, 3), (@c_aubry, 9, 3),
--- Ep 10
+-- Ep 10 - checked
  (@c_jenna, 10, 0), (@c_savannah, 10, 0), (@c_christian, 10, 0), (@c_emily, 10, 8),
- (@c_ozzy, 10, 8), (@c_rick, 10, 33), (@c_cirie, 10, 8), (@c_joe, 10, 3),
+ (@c_ozzy, 10, 8), (@c_rick, 10, 23), (@c_cirie, 10, 8), (@c_joe, 10, 3),
  (@c_mike, 10, 0), (@c_charlie, 10, 0), (@c_kamilla, 10, 0), (@c_dee, 10, 0),
  (@c_chrissy, 10, 0), (@c_coach, 10, 0), (@c_tiffany, 10, 23), (@c_jonathan, 10, 3),
  (@c_kyle, 10, 0), (@c_q, 10, 0), (@c_angelina, 10, 0), (@c_genevieve, 10, 0),
  (@c_colby, 10, 0), (@c_stephenie, 10, 20), (@c_rizo, 10, 8), (@c_aubry, 10, 8),
--- Ep 11
+-- Ep 11 - checked
  (@c_jenna, 11, 0), (@c_savannah, 11, 0), (@c_christian, 11, 0), (@c_emily, 11, 5),
  (@c_ozzy, 11, 40), (@c_rick, 11, 13), (@c_cirie, 11, 8), (@c_joe, 11, 3),
  (@c_mike, 11, 0), (@c_charlie, 11, 0), (@c_kamilla, 11, 0), (@c_dee, 11, 0),
- (@c_chrissy, 11, 0), (@c_coach, 11, 0), (@c_tiffany, 11, 3), (@c_jonathan, 11, 23),
+ (@c_chrissy, 11, 0), (@c_coach, 11, 0), (@c_tiffany, 11, 3), (@c_jonathan, 11, 28),
  (@c_kyle, 11, 0), (@c_q, 11, 0), (@c_angelina, 11, 0), (@c_genevieve, 11, 0),
  (@c_colby, 11, 0), (@c_stephenie, 11, 0), (@c_rizo, 11, 3), (@c_aubry, 11, 3),
 -- Ep 12 - checked
