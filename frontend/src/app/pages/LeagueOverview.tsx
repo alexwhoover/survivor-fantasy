@@ -298,7 +298,7 @@ export function LeagueOverview() {
   const myMergeStatus = mergeStatus?.memberStatuses.find((m) => m.userId === user?.id);
   const myHasActed = myMergeStatus?.hasActed ?? false;
 
-  const canEditRoster = isAdmin || league.initialPicksOpen;
+  const canEditRoster = league.initialPicksOpen;
 
   const rankIcon = (rank: number) => {
     if (rank === 1) return <Medal className="h-4 w-4 text-yellow-400" />;
