@@ -30,7 +30,7 @@ public class UserController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse registerUser(@RequestBody UserRequest request, HttpServletRequest httpRequest) {
-        userService.register(request.username(), request.password());
+        userService.register(request.username(), request.password(), request.inviteCode());
         return authenticateAndCreateSession(request.username(), request.password(), httpRequest);
     }
 

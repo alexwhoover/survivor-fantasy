@@ -1,4 +1,4 @@
 package com.example.demo.dto;
 
-public record UserRequest(String username, String password) {
+public record UserRequest(String username, String password, String inviteCode) {
 }

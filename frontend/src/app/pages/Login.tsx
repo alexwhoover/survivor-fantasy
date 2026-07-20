@@ -13,6 +13,7 @@ export function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,7 +32,7 @@ export function Login() {
           setError("Passwords don't match");
           return;
         }
-        const user = await register(username, password);
+        const user = await register(username, password, inviteCode);
         setUser(user);
       } else {
         const user = await login(username, password);
@@ -106,6 +107,21 @@ export function Login() {
                 </div>
               )}
 
+              {isRegister && (
+                <div className="space-y-2">
+                  <Label htmlFor="invite-code">Invite Code</Label>
+                  <Input
+                    id="invite-code"
+                    type="text"
+                    placeholder="Ask a friend for the code"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    required
+                    className="bg-input border-border"
+                  />
+                </div>
+              )}
+
               {error && (
                 <p className="text-sm text-red-500 text-center">{error}</p>
               )}
@@ -120,6 +136,7 @@ export function Login() {
                   onClick={() => {
                     setIsRegister(!isRegister);
                     setConfirmPassword("");
+                    setInviteCode("");
                     setError(null);
                   }}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"

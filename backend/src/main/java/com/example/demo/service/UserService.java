@@ -5,6 +5,7 @@ import com.example.demo.dto.UserResponse;
 import com.example.demo.entity.User;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,9 @@ public class UserService {
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.invite-code}")
+    private String requiredInviteCode;
+
     @Autowired
     public UserService(UserDao userDao, PasswordEncoder passwordEncoder) {
         this.userDao = userDao;
@@ -25,9 +29,13 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse register(String username, String password) {
+    public UserResponse register(String username, String password, String inviteCode) {
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password are required");
+        }
+
+        if (inviteCode == null || !inviteCode.equals(requiredInviteCode)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid invite code");
         }
 
         if (userDao.findByUsername(username).isPresent()) {

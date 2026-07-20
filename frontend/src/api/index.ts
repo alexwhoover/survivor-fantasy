@@ -147,12 +147,12 @@ export async function login(username: string, password: string): Promise<AuthUse
   return res.json();
 }
 
-export async function register(username: string, password: string): Promise<AuthUser> {
+export async function register(username: string, password: string, inviteCode: string): Promise<AuthUser> {
   const res = await fetch(`${API_BASE}/users/register`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, inviteCode }),
   });
   if (!res.ok) {
     const text = await res.text();
