@@ -28,23 +28,33 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Validation order below (username taken, then invite code) intentionally matches the
+     * frontend's display priority, so a request that fails multiple checks reports the
+     * same single message a human would expect first, regardless of entry point (UI or API).
+     */
     @Transactional
     public UserResponse register(String username, String password, String inviteCode) {
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password are required");
         }
 
-        if (inviteCode == null || !inviteCode.equals(requiredInviteCode)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid invite code");
-        }
-
         if (userDao.findByUsername(username).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken");
+        }
+
+        if (inviteCode == null || !inviteCode.equals(requiredInviteCode)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid invite code");
         }
 
         User user = new User(username, passwordEncoder.encode(password), LocalDateTime.now());
         userDao.save(user);
         return toResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isUsernameTaken(String username) {
+        return username != null && userDao.findByUsername(username).isPresent();
     }
 
     @Transactional(readOnly = true)

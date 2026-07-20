@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import torchIcon from "../../assets/torch.png";
-import { login, register } from "../../api";
+import { login, register, isUsernameAvailable } from "../../api";
 import { useAuth } from "../context/AuthContext";
 
 export function Login() {
@@ -28,6 +28,13 @@ export function Login() {
     setError(null);
     try {
       if (isRegister) {
+        // Checked in this order (username taken, then password mismatch, then invite
+        // code) so that when multiple problems apply at once, the message shown is
+        // always the highest-priority one rather than whichever happened to be checked.
+        if (!(await isUsernameAvailable(username))) {
+          setError("Username already taken");
+          return;
+        }
         if (password !== confirmPassword) {
           setError("Passwords don't match");
           return;

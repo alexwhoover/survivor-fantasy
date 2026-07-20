@@ -122,6 +122,23 @@ async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
   return res;
 }
 
+/**
+ * Extracts a human-readable message from a failed response. The backend's error
+ * body is JSON (e.g. {"status":403,"error":"Forbidden","message":"..."}), not
+ * plain text — falling back to res.text() would print that raw JSON to the user.
+ */
+async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json();
+    if (data && typeof data.message === "string" && data.message.trim()) {
+      return data.message;
+    }
+  } catch {
+    // Body wasn't JSON (or was empty) — fall through to the generic message.
+  }
+  return fallback;
+}
+
 // --- Auth ---
 // The server session (a cookie validated on every request) is the sole source
 // of truth for auth state — nothing is cached client-side across page loads.
@@ -141,10 +158,19 @@ export async function login(username: string, password: string): Promise<AuthUse
     body: JSON.stringify({ username, password }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Invalid credentials");
+    throw new Error(await extractErrorMessage(res, "Invalid credentials"));
   }
   return res.json();
+}
+
+/** Pre-check used by the registration form to flag a taken username before submit. */
+export async function isUsernameAvailable(username: string): Promise<boolean> {
+  const res = await apiFetch(`${API_BASE}/users/username-available?username=${encodeURIComponent(username)}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, "Failed to check username"));
+  const data = await res.json();
+  return data.available;
 }
 
 export async function register(username: string, password: string, inviteCode: string): Promise<AuthUser> {
@@ -155,8 +181,7 @@ export async function register(username: string, password: string, inviteCode: s
     body: JSON.stringify({ username, password, inviteCode }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Registration failed");
+    throw new Error(await extractErrorMessage(res, "Registration failed"));
   }
   return res.json();
 }
@@ -202,8 +227,7 @@ export async function createLeague(
     body: JSON.stringify({ name, seasonName, userId, contestantsPerTribe, tribes, contestants }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to create league");
+    throw new Error(await extractErrorMessage(res, "Failed to create league"));
   }
   return res.json();
 }
@@ -216,8 +240,7 @@ export async function setInitialPicksOpen(leagueId: number, adminUserId: number,
     body: JSON.stringify({ adminUserId, open }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to update initial picking state");
+    throw new Error(await extractErrorMessage(res, "Failed to update initial picking state"));
   }
   return res.json();
 }
@@ -230,8 +253,7 @@ export async function setMergePicksOpen(leagueId: number, adminUserId: number, o
     body: JSON.stringify({ adminUserId, open }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to update merge picking state");
+    throw new Error(await extractErrorMessage(res, "Failed to update merge picking state"));
   }
   return res.json();
 }
@@ -244,8 +266,7 @@ export async function setLeagueArchived(leagueId: number, adminUserId: number, a
     body: JSON.stringify({ adminUserId, archived }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to update archived state");
+    throw new Error(await extractErrorMessage(res, "Failed to update archived state"));
   }
   return res.json();
 }
@@ -258,8 +279,7 @@ export async function joinLeague(code: string, userId: number): Promise<LeagueAp
     body: JSON.stringify({ code, userId }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to join league");
+    throw new Error(await extractErrorMessage(res, "Failed to join league"));
   }
   return res.json();
 }
@@ -308,8 +328,7 @@ export async function updateContestantStatus(
     body: JSON.stringify({ adminUserId, eliminatedEpisode, winner }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to update contestant status");
+    throw new Error(await extractErrorMessage(res, "Failed to update contestant status"));
   }
   return res.json();
 }
@@ -331,8 +350,7 @@ export async function addEpisode(leagueId: number, adminUserId: number): Promise
     body: JSON.stringify({ adminUserId }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to add episode");
+    throw new Error(await extractErrorMessage(res, "Failed to add episode"));
   }
   return res.json();
 }
@@ -343,8 +361,7 @@ export async function deleteEpisode(leagueId: number, adminUserId: number, episo
     credentials: "include",
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to remove episode");
+    throw new Error(await extractErrorMessage(res, "Failed to remove episode"));
   }
 }
 
@@ -362,8 +379,7 @@ export async function setEpisodeMergeFlag(
     body: JSON.stringify({ adminUserId, isMergeEpisode }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to update merge episode flag");
+    throw new Error(await extractErrorMessage(res, "Failed to update merge episode flag"));
   }
   return res.json();
 }
@@ -408,8 +424,7 @@ export async function submitRoster(
     body: JSON.stringify({ userId, contestantIds, mvpContestantId }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to submit roster");
+    throw new Error(await extractErrorMessage(res, "Failed to submit roster"));
   }
   return res.json();
 }
@@ -428,8 +443,7 @@ export async function adminUpdateRoster(
     body: JSON.stringify({ userId: adminUserId, contestantIds, mvpContestantId }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to update roster");
+    throw new Error(await extractErrorMessage(res, "Failed to update roster"));
   }
   return res.json();
 }
@@ -454,8 +468,7 @@ export async function saveEpisodeScores(
     body: JSON.stringify(scores),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to save scores");
+    throw new Error(await extractErrorMessage(res, "Failed to save scores"));
   }
   return res.json();
 }
@@ -503,8 +516,7 @@ export async function adminSetMergeAction(
     body: JSON.stringify({ adminUserId, addedContestantId, removedContestantId, noChange }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to set merge action");
+    throw new Error(await extractErrorMessage(res, "Failed to set merge action"));
   }
   return res.json();
 }
@@ -530,8 +542,7 @@ export async function performMergeAction(
     body: JSON.stringify({ userId, addedContestantId, removedContestantId, noChange }),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Failed to perform merge action");
+    throw new Error(await extractErrorMessage(res, "Failed to perform merge action"));
   }
   return res.json();
 }

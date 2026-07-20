@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.UserRequest;
 import com.example.demo.dto.UserResponse;
+import com.example.demo.dto.UsernameAvailabilityResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,12 @@ public class UserController {
     public UserResponse registerUser(@RequestBody UserRequest request, HttpServletRequest httpRequest) {
         userService.register(request.username(), request.password(), request.inviteCode());
         return authenticateAndCreateSession(request.username(), request.password(), httpRequest);
+    }
+
+    /** Unauthenticated pre-check so the registration form can flag a taken username before submit. */
+    @GetMapping("/username-available")
+    public UsernameAvailabilityResponse checkUsernameAvailable(@RequestParam String username) {
+        return new UsernameAvailabilityResponse(!userService.isUsernameTaken(username));
     }
 
     @PostMapping("/login")

@@ -42,7 +42,7 @@ public class SecurityConfig {
                     // status codes and JSON bodies instead of an empty 403
                     .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR)
                     .permitAll()
-                    .requestMatchers("/api/users/login", "/api/users/register")
+                    .requestMatchers("/api/users/login", "/api/users/register", "/api/users/username-available")
                     .permitAll()
                     .anyRequest().authenticated()
             )
