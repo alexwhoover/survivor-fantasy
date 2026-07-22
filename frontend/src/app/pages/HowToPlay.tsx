@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Users, Trophy, GitMerge } from "lucide-react";
 import jeffProbstField from "../../assets/jeff-probst-field.jpg";
+import { EmberBackground } from "../components/EmberBackground";
 
 export function HowToPlay() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 relative">
+      <EmberBackground />
       <div className="mb-8">
         <div className="flex justify-center mb-6">
           <img src={jeffProbstField} alt="Jeff Probst" className="w-full max-w-2xl rounded-lg" />

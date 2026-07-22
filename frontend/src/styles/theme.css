@@ -201,4 +201,51 @@
   .flame-flicker {
     animation: flicker 2s ease-in-out infinite;
   }
+
+  /* Ambient bed of light behind the rising embers — a low, slow pulse rather
+     than an intense flame, since this backs a page of static content. */
+  @keyframes ember-glow-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .ember-ambient-glow {
+    background: linear-gradient(
+      to top,
+      rgba(255, 107, 53, 0.22),
+      rgba(193, 68, 14, 0.08) 45%,
+      transparent 85%
+    );
+    animation: ember-glow-pulse 4s ease-in-out infinite;
+  }
+
+  /* Single ember: drifts up and sideways by --drift, fading in then out
+     before it reaches the top of its 25vh band, then loops. */
+  @keyframes ember-rise {
+    0% {
+      transform: translate(0, 0) scale(0.7);
+      opacity: 0;
+    }
+    12% {
+      opacity: var(--ember-opacity, 0.9);
+    }
+    75% {
+      opacity: var(--ember-opacity, 0.9);
+    }
+    100% {
+      transform: translate(var(--drift, 0px), -22vh) scale(0.4);
+      opacity: 0;
+    }
+  }
+
+  .ember-particle {
+    position: absolute;
+    bottom: 0;
+    border-radius: 9999px;
+    background: radial-gradient(circle, #ffe3b0 0%, #ff8c42 45%, rgba(255, 107, 53, 0) 80%);
+    box-shadow: 0 0 6px 2px rgba(255, 140, 66, 0.7);
+    animation-name: ember-rise;
+    animation-timing-function: ease-out;
+    animation-iteration-count: infinite;
+  }
 }

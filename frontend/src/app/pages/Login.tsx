@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import torchIcon from "../../assets/torch.png";
+import loginBackground from "../../assets/jeff-full-width-background-faded.jpg";
 import { login, register, isUsernameAvailable } from "../../api";
 import { useAuth } from "../context/AuthContext";
 
@@ -52,7 +53,10 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div
+      className="min-h-screen flex items-center justify-center bg-background bg-no-repeat bg-left-top bg-cover isolate"
+      style={{ backgroundImage: `url(${loginBackground})` }}
+    >
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
