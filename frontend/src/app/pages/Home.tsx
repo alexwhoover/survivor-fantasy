@@ -47,15 +47,14 @@ export function Home() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
       <EmberBackground />
-      <div className="mb-8 flex items-center justify-between">
-        <div>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-0">
+        <div className="text-center md:text-left">
           <h1 className="mb-2">My Leagues</h1>
-          <p className="text-muted-foreground">Manage your Survivor fantasy leagues</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 md:flex-row">
           <Dialog open={joinDialogOpen} onOpenChange={(open) => { setJoinDialogOpen(open); if (!open) setJoinError(""); }}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="w-full min-h-[44px] gap-2 md:w-auto md:min-h-0">
                 <LogIn className="h-4 w-4" />
                 Join League
               </Button>
@@ -86,8 +85,8 @@ export function Home() {
             </DialogContent>
           </Dialog>
 
-          <Link to="/leagues/new">
-            <Button className="gap-2">
+          <Link to="/leagues/new" className="w-full md:w-auto">
+            <Button className="w-full min-h-[44px] gap-2 md:w-auto md:min-h-0">
               <Plus className="h-4 w-4" />
               Create League
             </Button>
@@ -123,7 +122,7 @@ function LeagueGrid({ leagues }: { leagues: LeagueApiResponse[] }) {
         <Link key={league.id} to={`/league/${league.id}`}>
           <Card className="transition-all hover:border-primary hover:fire-glow cursor-pointer h-full">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col items-center text-center gap-2 md:flex-row md:items-start md:justify-between md:text-left md:gap-0">
                 <div>
                   <CardTitle className="mb-1">{league.name}</CardTitle>
                   <CardDescription>{league.seasonName}</CardDescription>
@@ -131,7 +130,7 @@ function LeagueGrid({ leagues }: { leagues: LeagueApiResponse[] }) {
                 <Trophy className="h-5 w-5 text-primary shrink-0" />
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="hidden md:block">
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />

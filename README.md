@@ -1,14 +1,16 @@
 # Survivor Fantasy
 
-A fantasy sports app for CBS's *Survivor*. Create a league with your friends, draft a roster of castaways, and compete for the season by earning points as your picks survive, win challenges, and make it to the end.
+A fantasy league app for CBS's *Survivor*. Create a league with your friends, draft a roster of castaways, and compete for the season by earning points as your picks survive, perform actions, and make it to the end.
 
 **Live app:** [survivor-fantasy.app](https://survivor-fantasy.app/)
 
-## Features
+## How To Play
+
+### Create an Account
 
 ### Leagues
 
-Create a league for the current season or join one with an invite code. Each league card shows the season, how many contestants you draft per tribe, the join code to share with friends, and whether picking is currently open.
+Create a league for the current season or join one with an invite code.
 
 ![My Leagues](resources/images/my_leagues.png)
 
@@ -30,7 +32,13 @@ The leaderboard ranks every member of your league by total points, with medals f
 
 ![Standings](resources/images/standings.png)
 
-### League Admin
+### Merge
+After the merge, the commissioner opens the **Merge Pick** window for a second round of drafting. Add or swap one of your players at this point, if desired.
+
+### Winning
+Climb the **Standings** leaderboard — if your MVP wins the season, you earn a bonus on top of their regular points. Whoever has the most points at the end of the season wins.
+
+## League Admin
 
 League commissioners get an admin panel to manage the league:
 
@@ -41,15 +49,6 @@ League commissioners get an admin panel to manage the league:
 - **Season** — open or close the Initial Picks and Merge Pick drafting windows, and add episodes to score as the season airs.
 
   ![Admin: Season](resources/images/admin_season.png)
-
-## How to Play
-
-1. **Join a league** with an invite code, or create your own and share the code with friends.
-2. Once the commissioner opens **Initial Picks**, draft your roster — a set number of contestants from each starting tribe — and pick one as your **MVP**.
-3. As episodes air, the commissioner records results and points are awarded to your roster.
-4. Contestants voted out are marked **Out** but their points to that point still count.
-5. After the merge, the commissioner opens the **Merge Pick** window for a second round of drafting.
-6. Climb the **Standings** leaderboard — if your MVP wins the season, you earn a bonus on top of their regular points.
 
 ## Tech Stack
 
