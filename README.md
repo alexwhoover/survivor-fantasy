@@ -4,6 +4,8 @@ A fantasy league app for CBS's *Survivor*. Create a league with your friends, dr
 
 **Live app:** [survivor-fantasy.app](https://survivor-fantasy.app/)
 
+To register an account on the live app, you must have an invite code.
+
 ## How To Play
 
 ### Create an Account
@@ -31,6 +33,7 @@ Your roster page shows league info at a glance — member count, join code, and 
 The leaderboard ranks every member of your league by total points, with medals for the top spots. Peek at anyone's roster to see who they drafted.
 
 ![Standings](resources/images/standings.png)
+![Graph](resources/images/standings_graph.png)
 
 ### Merge
 After the merge, the commissioner opens the **Merge Pick** window for a second round of drafting. Add or swap one of your players at this point, if desired.
@@ -60,6 +63,12 @@ League commissioners get an admin panel to manage the league:
 ## Running with Docker
 
 Requires [Docker](https://docs.docker.com/get-docker/) and Docker Compose.
+
+First copy the env template and fill in the secrets (`.env` is gitignored):
+
+```bash
+cp .env.example .env
+```
 
 **Development:**
 

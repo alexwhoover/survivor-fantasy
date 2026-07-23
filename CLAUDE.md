@@ -42,8 +42,11 @@ The frontend calls relative paths (`/api/...`) with no dev-server proxy configur
 ## Running the app
 
 ```bash
+cp .env.example .env   # first time only — holds APP_INVITE_CODE, gitignored
 docker compose up --build
 ```
+
+Secrets live in the root `.env` (auto-loaded by Docker Compose) and are passed into containers as env vars, never committed. `application.properties` references them with no default (`app.invite-code=${APP_INVITE_CODE}`) so a missing secret fails at startup instead of silently defaulting.
 
 Starts MySQL, runs Flyway migrations, then backend (`:8080`) and frontend (`:3000`, nginx-served build reverse-proxying `/api`).
 
