@@ -53,7 +53,7 @@ Starts MySQL, runs Flyway migrations, then backend (`:8080`) and frontend (`:300
 Production adds a Cloudflare Tunnel:
 
 ```bash
-TUNNEL_TOKEN=<token> docker compose --profile production up -d --build
+docker compose --profile production up -d --build   # TUNNEL_TOKEN comes from .env
 ```
 
 Production runs on a Raspberry Pi (home server), reached via the Cloudflare Tunnel rather than a directly exposed port. Keep this in mind for resource usage (the backend's `JAVA_TOOL_OPTIONS` in `docker-compose.yml` already caps heap at 512m for this reason) and architecture (images must run on the Pi's arch — check `docker compose build` output rather than assuming x86_64).

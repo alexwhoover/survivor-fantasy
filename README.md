@@ -83,6 +83,8 @@ This starts MySQL, runs Flyway migrations, and brings up the backend and fronten
 
 **Production** (adds a Cloudflare Tunnel, e.g. for a home server deployment):
 
+Set `TUNNEL_TOKEN` in `.env`, then:
+
 ```bash
-TUNNEL_TOKEN=<your-cloudflare-tunnel-token> docker compose --profile production up -d --build
+docker compose --profile production up -d --build
 ```
