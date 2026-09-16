@@ -140,11 +140,11 @@ export function ScoringGrid({ leagueId, roster, mergeAction }: Props) {
               {episodes.map((ep) => (
                 <th
                   key={ep}
-                  className={`bg-card font-normal text-[11px] text-muted-foreground w-9 min-w-9 h-[34px] border-b border-border ${
+                  className={`bg-card font-normal text-[11px] text-muted-foreground w-11 min-w-11 h-[34px] border-b border-border ${
                     ep === mergeEpisode ? "shadow-[inset_-2px_0_0_var(--primary)]" : ""
                   }`}
                 >
-                  <div>{ep}</div>
+                  <div>EP{ep}</div>
                   {ep === mergeEpisode && (
                     <div className="text-[8px] leading-none tracking-widest text-primary">MERGE</div>
                   )}
