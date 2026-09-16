@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { AdminPlayers } from "../components/AdminPlayers";
 import { AdminSeason } from "../components/AdminSeason";
 import { MergeActionModal } from "../components/MergeActionModal";
+import { ScoringGrid } from "../components/ScoringGrid";
 import { StandingsGraph } from "../components/StandingsGraph";
 import {
   getLeagueById,
@@ -33,7 +34,7 @@ import {
 } from "../../api";
 
 type Tab = "roster" | "standings" | "admin";
-type StandingsView = "leaderboard" | "graph";
+type StandingsView = "leaderboard" | "graph" | "scoring";
 type AdminSubtab = "players" | "season";
 
 function pickingBadgeClass(open: boolean): string {
@@ -489,7 +490,7 @@ export function LeagueOverview() {
           <Card style={{ padding: "16px" }}>
             <div className="flex items-center justify-between mb-2.5">
               <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                {standingsView === "leaderboard" ? "Leaderboard" : "Graph"}
+                {standingsView === "leaderboard" ? "Leaderboard" : standingsView === "graph" ? "Graph" : "Scoring"}
               </div>
               <div className="flex items-center gap-1">
                 <Button
@@ -506,10 +507,19 @@ export function LeagueOverview() {
                 >
                   Graph
                 </Button>
+                <Button
+                  variant={standingsView === "scoring" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStandingsView("scoring")}
+                >
+                  Scoring
+                </Button>
               </div>
             </div>
             {standingsView === "graph" ? (
               <StandingsGraph leagueId={numId} />
+            ) : standingsView === "scoring" ? (
+              <ScoringGrid leagueId={numId} roster={myRoster} mergeAction={myMergeAction} />
             ) : leaderboard.length === 0 ? (
               <p className="text-sm text-muted-foreground">No scores yet.</p>
             ) : (

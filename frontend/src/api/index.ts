@@ -93,6 +93,27 @@ export interface LeaderboardHistoryEntry {
   history: EpisodePoint[];
 }
 
+export interface ScoringGridRow {
+  contestantId: number;
+  firstName: string;
+  lastName: string;
+  tribe: string | null;
+  tribeColour: string | null;
+  eliminatedEpisode: number | null;
+  winner: boolean;
+  /** One entry per episode, in order from episode 1; null where no score was entered. */
+  points: (number | null)[];
+  total: number;
+}
+
+export interface ScoringGridResponse {
+  episodeCount: number;
+  mergeEpisode: number | null;
+  /** Highest single-episode score in the league — the top of the grid's colour scale. */
+  maxPoints: number;
+  rows: ScoringGridRow[];
+}
+
 export interface MergeMemberStatus {
   userId: number;
   username: string;
@@ -484,6 +505,12 @@ export async function getLeaderboard(leagueId: number): Promise<LeaderboardEntry
 export async function getLeaderboardHistory(leagueId: number): Promise<LeaderboardHistoryEntry[]> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/leaderboard/history`, { credentials: "include" });
   if (!res.ok) throw new Error(`Failed to fetch leaderboard history: ${res.status}`);
+  return res.json();
+}
+
+export async function getScoringGrid(leagueId: number): Promise<ScoringGridResponse> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/scoring-grid`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch scoring grid: ${res.status}`);
   return res.json();
 }
 

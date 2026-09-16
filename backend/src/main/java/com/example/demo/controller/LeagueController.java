@@ -19,6 +19,7 @@ import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.MergeStatusResponse;
 import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.RosterResponse;
+import com.example.demo.dto.ScoringGridResponse;
 import com.example.demo.dto.SetArchivedRequest;
 import com.example.demo.dto.SetMergeEpisodeRequest;
 import com.example.demo.dto.SubmitRosterRequest;
@@ -207,6 +208,12 @@ public class LeagueController {
     @GetMapping("/{id}/episodes/{episodeNumber}/scores")
     public List<EpisodeScoreItem> getEpisodeScores(@PathVariable Long id, @PathVariable int episodeNumber) {
         return episodeScoreService.getScoresForEpisode(id, episodeNumber);
+    }
+
+    /** The whole season's scores as a contestant-by-episode grid, for the Standings "Scoring" view. */
+    @GetMapping("/{id}/scoring-grid")
+    public ScoringGridResponse getScoringGrid(@PathVariable Long id) {
+        return episodeScoreService.getScoringGrid(id);
     }
 
     @PostMapping("/{id}/episodes/{episodeNumber}/scores")
