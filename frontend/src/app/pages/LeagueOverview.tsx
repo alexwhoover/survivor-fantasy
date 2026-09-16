@@ -125,19 +125,17 @@ function RosterViewModal({
                       ) : (
                         col.picks.map((c) => {
                           const isMVP = c.id === roster.mvpContestantId;
+                          const isOut = c.eliminatedEpisode !== null;
                           return (
-                            <div key={c.id} className="py-1.5">
-                              <div className="flex items-start gap-1.5">
-                                {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
-                                <span className={`text-sm font-medium ${isMVP ? "text-primary" : ""}`}>
-                                  {c.firstName} {c.lastName}
-                                </span>
-                              </div>
-                              {c.eliminatedEpisode !== null && (
-                                <div className="text-xs text-muted-foreground mt-0.5">
-                                  Out Ep.{c.eliminatedEpisode}
-                                </div>
-                              )}
+                            <div key={c.id} className="flex items-start gap-1.5 py-1.5">
+                              <span
+                                className={`text-sm font-medium ${
+                                  isOut ? "line-through text-muted-foreground" : ""
+                                }`}
+                              >
+                                {c.firstName} {c.lastName}
+                              </span>
+                              {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
                             </div>
                           );
                         })
