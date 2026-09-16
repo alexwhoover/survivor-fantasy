@@ -16,13 +16,14 @@ interface Props {
 }
 
 /**
- * Sequential single-hue ramp (the app's ember orange), anchored to the card surface so a
- * low score recedes rather than shouting. Six steps rather than a continuous blend so the
- * legend can name the scale.
+ * Warm analogous heat ramp, sand -> amber -> orange -> orange-red. Every step sits in the
+ * light-to-mid luminance band so a low score still reads clearly against the dark card —
+ * anchoring the low end to the surface instead made small values disappear into it.
+ * Six steps rather than a continuous blend so the legend can name the scale.
  */
-const HEAT = ["#271813", "#442317", "#65301d", "#8c3f23", "#b74f2a", "#ec6432"];
-/** Ink flips to dark on the two hottest steps, where white would drop under 3.5:1. */
-const HEAT_INK = ["#c9a893", "#f5f5f5", "#f5f5f5", "#f5f5f5", "#1a0d06", "#1a0d06"];
+const HEAT = ["#f7e5cb", "#f3d1a1", "#efb974", "#ea9f4f", "#e28034", "#d95f28"];
+/** One dark ink across the whole ramp — clears 4.5:1 even on the hottest step. */
+const HEAT_INK = "#1a0d06";
 
 function heatIndex(points: number, maxPoints: number): number {
   if (points <= 0 || maxPoints <= 0) return 0;
@@ -210,16 +211,14 @@ export function ScoringGrid({ leagueId, roster, mergeAction }: Props) {
                     } else if (pts === null) {
                       style.color = "#3a3a3a";
                     } else {
-                      const i = heatIndex(pts, grid.maxPoints);
-                      style.backgroundColor = HEAT[i];
-                      style.color = HEAT_INK[i];
-                      if (i >= 4) style.fontWeight = 500;
+                      style.backgroundColor = HEAT[heatIndex(pts, grid.maxPoints)];
+                      style.color = HEAT_INK;
+                      style.fontWeight = 500;
                       if (uncounted) {
-                        // The points exist — they just don't count for this member.
+                        // The points exist — they just don't count for this member. The
+                        // hatching carries that on its own, so the value stays full-contrast.
                         style.backgroundImage =
-                          "repeating-linear-gradient(-45deg, transparent 0 3px, rgba(10,10,10,0.62) 3px 6px)";
-                        style.color = "#6e6e6e";
-                        style.fontWeight = 400;
+                          "repeating-linear-gradient(-45deg, transparent 0 3px, rgba(10,10,10,0.55) 3px 6px)";
                       }
                     }
 
@@ -277,7 +276,7 @@ export function ScoringGrid({ leagueId, roster, mergeAction }: Props) {
                 style={{
                   backgroundColor: HEAT[2],
                   backgroundImage:
-                    "repeating-linear-gradient(-45deg, transparent 0 3px, rgba(10,10,10,0.62) 3px 6px)",
+                    "repeating-linear-gradient(-45deg, transparent 0 3px, rgba(10,10,10,0.55) 3px 6px)",
                 }}
               />
               Doesn't count for you
