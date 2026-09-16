@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import type { CSSProperties } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Crown, Eye, GitMerge, Medal } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -49,11 +50,13 @@ function RosterViewModal({
   member,
   leagueId,
   contestants,
+  tribes,
   onClose,
 }: {
   member: LeagueMember | null;
   leagueId: number;
   contestants: Contestant[];
+  tribes: Tribe[];
   onClose: () => void;
 }) {
   const [roster, setRoster] = useState<RosterResponse | null | undefined>(undefined);
@@ -69,54 +72,78 @@ function RosterViewModal({
       .map((id) => contestants.find((c) => c.id === id))
       .filter(Boolean) as Contestant[] ?? [];
 
-  const mvp = roster ? contestants.find((c) => c.id === roster.mvpContestantId) : null;
+  /**
+   * One column per tribe, so a full roster reads across rather than down — nine or ten
+   * picks stacked vertically ran past the bottom of a desktop viewport. Tribes keep the
+   * league's own order, and picks whose tribe was cleared fall into a trailing column
+   * rather than being dropped.
+   */
+  const untribed = rosterContestants.filter((c) => c.tribeId === null);
+  const columns: { key: string; name: string; colour: string | null; picks: Contestant[] }[] = [
+    ...tribes.map((t) => ({
+      key: `tribe-${t.id}`,
+      name: t.name,
+      colour: t.colour,
+      picks: rosterContestants.filter((c) => c.tribeId === t.id),
+    })),
+    ...(untribed.length > 0
+      ? [{ key: "no-tribe", name: "No tribe", colour: null, picks: untribed }]
+      : []),
+  ];
 
   return (
     <Dialog open={member !== null} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-3xl">
         {member && (
           <>
             <DialogHeader>
               <DialogTitle>{member.username}'s Roster</DialogTitle>
             </DialogHeader>
-            <div className="py-2">
+            <div className="py-2 max-h-[70vh] overflow-y-auto">
               {roster === undefined ? (
                 <p className="text-sm text-muted-foreground">Loading...</p>
               ) : roster === null ? (
                 <p className="text-sm text-muted-foreground">No roster submitted yet.</p>
               ) : (
-                <div className="space-y-2">
-                  {rosterContestants.map((c) => {
-                    const isMVP = c.id === roster.mvpContestantId;
-                    return (
-                      <div
-                        key={c.id}
-                        className="flex items-center justify-between px-4 py-3 rounded-lg border"
-                        style={isMVP ? { borderColor: "var(--primary)", backgroundColor: "var(--accent)" } : {}}
-                      >
-                        <div className="flex items-center gap-3">
-                          {isMVP && <Crown className="h-4 w-4 text-primary" />}
-                          <div>
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                              {c.firstName} {c.lastName}
-                              {isMVP && <Badge variant="outline">MVP</Badge>}
+                <div
+                  className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-[repeat(var(--tribe-cols),minmax(0,1fr))]"
+                  style={{ "--tribe-cols": columns.length } as CSSProperties}
+                >
+                  {columns.map((col) => (
+                    <div key={col.key}>
+                      <div className="flex items-center gap-1.5 pb-1.5 mb-1 border-b border-border">
+                        {col.colour && (
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.colour }} />
+                        )}
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground truncate">
+                          {col.name}
+                        </span>
+                      </div>
+
+                      {col.picks.length === 0 ? (
+                        <div className="text-sm text-muted-foreground/50 py-1.5">—</div>
+                      ) : (
+                        col.picks.map((c) => {
+                          const isMVP = c.id === roster.mvpContestantId;
+                          return (
+                            <div key={c.id} className="py-1.5">
+                              <div className="flex items-start gap-1.5">
+                                {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
+                                <span className={`text-sm font-medium ${isMVP ? "text-primary" : ""}`}>
+                                  {c.firstName} {c.lastName}
+                                </span>
+                              </div>
                               {c.eliminatedEpisode !== null && (
-                                <Badge variant="destructive">Out Ep.{c.eliminatedEpisode}</Badge>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  Out Ep.{c.eliminatedEpisode}
+                                </div>
                               )}
                             </div>
-                            {c.tribe && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                                {c.tribeColour && (
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.tribeColour }} />
-                                )}
-                                {c.tribe}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                          );
+                        })
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -609,6 +636,7 @@ export function LeagueOverview() {
         member={viewingMember}
         leagueId={numId}
         contestants={contestants}
+        tribes={tribes}
         onClose={() => setViewingMember(null)}
       />
 
