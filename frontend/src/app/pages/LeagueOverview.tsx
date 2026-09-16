@@ -281,8 +281,16 @@ export function LeagueOverview() {
     return <div className="p-8 text-muted-foreground">Loading...</div>;
   }
 
+  // A swap's removed contestant gets its own struck-through row above the picks. It can
+  // still be present in the roster's own pick list (an admin merge override restores the
+  // pick when reverting, and seeded leagues carry it too), so drop it here — otherwise the
+  // same contestant renders twice, once as removed and again as a current pick.
+  const mergeRemovedId =
+    myMergeAction?.actionType === "SWAP" ? myMergeAction.removedContestantId : null;
+
   const myRosterContestants = myRoster
     ? (myRoster.contestantIds
+        .filter((id) => id !== mergeRemovedId)
         .map((id) => contestants.find((c) => c.id === id))
         .filter(Boolean) as Contestant[])
     : [];
@@ -404,8 +412,8 @@ export function LeagueOverview() {
                 </div>
                 <div className="space-y-1">
                   {/* Removed contestant — shown at top when a swap occurred */}
-                  {myMergeAction?.actionType === "SWAP" && myMergeAction.removedContestantId && (() => {
-                    const removed = contestants.find((c) => c.id === myMergeAction.removedContestantId);
+                  {mergeRemovedId !== null && (() => {
+                    const removed = contestants.find((c) => c.id === mergeRemovedId);
                     if (!removed) return null;
                     return (
                       <div
