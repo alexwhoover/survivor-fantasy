@@ -143,7 +143,13 @@ function RosterViewModal({
                                 {c.firstName} {c.lastName}
                               </span>
                               {c.id === mergePickId && (
-                                <span className="text-xs text-muted-foreground shrink-0 mt-0.5">(merge)</span>
+                                <span
+                                  className={`text-sm font-medium shrink-0 ${
+                                    isOut ? "text-muted-foreground" : ""
+                                  }`}
+                                >
+                                  (merge)
+                                </span>
                               )}
                               {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
                             </div>
