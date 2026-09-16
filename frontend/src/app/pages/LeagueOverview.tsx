@@ -60,12 +60,19 @@ function RosterViewModal({
   onClose: () => void;
 }) {
   const [roster, setRoster] = useState<RosterResponse | null | undefined>(undefined);
+  const [mergeAction, setMergeAction] = useState<MergeActionResponse | null>(null);
 
   useEffect(() => {
     if (!member) return;
     setRoster(undefined);
+    setMergeAction(null);
     getRosterForUser(leagueId, member.userId).then(setRoster);
+    // Endpoint is keyed by userId rather than the session, so it serves any member's action.
+    getMyMergeAction(leagueId, member.userId).then(setMergeAction).catch(() => setMergeAction(null));
   }, [member, leagueId]);
+
+  // The contestant taken at the merge, whether that was an add or the added half of a swap.
+  const mergePickId = mergeAction?.addedContestantId ?? null;
 
   const rosterContestants =
     roster?.contestantIds
@@ -135,6 +142,9 @@ function RosterViewModal({
                               >
                                 {c.firstName} {c.lastName}
                               </span>
+                              {c.id === mergePickId && (
+                                <span className="text-xs text-muted-foreground shrink-0 mt-0.5">(merge)</span>
+                              )}
                               {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
                             </div>
                           );
