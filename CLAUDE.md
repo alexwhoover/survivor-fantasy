@@ -52,6 +52,8 @@ Secrets live in the root `.env` (auto-loaded by Docker Compose) and are passed i
 
 Starts MySQL, runs Flyway migrations, then backend (`:8080`) and frontend (`:3000`, nginx-served build reverse-proxying `/api`).
 
+All published host ports (`3306`, `8080`, `3000`) are bound to `127.0.0.1` in `docker-compose.yml`, so on the Pi nothing is reachable from the LAN; public traffic only arrives through the tunnel (`cloudflared` → `http://frontend:80` on the compose network). Keep new port mappings localhost-bound.
+
 Production adds a Cloudflare Tunnel:
 
 ```bash

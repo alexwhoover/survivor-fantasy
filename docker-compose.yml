@@ -8,8 +8,11 @@ services:
       MYSQL_DATABASE: survivor_league
       MYSQL_USER: survivor_app
       MYSQL_PASSWORD: survivor_app
+    # Host ports are bound to 127.0.0.1 so they're only reachable from the machine itself
+    # (dev tools, seed/admin scripts), never the LAN. Services talk to each other over the
+    # compose network, and cloudflared reaches the frontend at http://frontend:80.
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -30,7 +33,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8080:8080" # Remove this in production, only for testing
+      - "127.0.0.1:8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/survivor_league
       SPRING_DATASOURCE_USERNAME: survivor_app
@@ -46,7 +49,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - backend
 
