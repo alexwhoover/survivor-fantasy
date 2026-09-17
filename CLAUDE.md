@@ -26,6 +26,8 @@ Controller → Service → DAO → Entity, all under `com.example.demo`:
 
 Authorization convention: admin-only mutations take an explicit `adminUserId` in the request body/query (not derived from the session), and services verify that user's `LeagueMember.Role` before proceeding (see `LeagueService.requireAdminLeague`). Follow this pattern for any new admin-gated endpoint.
 
+Site-wide admin operations (not tied to a league) live in `AdminController` under `/api/admin/**` and are authorized by the `APP_ADMIN_KEY` secret sent as the `X-Admin-Key` header, not by a session or user role. They are `permitAll` in `SecurityConfig`, and the service does the key check (constant-time). Currently only `POST /api/admin/reset-password`.
+
 Session-based auth: Spring Security + Spring Session backed by JDBC (`spring.session.jdbc`), session table created by migration, not Hibernate. A missing/invalid session is remapped to `401` (vs. application-level `403` for "logged in but not permitted") in `SecurityConfig`'s `authenticationEntryPoint` — this distinction matters to the frontend's auth-unauthorized handling.
 
 ### Frontend structure

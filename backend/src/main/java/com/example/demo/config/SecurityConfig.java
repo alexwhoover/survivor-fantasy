@@ -32,6 +32,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         // Permit /api/users/login and /api/users/register without a session
+        // /api/admin/reset-password is authorized by the X-Admin-Key header instead of a session
         // All other endpoints require a valid session
         // Spring handles logout automatically with POST /api/users/logout
         http
@@ -43,6 +44,8 @@ public class SecurityConfig {
                     .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR)
                     .permitAll()
                     .requestMatchers("/api/users/login", "/api/users/register", "/api/users/username-available")
+                    .permitAll()
+                    .requestMatchers("/api/admin/reset-password")
                     .permitAll()
                     .anyRequest().authenticated()
             )

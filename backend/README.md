@@ -4,7 +4,7 @@ Spring Boot REST API with JDBC session-based authentication.
 
 Base URL: `http://localhost:8080`
 
-All endpoints except `/api/users/login` and `/api/users/register` require an active session. Authenticate via the login endpoint and include the `SESSION` cookie on all subsequent requests.
+All endpoints except `/api/users/login`, `/api/users/register`, `/api/users/username-available` and `/api/admin/**` require an active session. Authenticate via the login endpoint and include the `SESSION` cookie on all subsequent requests. Admin endpoints use a secret key instead of a session (see [Site Admin](#site-admin)).
 
 ---
 
@@ -50,6 +50,57 @@ Authenticates and sets the `SESSION` cookie.
 Invalidates the session and clears the `SESSION` cookie.
 
 **Response** `200 OK`
+
+---
+
+## Site Admin
+
+Site-wide operations for the app owner. These endpoints don't use a session. They're authorized by the `APP_ADMIN_KEY` secret from the root `.env`, sent in the `X-Admin-Key` header. Anyone holding the key can reset any account's password, so:
+
+- Generate it with `openssl rand -hex 32`, and use a different key in dev and production.
+- Only send it in the header, never in a URL or query string.
+- To rotate it, change `APP_ADMIN_KEY` in `.env` and restart the backend: `docker compose up -d backend`.
+
+The backend refuses to start if `APP_ADMIN_KEY` is missing from `.env`.
+
+### Reset a user's password
+`POST /api/admin/reset-password`
+
+Sets a new password for the user and deletes all of their sessions, logging them out everywhere.
+
+**Headers**
+```
+X-Admin-Key: <APP_ADMIN_KEY>
+```
+
+**Request body**
+```json
+{ "username": "jordan", "newPassword": "temp-password-123" }
+```
+
+**Response** `204 No Content`
+
+| Status | Meaning |
+|--------|---------|
+| `400 Bad Request` | `username` or `newPassword` missing/blank |
+| `403 Forbidden` | `X-Admin-Key` missing or wrong |
+| `404 Not Found` | No user with that username |
+
+### Resetting a password in production
+
+SSH into the Pi, `cd` into the project directory, and run:
+
+```bash
+./admin-scripts/reset-password.sh jordan
+```
+
+It asks for the new password twice, hidden as you type, and prints whether the reset worked. If you leave off the username, it asks for that too. The script lives in `admin-scripts/` and works from any directory.
+
+Notes:
+- The key is read straight from `.env`, and the password is typed at a prompt and sent via stdin. Neither ends up in shell history or on screen.
+- It calls the frontend container on the Pi (`localhost:3000`, nginx proxying to the backend), so it doesn't depend on the Cloudflare Tunnel.
+- Quotes and backslashes in the password are escaped, so any password works.
+- Send the user their new password privately, and have them log in with it.
 
 ---
 

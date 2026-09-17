@@ -8,9 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -18,14 +22,20 @@ import java.util.Optional;
 public class UserService {
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
+    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
 
     @Value("${app.invite-code}")
     private String requiredInviteCode;
 
+    @Value("${app.admin-key}")
+    private String adminKey;
+
     @Autowired
-    public UserService(UserDao userDao, PasswordEncoder passwordEncoder) {
+    public UserService(UserDao userDao, PasswordEncoder passwordEncoder,
+                       FindByIndexNameSessionRepository<? extends Session> sessionRepository) {
         this.userDao = userDao;
         this.passwordEncoder = passwordEncoder;
+        this.sessionRepository = sessionRepository;
     }
 
     /**
@@ -50,6 +60,38 @@ public class UserService {
         User user = new User(username, passwordEncoder.encode(password), LocalDateTime.now());
         userDao.save(user);
         return toResponse(user);
+    }
+
+    /**
+     * Admin-key-gated password reset. Also deletes the user's sessions, so anyone still logged
+     * in as them (e.g. whoever the reset is locking out) has to log in with the new password.
+     */
+    @Transactional
+    public void adminResetPassword(String providedAdminKey, String username, String newPassword) {
+        if (!isValidAdminKey(providedAdminKey)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid admin key");
+        }
+
+        if (username == null || username.isBlank() || newPassword == null || newPassword.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and newPassword are required");
+        }
+
+        User user = userDao.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        sessionRepository.findByPrincipalName(username).keySet()
+                .forEach(sessionRepository::deleteById);
+    }
+
+    /** Constant-time comparison so response timing can't be used to guess the key. */
+    private boolean isValidAdminKey(String providedAdminKey) {
+        if (adminKey == null || adminKey.isBlank() || providedAdminKey == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                providedAdminKey.getBytes(StandardCharsets.UTF_8),
+                adminKey.getBytes(StandardCharsets.UTF_8));
     }
 
     @Transactional(readOnly = true)
