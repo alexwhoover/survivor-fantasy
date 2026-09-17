@@ -101,7 +101,7 @@ export function EpisodeModal({
 
   return (
     <Dialog open={true} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-[560px] max-h-[82vh] overflow-y-auto">
+      <DialogContent className="w-max sm:max-w-[calc(100%-2rem)] max-h-[82vh] overflow-y-auto [scrollbar-gutter:stable]">
         <DialogHeader>
           <DialogTitle>Episode {episode.episodeNumber}</DialogTitle>
         </DialogHeader>
@@ -124,7 +124,7 @@ export function EpisodeModal({
             return (
               <div
                 key={c.id}
-                className={`flex items-center justify-between py-2.5 ${
+                className={`flex items-center justify-between gap-6 py-2.5 ${
                   i < contestants.length - 1 ? "border-b border-border" : ""
                 }`}
               >
