@@ -33,33 +33,30 @@ export function HowToPlay() {
             <div className="space-y-1">
               <p className="font-semibold">Step 1 — Draft Your Fantasy Tribe</p>
               <p className="text-muted-foreground">
-                Pick castaways from each starting tribe that you think will make it to the end
-                — how many you draft per tribe depends on your league's settings.
+                Pick castaways from each starting tribe that you think will make it to the end.
               </p>
             </div>
 
             <div className="space-y-1">
               <p className="font-semibold">Step 2 — Choose Your MVP</p>
               <p className="text-muted-foreground">
-                Designate <strong className="text-foreground">one of your picks as MVP</strong> — the
-                castaway you think will win the whole game. If they're crowned Sole Survivor, you
-                earn a <strong className="text-foreground">30-point bonus</strong>.
+                Designate one of your picks as MVP. If they're crowned Sole Survivor, you
+                earn a 30-point bonus.
               </p>
             </div>
 
             <div className="space-y-1">
-              <p className="font-semibold">Step 3 — Designate a League Commissioner</p>
+              <p className="font-semibold">Step 3 — Update Episode Scores</p>
               <p className="text-muted-foreground">
-                One person in your league should be the <strong className="text-foreground">Commissioner
-                (Admin)</strong>. After each episode airs, they award points to castaways based on
-                how they performed.
+                At least one person in your league should be the admin. After each episode airs, they input the points
+                earned by each player.
               </p>
             </div>
 
             <div className="space-y-1">
               <p className="font-semibold">Step 4 — Watch Your Score Climb</p>
               <p className="text-muted-foreground">
-                Once the Commissioner enters a week's points, your roster and the league
+                Once the admin enters a week's points, your roster and the league
                 leaderboard update automatically.
               </p>
             </div>
@@ -91,10 +88,10 @@ export function HowToPlay() {
             </ul>
             <p className="text-sm text-muted-foreground">
               <strong className="text-foreground">Scoring at the swap:</strong> a newly added or
-              swapped-in castaway only earns you points from episodes <strong className="text-foreground">after</strong> the
-              merge episode — points they scored before joining your roster don't count. A
-              swapped-out castaway still counts for every episode <strong className="text-foreground">up to and
-              including</strong> the merge episode, but nothing after you drop them.
+              swapped-in castaway only earns you points from episodes after the
+              merge episode. Points they scored before joining your roster don't count. A
+              swapped-out castaway still counts for every episode up to and
+              including the merge episode, but nothing after you drop them.
             </p>
           </CardContent>
         </Card>
@@ -109,8 +106,7 @@ export function HowToPlay() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              Whoever has the most points when the season finale airs wins the league. And if
-              your MVP takes home the title, that's an extra 30 points on top.
+              Whoever has the most points after the season finale wins the league.
             </p>
           </CardContent>
         </Card>
