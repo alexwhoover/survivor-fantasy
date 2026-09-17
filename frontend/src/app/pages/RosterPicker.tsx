@@ -9,7 +9,7 @@ import {
   getLeagueById,
   getLeagueContestants,
   getRosterForUser,
-  getMyLeagueRole,
+  getLeagueMembers,
   submitRoster,
   type LeagueApiResponse,
   type Contestant,
@@ -21,7 +21,7 @@ export function RosterPicker() {
   const { user } = useAuth();
   const [league, setLeague] = useState<LeagueApiResponse | null>(null);
   const [contestants, setContestants] = useState<Contestant[]>([]);
-  const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [mvpId, setMvpId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -45,14 +45,14 @@ export function RosterPicker() {
         setMvpId(r.mvpContestantId);
       }
     });
-    getMyLeagueRole(Number(leagueId), user.id).then(setMyRole);
+    getLeagueMembers(Number(leagueId)).then((members) =>
+      setIsAdmin(members.some((m) => m.userId === user.id && m.role === "ADMIN"))
+    );
   }, [leagueId, user]);
 
   if (!league || !user) {
     return <div className="p-8 text-muted-foreground">Loading...</div>;
   }
-
-  const isAdmin = myRole === "ADMIN";
 
   if (!league.initialPicksOpen && !isAdmin) {
     return (

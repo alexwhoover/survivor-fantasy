@@ -17,7 +17,6 @@ import {
   getLeagueContestants,
   getLeagueTribes,
   getLeagueMembers,
-  getMyLeagueRole,
   getLeaderboard,
   getRosterForUser,
   type LeagueApiResponse,
@@ -263,7 +262,6 @@ export function LeagueOverview() {
   const [contestants, setContestants] = useState<Contestant[]>([]);
   const [myRoster, setMyRoster] = useState<RosterResponse | null>(null);
   const [leagueMembers, setLeagueMembers] = useState<LeagueMember[]>([]);
-  const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [viewingMember, setViewingMember] = useState<LeagueMember | null>(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
@@ -295,7 +293,6 @@ export function LeagueOverview() {
   useEffect(() => {
     if (!leagueId || !user) return;
     getRosterForUser(numId, user.id).then(setMyRoster);
-    getMyLeagueRole(numId, user.id).then(setMyRole);
   }, [leagueId, user]);
 
   if (!league) {
@@ -324,7 +321,7 @@ export function LeagueOverview() {
   const myLeaderboardEntry = user ? leaderboard.find((e) => e.userId === user.id) : undefined;
   const contestantPoints = myLeaderboardEntry?.contestantPoints ?? {};
 
-  const isAdmin = myRole === "ADMIN";
+  const isAdmin = leagueMembers.some((m) => m.userId === user?.id && m.role === "ADMIN");
   const maxRosterSize = league.contestantsPerTribe * tribes.length;
 
   const myHasActed = myMergeAction !== null;

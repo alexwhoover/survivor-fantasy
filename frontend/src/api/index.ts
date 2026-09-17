@@ -312,14 +312,6 @@ export async function promoteToAdmin(leagueId: number, adminUserId: number, targ
   return res.json();
 }
 
-export async function getMyLeagueRole(leagueId: number, userId: number): Promise<"ADMIN" | "MEMBER" | null> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/my-role?userId=${userId}`, { credentials: "include" });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Failed to fetch role: ${res.status}`);
-  const data = await res.json();
-  return data.role;
-}
-
 // --- Season configuration (tribes + contestants, owned by the league) ---
 // Tribe and contestant identity is fixed by the creation wizard; the only
 // ongoing mutation is tracking a contestant's elimination/winner status.

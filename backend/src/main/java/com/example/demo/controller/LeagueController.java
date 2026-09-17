@@ -14,7 +14,6 @@ import com.example.demo.dto.LeaderboardHistoryEntry;
 import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MergeActionRequest;
-import com.example.demo.dto.MemberRoleResponse;
 import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.PromoteMemberRequest;
 import com.example.demo.dto.RosterResponse;
@@ -85,13 +84,6 @@ public class LeagueController {
     public List<LeagueMemberResponse> promoteToAdmin(@PathVariable Long id, @PathVariable Long targetUserId,
                                                      @RequestBody PromoteMemberRequest request) {
         return leagueService.promoteToAdmin(id, request.adminUserId(), targetUserId);
-    }
-
-    @GetMapping("/{id}/my-role")
-    public ResponseEntity<MemberRoleResponse> getMyRole(@PathVariable Long id, @RequestParam Long userId) {
-        return leagueMemberDao.findByLeagueIdAndUserId(id, userId)
-                .map(m -> ResponseEntity.ok(new MemberRoleResponse(m.getRole().name())))
-                .orElse(ResponseEntity.notFound().build());
     }
 
     /** Creates a fully configured league (with its tribes and contestants) in one atomic step. */
