@@ -106,7 +106,7 @@ public class LeaderboardService {
 
             Roster roster = rosterByUser.get(userId);
             if (roster == null) {
-                entries.add(new LeaderboardEntry(userId, username, 0, false));
+                entries.add(new LeaderboardEntry(userId, username, 0, Map.of()));
                 continue;
             }
 
@@ -117,16 +117,14 @@ public class LeaderboardService {
                     picks, mergeAction, mergeEpisode, scoresByContestantAndEpisode, contestantMap);
             int score = contestantPoints.values().stream().mapToInt(Integer::intValue).sum();
 
-            boolean mvpBonusApplied = false;
             if (roster.getMvpContestantId() != null) {
                 Contestant mvp = contestantMap.get(roster.getMvpContestantId());
                 if (mvp != null && mvp.isWinner()) {
                     score += MVP_BONUS;
-                    mvpBonusApplied = true;
                 }
             }
 
-            entries.add(new LeaderboardEntry(userId, username, score, mvpBonusApplied));
+            entries.add(new LeaderboardEntry(userId, username, score, contestantPoints));
         }
 
         entries.sort(Comparator.comparingInt(LeaderboardEntry::totalScore).reversed());
@@ -189,33 +187,6 @@ public class LeaderboardService {
             return ep <= mergeEpisode;
         }
         return true;
-    }
-
-    /** Per-contestant point contributions for a single user's roster, respecting the merge boundary. */
-    @Transactional(readOnly = true)
-    public Map<Long, Integer> getContestantPointsForUser(Long leagueId, Long userId) {
-        Roster roster = rosterDao.findByLeagueIdAndUserId(leagueId, userId).orElse(null);
-        if (roster == null) {
-            return Map.of();
-        }
-
-        List<EpisodeScore> allScores = episodeScoreDao.findAllByLeagueId(leagueId);
-        Map<Long, Map<Integer, Integer>> scoresByContestantAndEpisode = new HashMap<>();
-        for (EpisodeScore es : allScores) {
-            scoresByContestantAndEpisode
-                    .computeIfAbsent(es.getContestantId(), k -> new HashMap<>())
-                    .put(es.getEpisodeNumber(), es.getPoints());
-        }
-
-        Map<Long, Contestant> contestantMap = contestantDao.findByLeagueId(leagueId)
-                .stream()
-                .collect(Collectors.toMap(Contestant::getId, sc -> sc));
-
-        List<RosterPick> picks = rosterPickDao.findByRosterId(roster.getId());
-        MergeAction mergeAction = mergeActionDao.findByLeagueIdAndUserId(leagueId, userId).orElse(null);
-        Integer mergeEpisode = episodeDao.findMergeEpisode(leagueId).map(Episode::getEpisodeNumber).orElse(null);
-
-        return calculateContestantPoints(picks, mergeAction, mergeEpisode, scoresByContestantAndEpisode, contestantMap);
     }
 
     /** Cumulative total score for every member after each episode, for the Standings graph view. */

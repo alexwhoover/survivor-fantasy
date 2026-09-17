@@ -1,7 +1,6 @@
 package com.example.demo.service;
 
 import com.example.demo.dao.ContestantDao;
-import com.example.demo.dao.EpisodeScoreDao;
 import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.TribeDao;
@@ -18,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Read access to a league's season configuration (tribes and contestants), plus
@@ -33,16 +31,14 @@ public class CastService {
     private final LeagueMemberDao leagueMemberDao;
     private final TribeDao tribeDao;
     private final ContestantDao contestantDao;
-    private final EpisodeScoreDao episodeScoreDao;
 
     @Autowired
     public CastService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao, TribeDao tribeDao,
-                       ContestantDao contestantDao, EpisodeScoreDao episodeScoreDao) {
+                       ContestantDao contestantDao) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
         this.tribeDao = tribeDao;
         this.contestantDao = contestantDao;
-        this.episodeScoreDao = episodeScoreDao;
     }
 
     @Transactional(readOnly = true)
@@ -54,9 +50,8 @@ public class CastService {
     @Transactional(readOnly = true)
     public List<ContestantDto> getContestants(Long leagueId) {
         requireLeague(leagueId);
-        Map<Long, Integer> totals = episodeScoreDao.sumPointsByLeagueId(leagueId);
         return contestantDao.findByLeagueId(leagueId).stream()
-                .map(c -> ContestantDto.from(c, totals.getOrDefault(c.getId(), 0)))
+                .map(ContestantDto::from)
                 .toList();
     }
 
@@ -70,9 +65,7 @@ public class CastService {
 
         contestant.setEliminatedEpisode(eliminatedEpisode);
         contestant.setWinner(Boolean.TRUE.equals(winner));
-
-        Map<Long, Integer> totals = episodeScoreDao.sumPointsByLeagueId(leagueId);
-        return ContestantDto.from(contestant, totals.getOrDefault(contestant.getId(), 0));
+        return ContestantDto.from(contestant);
     }
 
     private League requireLeague(Long leagueId) {

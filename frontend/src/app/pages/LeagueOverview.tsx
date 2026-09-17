@@ -23,7 +23,6 @@ import {
   getMergeStatus,
   getMyMergeAction,
   getRosterForUser,
-  getContestantPointsForUser,
   type LeagueApiResponse,
   type Tribe,
   type Contestant,
@@ -277,7 +276,6 @@ export function LeagueOverview() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [mergeStatus, setMergeStatus] = useState<MergeStatusResponse | null>(null);
   const [myMergeAction, setMyMergeAction] = useState<MergeActionResponse | null>(null);
-  const [contestantPoints, setContestantPoints] = useState<Record<number, number>>({});
   const [viewingMember, setViewingMember] = useState<LeagueMember | null>(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
 
@@ -315,7 +313,6 @@ export function LeagueOverview() {
     getMyRoster(numId, user.id).then(setMyRoster);
     getMyLeagueRole(numId, user.id).then(setMyRole);
     getMyMergeAction(numId, user.id).then(setMyMergeAction).catch(() => {});
-    getContestantPointsForUser(numId, user.id).then(setContestantPoints).catch(() => {});
   }, [leagueId, user]);
 
   if (!league) {
@@ -341,6 +338,7 @@ export function LeagueOverview() {
     : null;
 
   const myLeaderboardEntry = user ? leaderboard.find((e) => e.userId === user.id) : undefined;
+  const contestantPoints = myLeaderboardEntry?.contestantPoints ?? {};
 
   const isAdmin = myRole === "ADMIN";
   const maxRosterSize = league.contestantsPerTribe * tribes.length;
@@ -470,7 +468,7 @@ export function LeagueOverview() {
                           </span>
                           <span className="text-xs text-muted-foreground/70 italic">Removed in Merge Swap</span>
                         </div>
-                        <span className="text-sm font-medium">{contestantPoints[removed.id] ?? removed.totalPoints} pts</span>
+                        <span className="text-sm font-medium">{contestantPoints[removed.id] ?? 0} pts</span>
                       </div>
                     );
                   })()}
@@ -501,7 +499,7 @@ export function LeagueOverview() {
                             <Badge variant="outline" className="text-muted-foreground">Out</Badge>
                           )}
                         </div>
-                        <span className="text-sm font-medium">{contestantPoints[contestant.id] ?? contestant.totalPoints} pts</span>
+                        <span className="text-sm font-medium">{contestantPoints[contestant.id] ?? 0} pts</span>
                       </div>
                     );
                   })}
@@ -669,7 +667,6 @@ export function LeagueOverview() {
             setMergeStatus(status);
             getMyRoster(numId, user.id).then(setMyRoster);
             getMyMergeAction(numId, user.id).then(setMyMergeAction).catch(() => {});
-            getContestantPointsForUser(numId, user.id).then(setContestantPoints).catch(() => {});
             refreshLeaderboard();
           }}
         />

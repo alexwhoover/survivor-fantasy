@@ -19,7 +19,6 @@ export interface Contestant {
   eliminatedEpisode: number | null;
   winner: boolean;
   imageUrl: string | null;
-  totalPoints: number;
 }
 
 export interface AuthUser {
@@ -79,7 +78,8 @@ export interface LeaderboardEntry {
   userId: number;
   username: string;
   totalScore: number;
-  mvpBonusApplied: boolean;
+  /** What each castaway on the roster contributed to totalScore, merge-boundary aware. Keyed by contestant id. */
+  contestantPoints: Record<number, number>;
 }
 
 export interface EpisodePoint {
@@ -431,17 +431,6 @@ export async function getRosterForUser(leagueId: number, userId: number): Promis
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/${userId}`, { credentials: "include" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch roster: ${res.status}`);
-  return res.json();
-}
-
-export async function getContestantPointsForUser(
-  leagueId: number,
-  userId: number
-): Promise<Record<number, number>> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/${userId}/contestant-points`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`Failed to fetch contestant points: ${res.status}`);
   return res.json();
 }
 

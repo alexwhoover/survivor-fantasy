@@ -38,7 +38,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/leagues")
@@ -268,11 +267,5 @@ public class LeagueController {
     @GetMapping("/{id}/leaderboard/history")
     public List<LeaderboardHistoryEntry> getLeaderboardHistory(@PathVariable Long id) {
         return leaderboardService.getLeaderboardHistory(id);
-    }
-
-    /** Per-contestant point contributions for a user's roster (merge-boundary aware). */
-    @GetMapping("/{id}/rosters/{userId}/contestant-points")
-    public Map<Long, Integer> getContestantPointsForUser(@PathVariable Long id, @PathVariable Long userId) {
-        return leaderboardService.getContestantPointsForUser(id, userId);
     }
 }

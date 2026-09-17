@@ -12,14 +12,9 @@ public record ContestantDto(
         String tribeColour,
         Integer eliminatedEpisode,
         boolean winner,
-        String imageUrl,
-        int totalPoints
+        String imageUrl
 ) {
     public static ContestantDto from(Contestant c) {
-        return from(c, 0);
-    }
-
-    public static ContestantDto from(Contestant c, int totalPoints) {
         Tribe tribe = c.getTribe();
         return new ContestantDto(
                 c.getId(),
@@ -30,8 +25,7 @@ public record ContestantDto(
                 tribe != null ? tribe.getColour() : null,
                 c.getEliminatedEpisode(),
                 c.isWinner(),
-                c.getImageUrl(),
-                totalPoints
+                c.getImageUrl()
         );
     }
 }
