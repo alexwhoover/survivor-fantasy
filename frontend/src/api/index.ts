@@ -37,6 +37,8 @@ export interface LeagueApiResponse {
   contestantsPerTribe: number;
   initialPicksOpen: boolean;
   mergePicksOpen: boolean;
+  /** Number of the episode flagged as the merge, or null before one is flagged. */
+  mergeEpisode: number | null;
   archived: boolean;
 }
 
@@ -111,12 +113,6 @@ export interface ScoringGridResponse {
   /** Highest single-episode score in the league — the top of the grid's colour scale. */
   maxPoints: number;
   rows: ScoringGridRow[];
-}
-
-export interface MergeStatusResponse {
-  initiated: boolean;
-  mergeEpisode: number | null;
-  mergePicksOpen: boolean;
 }
 
 export interface MergeActionResponse {
@@ -502,12 +498,6 @@ export async function getScoringGrid(leagueId: number): Promise<ScoringGridRespo
 }
 
 // --- Merge ---
-
-export async function getMergeStatus(leagueId: number): Promise<MergeStatusResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/status`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch merge status: ${res.status}`);
-  return res.json();
-}
 
 export async function getAllRosters(leagueId: number): Promise<RosterResponse[]> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters`, { credentials: "include" });

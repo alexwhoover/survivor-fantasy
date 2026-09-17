@@ -10,6 +10,7 @@ import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.TribeSetupItem;
 import com.example.demo.entity.Contestant;
+import com.example.demo.entity.Episode;
 import com.example.demo.entity.League;
 import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.Tribe;
@@ -259,6 +260,7 @@ public class LeagueService {
                 league.getContestantsPerTribe(),
                 league.isInitialPicksOpen(),
                 league.isMergePicksOpen(),
+                episodeDao.findMergeEpisode(league.getId()).map(Episode::getEpisodeNumber).orElse(null),
                 league.isArchived()
         );
     }

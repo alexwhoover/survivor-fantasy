@@ -19,7 +19,6 @@ import {
   getLeagueMembers,
   getMyLeagueRole,
   getLeaderboard,
-  getMergeStatus,
   getRosterForUser,
   type LeagueApiResponse,
   type Tribe,
@@ -27,7 +26,6 @@ import {
   type RosterResponse,
   type LeagueMember,
   type LeaderboardEntry,
-  type MergeStatusResponse,
 } from "../../api";
 
 type Tab = "roster" | "standings" | "admin";
@@ -163,15 +161,15 @@ function RosterViewModal({
 // ─── Merge alert banner ───────────────────────────────────────────────────────
 
 function MergeAlert({
-  mergeStatus,
+  league,
   hasActed,
   onOpenMergeAction,
 }: {
-  mergeStatus: MergeStatusResponse;
+  league: LeagueApiResponse;
   hasActed: boolean;
   onOpenMergeAction: () => void;
 }) {
-  if (!mergeStatus.initiated) return null;
+  if (league.mergeEpisode === null) return null;
 
   if (hasActed) {
     return (
@@ -182,7 +180,7 @@ function MergeAlert({
     );
   }
 
-  if (!mergeStatus.mergePicksOpen) {
+  if (!league.mergePicksOpen) {
     return (
       <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground">
         <GitMerge className="h-4 w-4 shrink-0" />
@@ -197,7 +195,7 @@ function MergeAlert({
         <GitMerge className="h-4 w-4 text-primary shrink-0" />
         <span>
           <span className="font-semibold text-primary">Merge is active</span>
-          {" — "}Episode {mergeStatus.mergeEpisode}. You haven't made your move yet.
+          {" — "}Episode {league.mergeEpisode}. You haven't made your move yet.
         </span>
       </div>
       <Button size="sm" onClick={onOpenMergeAction} className="gap-1.5 shrink-0">
@@ -267,7 +265,6 @@ export function LeagueOverview() {
   const [leagueMembers, setLeagueMembers] = useState<LeagueMember[]>([]);
   const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [mergeStatus, setMergeStatus] = useState<MergeStatusResponse | null>(null);
   const [viewingMember, setViewingMember] = useState<LeagueMember | null>(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
 
@@ -279,10 +276,6 @@ export function LeagueOverview() {
 
   const refreshLeaderboard = useCallback(() => {
     getLeaderboard(numId).then(setLeaderboard).catch(() => {});
-  }, [numId]);
-
-  const refreshMergeStatus = useCallback(() => {
-    getMergeStatus(numId).then(setMergeStatus).catch(() => {});
   }, [numId]);
 
   const refreshContestants = useCallback(() => {
@@ -297,7 +290,6 @@ export function LeagueOverview() {
     getLeagueTribes(numId).then(setTribes);
     getLeagueMembers(numId).then(setLeagueMembers);
     refreshLeaderboard();
-    refreshMergeStatus();
   }, [leagueId]);
 
   useEffect(() => {
@@ -408,7 +400,7 @@ export function LeagueOverview() {
               <Badge variant="outline" className={`w-fit ${pickingBadgeClass(league.initialPicksOpen)}`}>
                 Initial Picks
               </Badge>
-              <Badge variant="outline" className={`w-fit ${pickingBadgeClass(!!mergeStatus?.mergePicksOpen)}`}>
+              <Badge variant="outline" className={`w-fit ${pickingBadgeClass(league.mergePicksOpen)}`}>
                 Merge Pick
               </Badge>
             </div>
@@ -418,9 +410,9 @@ export function LeagueOverview() {
         {/* ── My Roster tab ── */}
         {tab === "roster" && (
           <div className="space-y-4">
-            {mergeStatus && user && (
+            {user && (
               <MergeAlert
-                mergeStatus={mergeStatus}
+                league={league}
                 hasActed={myHasActed}
                 onOpenMergeAction={() => setMergeModalOpen(true)}
               />
@@ -610,7 +602,6 @@ export function LeagueOverview() {
                 adminUserId={user!.id}
                 members={leagueMembers}
                 contestants={contestants}
-                mergeStatus={mergeStatus}
                 maxRosterSize={maxRosterSize}
                 onMergeActionSaved={refreshLeaderboard}
                 onMembersUpdated={setLeagueMembers}
@@ -624,7 +615,6 @@ export function LeagueOverview() {
                 contestants={contestants}
                 onLeagueUpdated={setLeague}
                 onContestantsChanged={setContestants}
-                onMergeStatusChanged={refreshMergeStatus}
                 onScoresChanged={() => { refreshLeaderboard(); refreshContestants(); }}
               />
             )}
@@ -642,7 +632,7 @@ export function LeagueOverview() {
       />
 
       {/* Merge action modal */}
-      {user && myRoster && mergeStatus?.initiated && !myHasActed && (
+      {user && myRoster && league.mergeEpisode !== null && !myHasActed && (
         <MergeActionModal
           open={mergeModalOpen}
           onClose={() => setMergeModalOpen(false)}

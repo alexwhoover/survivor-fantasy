@@ -15,7 +15,6 @@ import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MergeActionRequest;
 import com.example.demo.dto.MemberRoleResponse;
-import com.example.demo.dto.MergeStatusResponse;
 import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.PromoteMemberRequest;
 import com.example.demo.dto.RosterResponse;
@@ -230,14 +229,9 @@ public class LeagueController {
         return mergeService.performMergeAction(id, request);
     }
 
-    @GetMapping("/{id}/merge/status")
-    public MergeStatusResponse getMergeStatus(@PathVariable Long id) {
-        return mergeService.getMergeStatus(id);
-    }
-
     @PutMapping("/{id}/merge/action/{targetUserId}")
     public RosterResponse adminSetMergeAction(@PathVariable Long id, @PathVariable Long targetUserId,
-                                                   @RequestBody AdminMergeActionRequest request) {
+                                              @RequestBody AdminMergeActionRequest request) {
         return mergeService.adminSetMergeAction(id, request.adminUserId(), targetUserId,
                 request.addedContestantId(), request.removedContestantId(), request.noChange());
     }

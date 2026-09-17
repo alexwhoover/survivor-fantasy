@@ -24,13 +24,12 @@ interface Props {
   contestants: Contestant[];
   onLeagueUpdated: (league: LeagueApiResponse) => void;
   onContestantsChanged: (contestants: Contestant[]) => void;
-  onMergeStatusChanged: () => void;
   onScoresChanged: () => void;
 }
 
 export function AdminSeason({
   league, adminUserId, contestants,
-  onLeagueUpdated, onContestantsChanged, onMergeStatusChanged, onScoresChanged,
+  onLeagueUpdated, onContestantsChanged, onScoresChanged,
 }: Props) {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [openEpisodeId, setOpenEpisodeId] = useState<number | null>(null);
@@ -71,7 +70,6 @@ export function AdminSeason({
     try {
       const updated = await setMergePicksOpen(league.id, adminUserId, !league.mergePicksOpen);
       onLeagueUpdated(updated);
-      onMergeStatusChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update merge picks state");
     } finally {
@@ -126,7 +124,11 @@ export function AdminSeason({
         return updated.isMergeEpisode ? { ...e, isMergeEpisode: false } : e;
       })
     );
-    onMergeStatusChanged();
+    if (updated.isMergeEpisode) {
+      onLeagueUpdated({ ...league, mergeEpisode: updated.episodeNumber });
+    } else if (league.mergeEpisode === updated.episodeNumber) {
+      onLeagueUpdated({ ...league, mergeEpisode: null });
+    }
   };
 
   return (

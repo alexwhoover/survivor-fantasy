@@ -13,7 +13,6 @@ import {
   type LeagueMember,
   type Contestant,
   type RosterResponse,
-  type MergeStatusResponse,
 } from "../../api";
 
 interface Props {
@@ -21,7 +20,6 @@ interface Props {
   adminUserId: number;
   members: LeagueMember[];
   contestants: Contestant[];
-  mergeStatus: MergeStatusResponse | null;
   maxRosterSize: number;
   onMergeActionSaved: () => void;
   onMembersUpdated: (members: LeagueMember[]) => void;
@@ -46,7 +44,7 @@ function pickingBadgeClass(active: boolean): string {
 
 export function AdminPlayers({
   league, adminUserId, members, contestants,
-  mergeStatus, maxRosterSize, onMergeActionSaved, onMembersUpdated,
+  maxRosterSize, onMergeActionSaved, onMembersUpdated,
 }: Props) {
   const [rosters, setRosters] = useState<Record<number, RosterResponse>>({});
   const [editState, setEditState] = useState<EditState | null>(null);
@@ -145,7 +143,7 @@ export function AdminPlayers({
       {members.map((member) => {
         const roster = rosters[member.userId];
         const hasRoster = !!roster;
-        const mergeInitiated = mergeStatus?.initiated ?? false;
+        const mergeInitiated = league.mergeEpisode !== null;
         const mergeAction = mergeInitiated ? roster?.mergeAction : null;
         const canEditMerge = mergeInitiated && hasRoster;
         const isMemberAdmin = member.role === "ADMIN";

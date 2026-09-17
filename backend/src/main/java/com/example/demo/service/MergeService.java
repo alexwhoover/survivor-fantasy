@@ -9,9 +9,7 @@ import com.example.demo.dao.ContestantDao;
 import com.example.demo.dao.EpisodeDao;
 import com.example.demo.dao.TribeDao;
 import com.example.demo.dto.MergeActionRequest;
-import com.example.demo.dto.MergeStatusResponse;
 import com.example.demo.dto.RosterResponse;
-import com.example.demo.entity.Episode;
 import com.example.demo.entity.League;
 import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.MergeAction;
@@ -25,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -160,21 +157,6 @@ public class MergeService {
         if (!sc.getLeagueId().equals(league.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contestant does not belong to this league");
         }
-    }
-
-    @Transactional(readOnly = true)
-    public MergeStatusResponse getMergeStatus(Long leagueId) {
-        League league = leagueDao.findById(leagueId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-
-        Optional<Episode> mergeEpisode = episodeDao.findMergeEpisode(leagueId);
-        boolean initiated = mergeEpisode.isPresent();
-
-        return new MergeStatusResponse(
-                initiated,
-                mergeEpisode.map(Episode::getEpisodeNumber).orElse(null),
-                league.isMergePicksOpen()
-        );
     }
 
     /** Returns the target member's roster as it stands after the override, merge action included. */
