@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { ArrowLeftRight, Plus, Crown, CheckCircle2, Circle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
-import { adminSetMergeAction, type Contestant, type RosterResponse, type MergeActionResponse, type MergeStatusResponse } from "../../api";
+import { adminSetMergeAction, type Contestant, type RosterResponse } from "../../api";
 
 interface Props {
   open: boolean;
@@ -11,10 +11,9 @@ interface Props {
   adminUserId: number;
   targetMember: { userId: number; username: string };
   currentRoster: RosterResponse;
-  existingAction: MergeActionResponse | null;
   contestants: Contestant[];
   maxRosterSize: number;
-  onSuccess: (status: MergeStatusResponse) => void;
+  onSuccess: (roster: RosterResponse) => void;
 }
 
 export function AdminMergeActionModal({
@@ -24,11 +23,11 @@ export function AdminMergeActionModal({
   adminUserId,
   targetMember,
   currentRoster,
-  existingAction,
   contestants,
   maxRosterSize,
   onSuccess,
 }: Props) {
+  const existingAction = currentRoster.mergeAction;
   const [addId, setAddId] = useState<number | null>(existingAction?.addedContestantId ?? null);
   const [removeId, setRemoveId] = useState<number | null>(existingAction?.removedContestantId ?? null);
   const [submitting, setSubmitting] = useState(false);
@@ -76,8 +75,7 @@ export function AdminMergeActionModal({
     if (isSwap && !removeId) { setError("Select a contestant to remove"); return; }
     setSubmitting(true);
     try {
-      const status = await adminSetMergeAction(leagueId, adminUserId, targetMember.userId, addId, isSwap ? removeId : null);
-      onSuccess(status);
+      onSuccess(await adminSetMergeAction(leagueId, adminUserId, targetMember.userId, addId, isSwap ? removeId : null));
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to set merge action");
@@ -90,8 +88,7 @@ export function AdminMergeActionModal({
     setError("");
     setSubmitting(true);
     try {
-      const status = await adminSetMergeAction(leagueId, adminUserId, targetMember.userId, null, null, true);
-      onSuccess(status);
+      onSuccess(await adminSetMergeAction(leagueId, adminUserId, targetMember.userId, null, null, true));
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to keep the roster unchanged");

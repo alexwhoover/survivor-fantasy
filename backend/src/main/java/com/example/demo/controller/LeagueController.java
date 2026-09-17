@@ -15,7 +15,6 @@ import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.MergeActionRequest;
 import com.example.demo.dto.MemberRoleResponse;
-import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.MergeStatusResponse;
 import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.PromoteMemberRequest;
@@ -177,13 +176,6 @@ public class LeagueController {
 
     // --- Roster endpoints ---
 
-    @GetMapping("/{id}/rosters/me")
-    public ResponseEntity<RosterResponse> getMyRoster(@PathVariable Long id, @RequestParam Long userId) {
-        return rosterService.getMyRoster(id, userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     @GetMapping("/{id}/rosters/{userId}")
     public ResponseEntity<RosterResponse> getRosterForUser(@PathVariable Long id, @PathVariable Long userId) {
         return rosterService.getRosterForUser(id, userId)
@@ -234,7 +226,7 @@ public class LeagueController {
     // --- Merge endpoints ---
 
     @PostMapping("/{id}/merge/action")
-    public MergeStatusResponse performMergeAction(@PathVariable Long id, @RequestBody MergeActionRequest request) {
+    public RosterResponse performMergeAction(@PathVariable Long id, @RequestBody MergeActionRequest request) {
         return mergeService.performMergeAction(id, request);
     }
 
@@ -243,15 +235,8 @@ public class LeagueController {
         return mergeService.getMergeStatus(id);
     }
 
-    @GetMapping("/{id}/merge/action/me")
-    public ResponseEntity<MergeActionResponse> getMyMergeAction(@PathVariable Long id, @RequestParam Long userId) {
-        return mergeService.getMyMergeAction(id, userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     @PutMapping("/{id}/merge/action/{targetUserId}")
-    public MergeStatusResponse adminSetMergeAction(@PathVariable Long id, @PathVariable Long targetUserId,
+    public RosterResponse adminSetMergeAction(@PathVariable Long id, @PathVariable Long targetUserId,
                                                    @RequestBody AdminMergeActionRequest request) {
         return mergeService.adminSetMergeAction(id, request.adminUserId(), targetUserId,
                 request.addedContestantId(), request.removedContestantId(), request.noChange());

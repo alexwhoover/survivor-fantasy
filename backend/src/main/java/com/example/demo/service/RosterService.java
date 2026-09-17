@@ -2,11 +2,14 @@ package com.example.demo.service;
 
 import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
+import com.example.demo.dao.MergeActionDao;
 import com.example.demo.dao.RosterDao;
 import com.example.demo.dao.RosterPickDao;
+import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.RosterResponse;
 import com.example.demo.entity.League;
 import com.example.demo.entity.LeagueMember;
+import com.example.demo.entity.MergeAction;
 import com.example.demo.entity.Roster;
 import com.example.demo.entity.RosterPick;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +20,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class RosterService {
@@ -26,18 +32,16 @@ public class RosterService {
     private final RosterPickDao rosterPickDao;
     private final LeagueMemberDao leagueMemberDao;
     private final LeagueDao leagueDao;
+    private final MergeActionDao mergeActionDao;
 
     @Autowired
-    public RosterService(RosterDao rosterDao, RosterPickDao rosterPickDao, LeagueMemberDao leagueMemberDao, LeagueDao leagueDao) {
+    public RosterService(RosterDao rosterDao, RosterPickDao rosterPickDao, LeagueMemberDao leagueMemberDao,
+                         LeagueDao leagueDao, MergeActionDao mergeActionDao) {
         this.rosterDao = rosterDao;
         this.rosterPickDao = rosterPickDao;
         this.leagueMemberDao = leagueMemberDao;
         this.leagueDao = leagueDao;
-    }
-
-    public Optional<RosterResponse> getMyRoster(Long leagueId, Long userId) {
-        return rosterDao.findByLeagueIdAndUserId(leagueId, userId)
-                .map(this::toResponse);
+        this.mergeActionDao = mergeActionDao;
     }
 
     public Optional<RosterResponse> getRosterForUser(Long leagueId, Long userId) {
@@ -46,8 +50,10 @@ public class RosterService {
     }
 
     public List<RosterResponse> getAllRostersForLeague(Long leagueId) {
+        Map<Long, MergeAction> mergeActionByUser = mergeActionDao.findByLeagueId(leagueId).stream()
+                .collect(Collectors.toMap(MergeAction::getUserId, Function.identity()));
         return rosterDao.findAllByLeagueId(leagueId).stream()
-                .map(this::toResponse)
+                .map(r -> toResponse(r, pickIds(r), mergeActionByUser.get(r.getUserId())))
                 .toList();
     }
 
@@ -106,24 +112,26 @@ public class RosterService {
             rosterPickDao.save(new RosterPick(roster.getId(), scId));
         }
 
-        return toResponse(roster, contestantIds);
+        return toResponse(roster, contestantIds, mergeActionDao.findByLeagueIdAndUserId(leagueId, userId).orElse(null));
     }
 
     private RosterResponse toResponse(Roster roster) {
-        List<Long> pickIds = rosterPickDao.findByRosterId(roster.getId()).stream()
-                .map(RosterPick::getContestantId)
-                .toList();
-        return toResponse(roster, pickIds);
+        MergeAction mergeAction = mergeActionDao.findByLeagueIdAndUserId(roster.getLeagueId(), roster.getUserId()).orElse(null);
+        return toResponse(roster, pickIds(roster), mergeAction);
     }
 
-    private RosterResponse toResponse(Roster roster, List<Long> contestantIds) {
-        return new RosterResponse(
-                roster.getId(),
-                roster.getLeagueId(),
-                roster.getUserId(),
-                roster.getMvpContestantId(),
-                contestantIds,
-                roster.getSubmittedAt()
+    private List<Long> pickIds(Roster roster) {
+        return rosterPickDao.findByRosterId(roster.getId()).stream()
+                .map(RosterPick::getContestantId)
+                .toList();
+    }
+
+    private RosterResponse toResponse(Roster roster, List<Long> contestantIds, MergeAction mergeAction) {
+        MergeActionResponse mergeActionResponse = mergeAction == null ? null : new MergeActionResponse(
+                mergeAction.getActionType().name(),
+                mergeAction.getAddedContestantId(),
+                mergeAction.getRemovedContestantId()
         );
+        return new RosterResponse(roster.getUserId(), roster.getMvpContestantId(), contestantIds, mergeActionResponse);
     }
 }

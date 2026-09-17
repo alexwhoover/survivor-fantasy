@@ -3,7 +3,7 @@ import { ArrowLeftRight, Plus, Crown, CheckCircle2, Circle } from "lucide-react"
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Badge } from "./ui/badge";
-import { performMergeAction, type Contestant, type RosterResponse, type MergeStatusResponse } from "../../api";
+import { performMergeAction, type Contestant, type RosterResponse } from "../../api";
 
 interface Props {
   open: boolean;
@@ -13,7 +13,7 @@ interface Props {
   currentRoster: RosterResponse;
   contestants: Contestant[];
   maxRosterSize: number;
-  onSuccess: (status: MergeStatusResponse) => void;
+  onSuccess: (roster: RosterResponse) => void;
 }
 
 export function MergeActionModal({
@@ -60,8 +60,7 @@ export function MergeActionModal({
     if (isSwap && !removeId) { setError("Select a contestant to remove"); return; }
     setSubmitting(true);
     try {
-      const status = await performMergeAction(leagueId, userId, addId, isSwap ? removeId : null);
-      onSuccess(status);
+      onSuccess(await performMergeAction(leagueId, userId, addId, isSwap ? removeId : null));
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to perform merge action");
@@ -74,8 +73,7 @@ export function MergeActionModal({
     setError("");
     setSubmitting(true);
     try {
-      const status = await performMergeAction(leagueId, userId, null, null, true);
-      onSuccess(status);
+      onSuccess(await performMergeAction(leagueId, userId, null, null, true));
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to keep your current roster");

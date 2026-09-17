@@ -16,12 +16,10 @@ import {
   getLeagueById,
   getLeagueContestants,
   getLeagueTribes,
-  getMyRoster,
   getLeagueMembers,
   getMyLeagueRole,
   getLeaderboard,
   getMergeStatus,
-  getMyMergeAction,
   getRosterForUser,
   type LeagueApiResponse,
   type Tribe,
@@ -30,7 +28,6 @@ import {
   type LeagueMember,
   type LeaderboardEntry,
   type MergeStatusResponse,
-  type MergeActionResponse,
 } from "../../api";
 
 type Tab = "roster" | "standings" | "admin";
@@ -59,19 +56,15 @@ function RosterViewModal({
   onClose: () => void;
 }) {
   const [roster, setRoster] = useState<RosterResponse | null | undefined>(undefined);
-  const [mergeAction, setMergeAction] = useState<MergeActionResponse | null>(null);
 
   useEffect(() => {
     if (!member) return;
     setRoster(undefined);
-    setMergeAction(null);
     getRosterForUser(leagueId, member.userId).then(setRoster);
-    // Endpoint is keyed by userId rather than the session, so it serves any member's action.
-    getMyMergeAction(leagueId, member.userId).then(setMergeAction).catch(() => setMergeAction(null));
   }, [member, leagueId]);
 
   // The contestant taken at the merge, whether that was an add or the added half of a swap.
-  const mergePickId = mergeAction?.addedContestantId ?? null;
+  const mergePickId = roster?.mergeAction?.addedContestantId ?? null;
 
   const rosterContestants =
     roster?.contestantIds
@@ -275,7 +268,6 @@ export function LeagueOverview() {
   const [myRole, setMyRole] = useState<"ADMIN" | "MEMBER" | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [mergeStatus, setMergeStatus] = useState<MergeStatusResponse | null>(null);
-  const [myMergeAction, setMyMergeAction] = useState<MergeActionResponse | null>(null);
   const [viewingMember, setViewingMember] = useState<LeagueMember | null>(null);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
 
@@ -310,9 +302,8 @@ export function LeagueOverview() {
 
   useEffect(() => {
     if (!leagueId || !user) return;
-    getMyRoster(numId, user.id).then(setMyRoster);
+    getRosterForUser(numId, user.id).then(setMyRoster);
     getMyLeagueRole(numId, user.id).then(setMyRole);
-    getMyMergeAction(numId, user.id).then(setMyMergeAction).catch(() => {});
   }, [leagueId, user]);
 
   if (!league) {
@@ -323,6 +314,7 @@ export function LeagueOverview() {
   // still be present in the roster's own pick list (an admin merge override restores the
   // pick when reverting, and seeded leagues carry it too), so drop it here — otherwise the
   // same contestant renders twice, once as removed and again as a current pick.
+  const myMergeAction = myRoster?.mergeAction ?? null;
   const mergeRemovedId =
     myMergeAction?.actionType === "SWAP" ? myMergeAction.removedContestantId : null;
 
@@ -343,8 +335,7 @@ export function LeagueOverview() {
   const isAdmin = myRole === "ADMIN";
   const maxRosterSize = league.contestantsPerTribe * tribes.length;
 
-  const myMergeStatus = mergeStatus?.memberStatuses.find((m) => m.userId === user?.id);
-  const myHasActed = myMergeStatus?.hasActed ?? false;
+  const myHasActed = myMergeAction !== null;
 
   const canEditRoster = league.initialPicksOpen;
 
@@ -566,7 +557,7 @@ export function LeagueOverview() {
             {standingsView === "graph" ? (
               <StandingsGraph leagueId={numId} />
             ) : standingsView === "scoring" ? (
-              <ScoringGrid leagueId={numId} roster={myRoster} mergeAction={myMergeAction} />
+              <ScoringGrid leagueId={numId} roster={myRoster} />
             ) : leaderboard.length === 0 ? (
               <p className="text-sm text-muted-foreground">No scores yet.</p>
             ) : (
@@ -621,10 +612,7 @@ export function LeagueOverview() {
                 contestants={contestants}
                 mergeStatus={mergeStatus}
                 maxRosterSize={maxRosterSize}
-                onMergeStatusUpdated={(status) => {
-                  setMergeStatus(status);
-                  refreshLeaderboard();
-                }}
+                onMergeActionSaved={refreshLeaderboard}
                 onMembersUpdated={setLeagueMembers}
               />
             )}
@@ -663,10 +651,8 @@ export function LeagueOverview() {
           currentRoster={myRoster}
           contestants={contestants}
           maxRosterSize={maxRosterSize}
-          onSuccess={(status) => {
-            setMergeStatus(status);
-            getMyRoster(numId, user.id).then(setMyRoster);
-            getMyMergeAction(numId, user.id).then(setMyMergeAction).catch(() => {});
+          onSuccess={(roster) => {
+            setMyRoster(roster);
             refreshLeaderboard();
           }}
         />

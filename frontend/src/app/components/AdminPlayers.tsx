@@ -6,15 +6,13 @@ import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { AdminMergeActionModal } from "./AdminMergeActionModal";
 import {
-  getRosterForUser,
+  getAllRosters,
   adminUpdateRoster,
-  getMyMergeAction,
   promoteToAdmin,
   type LeagueApiResponse,
   type LeagueMember,
   type Contestant,
   type RosterResponse,
-  type MergeActionResponse,
   type MergeStatusResponse,
 } from "../../api";
 
@@ -25,7 +23,7 @@ interface Props {
   contestants: Contestant[];
   mergeStatus: MergeStatusResponse | null;
   maxRosterSize: number;
-  onMergeStatusUpdated: (status: MergeStatusResponse) => void;
+  onMergeActionSaved: () => void;
   onMembersUpdated: (members: LeagueMember[]) => void;
 }
 
@@ -38,7 +36,6 @@ interface EditState {
 interface MergeEditTarget {
   member: LeagueMember;
   roster: RosterResponse;
-  existingAction: MergeActionResponse | null;
 }
 
 function pickingBadgeClass(active: boolean): string {
@@ -49,10 +46,9 @@ function pickingBadgeClass(active: boolean): string {
 
 export function AdminPlayers({
   league, adminUserId, members, contestants,
-  mergeStatus, maxRosterSize, onMergeStatusUpdated, onMembersUpdated,
+  mergeStatus, maxRosterSize, onMergeActionSaved, onMembersUpdated,
 }: Props) {
-  const [rosters, setRosters] = useState<Record<number, RosterResponse | null>>({});
-  const [mergeActions, setMergeActions] = useState<Record<number, MergeActionResponse | null>>({});
+  const [rosters, setRosters] = useState<Record<number, RosterResponse>>({});
   const [editState, setEditState] = useState<EditState | null>(null);
   const [mergeEditTarget, setMergeEditTarget] = useState<MergeEditTarget | null>(null);
   const [saving, setSaving] = useState(false);
@@ -62,17 +58,10 @@ export function AdminPlayers({
   const [promoteError, setPromoteError] = useState("");
 
   useEffect(() => {
-    members.forEach((m) => {
-      getRosterForUser(league.id, m.userId)
-        .then((r) => setRosters((prev) => ({ ...prev, [m.userId]: r })))
-        .catch(() => setRosters((prev) => ({ ...prev, [m.userId]: null })));
-      if (mergeStatus?.initiated) {
-        getMyMergeAction(league.id, m.userId)
-          .then((a) => setMergeActions((prev) => ({ ...prev, [m.userId]: a })))
-          .catch(() => {});
-      }
-    });
-  }, [league.id, members, mergeStatus?.initiated]);
+    getAllRosters(league.id)
+      .then((all) => setRosters(Object.fromEntries(all.map((r) => [r.userId, r]))))
+      .catch(() => {});
+  }, [league.id, members]);
 
   const tribes = [...new Set(contestants.map((c) => c.tribe).filter(Boolean) as string[])];
 
@@ -89,11 +78,7 @@ export function AdminPlayers({
   const openMergeEdit = (member: LeagueMember) => {
     const roster = rosters[member.userId];
     if (!roster) return;
-    setMergeEditTarget({
-      member,
-      roster,
-      existingAction: mergeActions[member.userId] ?? null,
-    });
+    setMergeEditTarget({ member, roster });
   };
 
   const openPromote = (member: LeagueMember) => {
@@ -160,8 +145,8 @@ export function AdminPlayers({
       {members.map((member) => {
         const roster = rosters[member.userId];
         const hasRoster = !!roster;
-        const mergeAction = mergeActions[member.userId];
         const mergeInitiated = mergeStatus?.initiated ?? false;
+        const mergeAction = mergeInitiated ? roster?.mergeAction : null;
         const canEditMerge = mergeInitiated && hasRoster;
         const isMemberAdmin = member.role === "ADMIN";
 
@@ -332,14 +317,11 @@ export function AdminPlayers({
           adminUserId={adminUserId}
           targetMember={mergeEditTarget.member}
           currentRoster={mergeEditTarget.roster}
-          existingAction={mergeEditTarget.existingAction}
           contestants={contestants}
           maxRosterSize={maxRosterSize}
-          onSuccess={(status) => {
-            getMyMergeAction(league.id, mergeEditTarget.member.userId)
-              .then((a) => setMergeActions((prev) => ({ ...prev, [mergeEditTarget.member.userId]: a })))
-              .catch(() => {});
-            onMergeStatusUpdated(status);
+          onSuccess={(roster) => {
+            setRosters((prev) => ({ ...prev, [roster.userId]: roster }));
+            onMergeActionSaved();
             setMergeEditTarget(null);
           }}
         />

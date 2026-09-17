@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   getLeagueById,
   getLeagueContestants,
-  getMyRoster,
+  getRosterForUser,
   getMyLeagueRole,
   submitRoster,
   type LeagueApiResponse,
@@ -39,7 +39,7 @@ export function RosterPicker() {
 
   useEffect(() => {
     if (!leagueId || !user) return;
-    getMyRoster(Number(leagueId), user.id).then((r) => {
+    getRosterForUser(Number(leagueId), user.id).then((r) => {
       if (r) {
         setSelectedIds(r.contestantIds);
         setMvpId(r.mvpContestantId);

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import {
   getScoringGrid,
-  type MergeActionResponse,
   type RosterResponse,
   type ScoringGridResponse,
   type ScoringGridRow,
@@ -12,7 +11,6 @@ interface Props {
   leagueId: number;
   /** The viewing member's roster, for the "Highlight my roster" overlay. */
   roster: RosterResponse | null;
-  mergeAction: MergeActionResponse | null;
 }
 
 /**
@@ -40,7 +38,7 @@ interface Tip {
   y: number;
 }
 
-export function ScoringGrid({ leagueId, roster, mergeAction }: Props) {
+export function ScoringGrid({ leagueId, roster }: Props) {
   const [grid, setGrid] = useState<ScoringGridResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [rosterOnly, setRosterOnly] = useState(false);
@@ -52,8 +50,8 @@ export function ScoringGrid({ leagueId, roster, mergeAction }: Props) {
   }, [leagueId]);
 
   const mergeEpisode = grid?.mergeEpisode ?? null;
-  const addedId = mergeAction?.addedContestantId ?? null;
-  const removedId = mergeAction?.removedContestantId ?? null;
+  const addedId = roster?.mergeAction?.addedContestantId ?? null;
+  const removedId = roster?.mergeAction?.removedContestantId ?? null;
 
   /**
    * Contestants whose points can count for this member — their current picks plus the one

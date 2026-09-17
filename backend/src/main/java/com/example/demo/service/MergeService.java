@@ -9,9 +9,8 @@ import com.example.demo.dao.ContestantDao;
 import com.example.demo.dao.EpisodeDao;
 import com.example.demo.dao.TribeDao;
 import com.example.demo.dto.MergeActionRequest;
-import com.example.demo.dto.MergeActionResponse;
-import com.example.demo.dto.MergeMemberStatus;
 import com.example.demo.dto.MergeStatusResponse;
+import com.example.demo.dto.RosterResponse;
 import com.example.demo.entity.Episode;
 import com.example.demo.entity.League;
 import com.example.demo.entity.LeagueMember;
@@ -41,11 +40,12 @@ public class MergeService {
     private final ContestantDao contestantDao;
     private final EpisodeDao episodeDao;
     private final TribeDao tribeDao;
+    private final RosterService rosterService;
 
     @Autowired
     public MergeService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao, MergeActionDao mergeActionDao,
                         RosterDao rosterDao, RosterPickDao rosterPickDao, ContestantDao contestantDao,
-                        EpisodeDao episodeDao, TribeDao tribeDao) {
+                        EpisodeDao episodeDao, TribeDao tribeDao, RosterService rosterService) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
         this.mergeActionDao = mergeActionDao;
@@ -54,10 +54,12 @@ public class MergeService {
         this.contestantDao = contestantDao;
         this.episodeDao = episodeDao;
         this.tribeDao = tribeDao;
+        this.rosterService = rosterService;
     }
 
+    /** Returns the member's roster as it stands after the move, merge action included. */
     @Transactional
-    public MergeStatusResponse performMergeAction(Long leagueId, MergeActionRequest request) {
+    public RosterResponse performMergeAction(Long leagueId, MergeActionRequest request) {
         League league = leagueDao.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
 
@@ -95,7 +97,7 @@ public class MergeService {
             performAdd(league, roster, currentPicks, request);
         }
 
-        return getMergeStatus(leagueId);
+        return rosterService.getRosterForUser(leagueId, userId).orElseThrow();
     }
 
     private void performAdd(League league, Roster roster, List<RosterPick> currentPicks, MergeActionRequest request) {
@@ -168,18 +170,16 @@ public class MergeService {
         Optional<Episode> mergeEpisode = episodeDao.findMergeEpisode(leagueId);
         boolean initiated = mergeEpisode.isPresent();
 
-        List<MergeMemberStatus> memberStatuses = buildMemberStatuses(leagueId);
-
         return new MergeStatusResponse(
                 initiated,
                 mergeEpisode.map(Episode::getEpisodeNumber).orElse(null),
-                league.isMergePicksOpen(),
-                memberStatuses
+                league.isMergePicksOpen()
         );
     }
 
+    /** Returns the target member's roster as it stands after the override, merge action included. */
     @Transactional
-    public MergeStatusResponse adminSetMergeAction(Long leagueId, Long adminUserId, Long targetUserId,
+    public RosterResponse adminSetMergeAction(Long leagueId, Long adminUserId, Long targetUserId,
                                                    Long addedContestantId, Long removedContestantId, boolean noChange) {
         leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
                 .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
@@ -214,7 +214,7 @@ public class MergeService {
                         "The roster can only be kept unchanged once it's full");
             }
             mergeActionDao.save(new MergeAction(leagueId, targetUserId, MergeAction.ActionType.NONE, null, null));
-            return getMergeStatus(leagueId);
+            return rosterService.getRosterForUser(leagueId, targetUserId).orElseThrow();
         }
 
         // Validate new contestants
@@ -236,27 +236,6 @@ public class MergeService {
                 : MergeAction.ActionType.ADD;
         mergeActionDao.save(new MergeAction(leagueId, targetUserId, actionType, addedContestantId, removedContestantId));
 
-        return getMergeStatus(leagueId);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<MergeActionResponse> getMyMergeAction(Long leagueId, Long userId) {
-        return mergeActionDao.findByLeagueIdAndUserId(leagueId, userId)
-                .map(ma -> new MergeActionResponse(
-                        ma.getActionType().name(),
-                        ma.getAddedContestantId(),
-                        ma.getRemovedContestantId()
-                ));
-    }
-
-    private List<MergeMemberStatus> buildMemberStatuses(Long leagueId) {
-        List<com.example.demo.dto.LeagueMemberResponse> members = leagueMemberDao.findMembersWithUsernames(leagueId);
-        Set<Long> actedUserIds = mergeActionDao.findByLeagueId(leagueId).stream()
-                .map(MergeAction::getUserId)
-                .collect(Collectors.toSet());
-
-        return members.stream()
-                .map(m -> new MergeMemberStatus(m.userId(), m.username(), actedUserIds.contains(m.userId())))
-                .toList();
+        return rosterService.getRosterForUser(leagueId, targetUserId).orElseThrow();
     }
 }

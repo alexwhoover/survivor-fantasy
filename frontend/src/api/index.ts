@@ -66,12 +66,11 @@ export interface LeagueMember {
 }
 
 export interface RosterResponse {
-  id: number;
-  leagueId: number;
   userId: number;
   mvpContestantId: number;
   contestantIds: number[];
-  submittedAt: string;
+  /** Null until this member has made (or been assigned) their merge move. */
+  mergeAction: MergeActionResponse | null;
 }
 
 export interface LeaderboardEntry {
@@ -114,17 +113,10 @@ export interface ScoringGridResponse {
   rows: ScoringGridRow[];
 }
 
-export interface MergeMemberStatus {
-  userId: number;
-  username: string;
-  hasActed: boolean;
-}
-
 export interface MergeStatusResponse {
   initiated: boolean;
   mergeEpisode: number | null;
   mergePicksOpen: boolean;
-  memberStatuses: MergeMemberStatus[];
 }
 
 export interface MergeActionResponse {
@@ -420,13 +412,6 @@ export async function setEpisodeMergeFlag(
 
 // --- Rosters ---
 
-export async function getMyRoster(leagueId: number, userId: number): Promise<RosterResponse | null> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/me?userId=${userId}`, { credentials: "include" });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Failed to fetch roster: ${res.status}`);
-  return res.json();
-}
-
 export async function getRosterForUser(leagueId: number, userId: number): Promise<RosterResponse | null> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/${userId}`, { credentials: "include" });
   if (res.status === 404) return null;
@@ -537,7 +522,7 @@ export async function adminSetMergeAction(
   addedContestantId: number | null,
   removedContestantId: number | null,
   noChange: boolean = false
-): Promise<MergeStatusResponse> {
+): Promise<RosterResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action/${targetUserId}`, {
     method: "PUT",
     credentials: "include",
@@ -550,20 +535,13 @@ export async function adminSetMergeAction(
   return res.json();
 }
 
-export async function getMyMergeAction(leagueId: number, userId: number): Promise<MergeActionResponse | null> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action/me?userId=${userId}`, { credentials: "include" });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Failed to fetch merge action: ${res.status}`);
-  return res.json();
-}
-
 export async function performMergeAction(
   leagueId: number,
   userId: number,
   addedContestantId: number | null,
   removedContestantId: number | null,
   noChange = false
-): Promise<MergeStatusResponse> {
+): Promise<RosterResponse> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action`, {
     method: "POST",
     credentials: "include",
