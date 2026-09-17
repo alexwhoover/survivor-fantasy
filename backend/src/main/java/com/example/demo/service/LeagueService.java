@@ -6,6 +6,7 @@ import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.TribeDao;
 import com.example.demo.dto.ContestantSetupItem;
+import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
 import com.example.demo.dto.TribeSetupItem;
 import com.example.demo.entity.Contestant;
@@ -167,6 +168,33 @@ public class LeagueService {
         League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can archive this league");
         league.setArchived(archived);
         return toResponse(league);
+    }
+
+    /**
+     * Promotes a member to admin or demotes an admin back to member. Admins can't change
+     * their own role (so a league can never be left without one), and the league creator
+     * can't be demoted by co-admins.
+     */
+    @Transactional
+    public List<LeagueMemberResponse> setMemberRole(Long leagueId, Long adminUserId, Long targetUserId,
+                                                    LeagueMember.Role role) {
+        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can change member roles");
+        if (role == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "role is required");
+        }
+        if (targetUserId.equals(adminUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't change your own role");
+        }
+
+        LeagueMember target = leagueMemberDao.findByLeagueIdAndUserId(leagueId, targetUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not a member of this league"));
+
+        if (role != LeagueMember.Role.ADMIN && targetUserId.equals(league.getCreatedBy())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "The league creator can't be removed as admin");
+        }
+
+        target.setRole(role);
+        return leagueMemberDao.findMembersWithUsernames(leagueId);
     }
 
     private League requireAdminLeague(Long leagueId, Long adminUserId, String forbiddenMessage) {

@@ -21,6 +21,7 @@ import com.example.demo.dto.PickingRequest;
 import com.example.demo.dto.RosterResponse;
 import com.example.demo.dto.ScoringGridResponse;
 import com.example.demo.dto.SetArchivedRequest;
+import com.example.demo.dto.SetMemberRoleRequest;
 import com.example.demo.dto.SetMergeEpisodeRequest;
 import com.example.demo.dto.SubmitRosterRequest;
 import com.example.demo.dto.TribeDto;
@@ -80,6 +81,13 @@ public class LeagueController {
     @GetMapping("/{id}/members")
     public List<LeagueMemberResponse> getMembers(@PathVariable Long id) {
         return leagueMemberDao.findMembersWithUsernames(id);
+    }
+
+    /** Admin-only: promote a member to admin, or demote an admin to member. Returns the updated member list. */
+    @PutMapping("/{id}/members/{targetUserId}/role")
+    public List<LeagueMemberResponse> setMemberRole(@PathVariable Long id, @PathVariable Long targetUserId,
+                                                    @RequestBody SetMemberRoleRequest request) {
+        return leagueService.setMemberRole(id, request.adminUserId(), targetUserId, request.role());
     }
 
     @GetMapping("/{id}/my-role")

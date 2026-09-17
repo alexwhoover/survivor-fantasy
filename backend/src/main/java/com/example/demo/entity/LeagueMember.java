@@ -40,5 +40,6 @@ public class LeagueMember {
     public Long getLeagueId() { return leagueId; }
     public Long getUserId() { return userId; }
     public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
     public LocalDateTime getJoinedAt() { return joinedAt; }
 }

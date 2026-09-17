@@ -311,6 +311,21 @@ export async function getLeagueMembers(leagueId: number): Promise<LeagueMember[]
   return res.json();
 }
 
+export async function setMemberRole(
+  leagueId: number, adminUserId: number, targetUserId: number, role: LeagueMember["role"]
+): Promise<LeagueMember[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/members/${targetUserId}/role`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adminUserId, role }),
+  });
+  if (!res.ok) {
+    throw new Error(await extractErrorMessage(res, "Failed to update member role"));
+  }
+  return res.json();
+}
+
 export async function getMyLeagueRole(leagueId: number, userId: number): Promise<"ADMIN" | "MEMBER" | null> {
   const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/my-role?userId=${userId}`, { credentials: "include" });
   if (res.status === 404) return null;

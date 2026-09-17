@@ -627,6 +627,7 @@ export function LeagueOverview() {
                   setMergeStatus(status);
                   refreshLeaderboard();
                 }}
+                onMembersUpdated={setLeagueMembers}
               />
             )}
             {adminSubtab === "season" && (

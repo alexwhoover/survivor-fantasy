@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Crown, Pencil, CheckCircle2, Circle, ArrowLeftRight, Plus } from "lucide-react";
+import { Crown, Pencil, CheckCircle2, Circle, ArrowLeftRight, Plus, ShieldCheck, ShieldOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -9,6 +9,7 @@ import {
   getRosterForUser,
   adminUpdateRoster,
   getMyMergeAction,
+  setMemberRole,
   type LeagueApiResponse,
   type LeagueMember,
   type Contestant,
@@ -25,6 +26,7 @@ interface Props {
   mergeStatus: MergeStatusResponse | null;
   maxRosterSize: number;
   onMergeStatusUpdated: (status: MergeStatusResponse) => void;
+  onMembersUpdated: (members: LeagueMember[]) => void;
 }
 
 interface EditState {
@@ -47,7 +49,7 @@ function pickingBadgeClass(active: boolean): string {
 
 export function AdminPlayers({
   league, adminUserId, members, contestants,
-  mergeStatus, maxRosterSize, onMergeStatusUpdated,
+  mergeStatus, maxRosterSize, onMergeStatusUpdated, onMembersUpdated,
 }: Props) {
   const [rosters, setRosters] = useState<Record<number, RosterResponse | null>>({});
   const [mergeActions, setMergeActions] = useState<Record<number, MergeActionResponse | null>>({});
@@ -55,6 +57,9 @@ export function AdminPlayers({
   const [mergeEditTarget, setMergeEditTarget] = useState<MergeEditTarget | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [roleTarget, setRoleTarget] = useState<LeagueMember | null>(null);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleError, setRoleError] = useState("");
 
   useEffect(() => {
     members.forEach((m) => {
@@ -89,6 +94,26 @@ export function AdminPlayers({
       roster,
       existingAction: mergeActions[member.userId] ?? null,
     });
+  };
+
+  const openRoleChange = (member: LeagueMember) => {
+    setRoleTarget(member);
+    setRoleError("");
+  };
+
+  const handleConfirmRoleChange = async () => {
+    if (!roleTarget) return;
+    setRoleSaving(true);
+    setRoleError("");
+    try {
+      const newRole = roleTarget.role === "ADMIN" ? "MEMBER" : "ADMIN";
+      onMembersUpdated(await setMemberRole(league.id, adminUserId, roleTarget.userId, newRole));
+      setRoleTarget(null);
+    } catch (e) {
+      setRoleError(e instanceof Error ? e.message : "Failed to update role");
+    } finally {
+      setRoleSaving(false);
+    }
   };
 
   const countByTribe = (tribe: string, selectedIds: number[]) =>
@@ -139,11 +164,17 @@ export function AdminPlayers({
         const mergeAction = mergeActions[member.userId];
         const mergeInitiated = mergeStatus?.initiated ?? false;
         const canEditMerge = mergeInitiated && hasRoster;
+        const isMemberAdmin = member.role === "ADMIN";
+        // Admins can't change their own role, and the league creator can't be demoted.
+        const canChangeRole = member.userId !== adminUserId && !(isMemberAdmin && member.userId === league.createdBy);
 
         return (
           <Card key={member.userId} style={{ padding: "12px 16px" }}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span className="text-sm font-medium">{member.username}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{member.username}</span>
+                {isMemberAdmin && <Badge variant="secondary">Admin</Badge>}
+              </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className={pickingBadgeClass(hasRoster)}>
                   Initial Picks
@@ -162,6 +193,13 @@ export function AdminPlayers({
                   <Pencil className="h-3.5 w-3.5" />
                   Edit Roster
                 </Button>
+                {canChangeRole && (
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openRoleChange(member)}>
+                    {isMemberAdmin
+                      ? <><ShieldOff className="h-3.5 w-3.5" /> Remove Admin</>
+                      : <><ShieldCheck className="h-3.5 w-3.5" /> Make Admin</>}
+                  </Button>
+                )}
               </div>
             </div>
           </Card>
@@ -259,6 +297,33 @@ export function AdminPlayers({
                     {saving ? "Saving..." : "Save Roster"}
                   </Button>
                 </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Role change confirmation */}
+      <Dialog open={roleTarget !== null} onOpenChange={(open) => { if (!open && !roleSaving) setRoleTarget(null); }}>
+        <DialogContent className="max-w-md">
+          {roleTarget && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {roleTarget.role === "ADMIN" ? "Remove admin" : "Make admin"} — {roleTarget.username}
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                {roleTarget.role === "ADMIN"
+                  ? `${roleTarget.username} will no longer be able to manage this league.`
+                  : `${roleTarget.username} will have full admin access to this league, including editing rosters, scores, episodes, and picking windows.`}
+              </p>
+              {roleError && <p className="text-sm text-destructive">{roleError}</p>}
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => setRoleTarget(null)} disabled={roleSaving}>Cancel</Button>
+                <Button onClick={handleConfirmRoleChange} disabled={roleSaving}>
+                  {roleSaving ? "Saving..." : roleTarget.role === "ADMIN" ? "Remove Admin" : "Make Admin"}
+                </Button>
               </div>
             </>
           )}
