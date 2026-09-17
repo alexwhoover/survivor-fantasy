@@ -4,6 +4,7 @@ import com.example.demo.dao.ContestantDao;
 import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.TribeDao;
+import com.example.demo.dto.CastResponse;
 import com.example.demo.dto.ContestantDto;
 import com.example.demo.dto.TribeDto;
 import com.example.demo.entity.Contestant;
@@ -15,8 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 /**
  * Read access to a league's season configuration (tribes and contestants), plus
@@ -42,17 +41,12 @@ public class CastService {
     }
 
     @Transactional(readOnly = true)
-    public List<TribeDto> getTribes(Long leagueId) {
+    public CastResponse getCast(Long leagueId) {
         requireLeague(leagueId);
-        return tribeDao.findByLeagueId(leagueId).stream().map(this::toDto).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ContestantDto> getContestants(Long leagueId) {
-        requireLeague(leagueId);
-        return contestantDao.findByLeagueId(leagueId).stream()
-                .map(ContestantDto::from)
-                .toList();
+        return new CastResponse(
+                tribeDao.findByLeagueId(leagueId).stream().map(this::toDto).toList(),
+                contestantDao.findByLeagueId(leagueId).stream().map(ContestantDto::from).toList()
+        );
     }
 
     @Transactional

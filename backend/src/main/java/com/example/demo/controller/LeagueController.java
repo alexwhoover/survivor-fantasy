@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dto.AddEpisodeRequest;
 import com.example.demo.dto.AdminMergeActionRequest;
+import com.example.demo.dto.CastResponse;
 import com.example.demo.dto.ContestantDto;
 import com.example.demo.dto.ContestantStatusRequest;
 import com.example.demo.dto.CreateLeagueRequest;
@@ -21,7 +22,6 @@ import com.example.demo.dto.ScoringGridResponse;
 import com.example.demo.dto.SetArchivedRequest;
 import com.example.demo.dto.SetMergeEpisodeRequest;
 import com.example.demo.dto.SubmitRosterRequest;
-import com.example.demo.dto.TribeDto;
 import com.example.demo.service.CastService;
 import com.example.demo.service.EpisodeScoreService;
 import com.example.demo.service.EpisodeService;
@@ -119,14 +119,9 @@ public class LeagueController {
 
     // --- Season configuration: tribes & contestants (read-only after wizard setup) ---
 
-    @GetMapping("/{id}/tribes")
-    public List<TribeDto> getTribes(@PathVariable Long id) {
-        return castService.getTribes(id);
-    }
-
-    @GetMapping("/{id}/contestants")
-    public List<ContestantDto> getContestants(@PathVariable Long id) {
-        return castService.getContestants(id);
+    @GetMapping("/{id}/cast")
+    public CastResponse getCast(@PathVariable Long id) {
+        return castService.getCast(id);
     }
 
     /** Admin-only: record a contestant's elimination episode and/or winner status. */

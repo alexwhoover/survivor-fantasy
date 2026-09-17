@@ -7,11 +7,12 @@ import { Badge } from "../components/ui/badge";
 import { useAuth } from "../context/AuthContext";
 import {
   getLeagueById,
-  getLeagueContestants,
+  getLeagueCast,
   getRosterForUser,
   getLeagueMembers,
   submitRoster,
   type LeagueApiResponse,
+  type Tribe,
   type Contestant,
 } from "../../api";
 
@@ -20,6 +21,7 @@ export function RosterPicker() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [league, setLeague] = useState<LeagueApiResponse | null>(null);
+  const [tribes, setTribes] = useState<Tribe[]>([]);
   const [contestants, setContestants] = useState<Contestant[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -32,9 +34,12 @@ export function RosterPicker() {
     getLeagueById(Number(leagueId))
       .then((l) => {
         setLeague(l);
-        return getLeagueContestants(l.id);
+        return getLeagueCast(l.id);
       })
-      .then(setContestants);
+      .then((cast) => {
+        setTribes(cast.tribes);
+        setContestants(cast.contestants);
+      });
   }, [leagueId]);
 
   useEffect(() => {
@@ -69,13 +74,9 @@ export function RosterPicker() {
     );
   }
 
-  const tribes = [...new Set(contestants.map((c) => c.tribe).filter(Boolean) as string[])];
-  const tribeColorMap = Object.fromEntries(
-    tribes.map((t) => [t, contestants.find((c) => c.tribe === t)?.tribeColour ?? '#6B7280'])
-  );
-
-  const activeByTribe = (tribe: string) => contestants.filter((c) => c.tribe === tribe && c.eliminatedEpisode === null);
-  const countByTribe = (tribe: string) => selectedIds.filter((id) => contestants.find((c) => c.id === id)?.tribe === tribe).length;
+  const maxRosterSize = league.contestantsPerTribe * tribes.length;
+  const activeByTribe = (tribeId: number) => contestants.filter((c) => c.tribeId === tribeId && c.eliminatedEpisode === null);
+  const countByTribe = (tribeId: number | null) => selectedIds.filter((id) => contestants.find((c) => c.id === id)?.tribeId === tribeId).length;
 
   const handleToggle = (id: number) => {
     const contestant = contestants.find((c) => c.id === id);
@@ -83,7 +84,7 @@ export function RosterPicker() {
     if (selectedIds.includes(id)) {
       setSelectedIds(selectedIds.filter((s) => s !== id));
       if (mvpId === id) setMvpId(null);
-    } else if (countByTribe(contestant.tribe!) < league.contestantsPerTribe) {
+    } else if (countByTribe(contestant.tribeId) < league.contestantsPerTribe) {
       setSelectedIds([...selectedIds, id]);
     }
   };
@@ -102,7 +103,7 @@ export function RosterPicker() {
     }
   };
 
-  const isComplete = selectedIds.length === league.contestantsPerTribe * tribes.length && mvpId !== null;
+  const isComplete = selectedIds.length === maxRosterSize && mvpId !== null;
   const mvpName = mvpId ? contestants.find((c) => c.id === mvpId) : null;
 
   return (
@@ -126,7 +127,7 @@ export function RosterPicker() {
             <div className="flex items-center justify-between">
               <div className="text-sm">
                 <span className="text-muted-foreground">Selected:</span>{" "}
-                <span className="font-semibold">{selectedIds.length} / {league.contestantsPerTribe * tribes.length}</span>
+                <span className="font-semibold">{selectedIds.length} / {maxRosterSize}</span>
               </div>
               <div className="text-sm">
                 <span className="text-muted-foreground">MVP:</span>{" "}
@@ -145,15 +146,15 @@ export function RosterPicker() {
 
       <div className="space-y-6">
         {tribes.map((tribe) => {
-          const tribeContestants = activeByTribe(tribe);
-          const selectionCount = countByTribe(tribe);
+          const tribeContestants = activeByTribe(tribe.id);
+          const selectionCount = countByTribe(tribe.id);
 
           return (
-            <Card key={tribe}>
+            <Card key={tribe.id}>
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tribeColorMap[tribe] }} />
-                  <CardTitle>{tribe} Tribe</CardTitle>
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tribe.colour }} />
+                  <CardTitle>{tribe.name} Tribe</CardTitle>
                   <Badge variant="outline">
                     {selectionCount} / {league.contestantsPerTribe} selected
                   </Badge>

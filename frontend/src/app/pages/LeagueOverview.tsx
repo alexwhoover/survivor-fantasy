@@ -14,8 +14,7 @@ import { ScoringGrid } from "../components/ScoringGrid";
 import { StandingsGraph } from "../components/StandingsGraph";
 import {
   getLeagueById,
-  getLeagueContestants,
-  getLeagueTribes,
+  getLeagueCast,
   getLeagueMembers,
   getLeaderboard,
   getRosterForUser,
@@ -276,16 +275,14 @@ export function LeagueOverview() {
     getLeaderboard(numId).then(setLeaderboard).catch(() => {});
   }, [numId]);
 
-  const refreshContestants = useCallback(() => {
-    getLeagueContestants(numId).then(setContestants).catch(() => {});
-  }, [numId]);
-
   // Initial data load
   useEffect(() => {
     if (!leagueId) return;
     getLeagueById(numId).then(setLeague);
-    refreshContestants();
-    getLeagueTribes(numId).then(setTribes);
+    getLeagueCast(numId).then((cast) => {
+      setTribes(cast.tribes);
+      setContestants(cast.contestants);
+    });
     getLeagueMembers(numId).then(setLeagueMembers);
     refreshLeaderboard();
   }, [leagueId]);
@@ -598,6 +595,7 @@ export function LeagueOverview() {
                 league={league}
                 adminUserId={user!.id}
                 members={leagueMembers}
+                tribes={tribes}
                 contestants={contestants}
                 maxRosterSize={maxRosterSize}
                 onMergeActionSaved={refreshLeaderboard}
@@ -612,7 +610,7 @@ export function LeagueOverview() {
                 contestants={contestants}
                 onLeagueUpdated={setLeague}
                 onContestantsChanged={setContestants}
-                onScoresChanged={() => { refreshLeaderboard(); refreshContestants(); }}
+                onScoresChanged={refreshLeaderboard}
               />
             )}
           </>

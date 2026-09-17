@@ -11,6 +11,7 @@ import {
   promoteToAdmin,
   type LeagueApiResponse,
   type LeagueMember,
+  type Tribe,
   type Contestant,
   type RosterResponse,
 } from "../../api";
@@ -19,6 +20,7 @@ interface Props {
   league: LeagueApiResponse;
   adminUserId: number;
   members: LeagueMember[];
+  tribes: Tribe[];
   contestants: Contestant[];
   maxRosterSize: number;
   onMergeActionSaved: () => void;
@@ -43,7 +45,7 @@ function pickingBadgeClass(active: boolean): string {
 }
 
 export function AdminPlayers({
-  league, adminUserId, members, contestants,
+  league, adminUserId, members, tribes, contestants,
   maxRosterSize, onMergeActionSaved, onMembersUpdated,
 }: Props) {
   const [rosters, setRosters] = useState<Record<number, RosterResponse>>({});
@@ -60,8 +62,6 @@ export function AdminPlayers({
       .then((all) => setRosters(Object.fromEntries(all.map((r) => [r.userId, r]))))
       .catch(() => {});
   }, [league.id, members]);
-
-  const tribes = [...new Set(contestants.map((c) => c.tribe).filter(Boolean) as string[])];
 
   const openRosterEdit = (member: LeagueMember) => {
     const roster = rosters[member.userId] ?? null;
@@ -98,8 +98,8 @@ export function AdminPlayers({
     }
   };
 
-  const countByTribe = (tribe: string, selectedIds: number[]) =>
-    selectedIds.filter((id) => contestants.find((c) => c.id === id)?.tribe === tribe).length;
+  const countByTribe = (tribeId: number | null, selectedIds: number[]) =>
+    selectedIds.filter((id) => contestants.find((c) => c.id === id)?.tribeId === tribeId).length;
 
   const handleToggle = (contestantId: number) => {
     if (!editState) return;
@@ -112,7 +112,7 @@ export function AdminPlayers({
         selectedIds: selectedIds.filter((id) => id !== contestantId),
         mvpId: editState.mvpId === contestantId ? null : editState.mvpId,
       });
-    } else if (countByTribe(contestant.tribe!, selectedIds) < league.contestantsPerTribe) {
+    } else if (countByTribe(contestant.tribeId, selectedIds) < league.contestantsPerTribe) {
       setEditState({ ...editState, selectedIds: [...selectedIds, contestantId] });
     }
   };
@@ -197,7 +197,7 @@ export function AdminPlayers({
                 <div className="flex items-center justify-between text-sm bg-muted/40 rounded-lg px-3 py-2">
                   <span>
                     <span className="text-muted-foreground">Selected: </span>
-                    <span className="font-semibold">{editState.selectedIds.length} / {league.contestantsPerTribe * tribes.length}</span>
+                    <span className="font-semibold">{editState.selectedIds.length} / {maxRosterSize}</span>
                   </span>
                   <span>
                     <span className="text-muted-foreground">MVP: </span>
@@ -210,15 +210,14 @@ export function AdminPlayers({
                 </div>
 
                 {tribes.map((tribe) => {
-                  const tribeContestants = contestants.filter((c) => c.tribe === tribe);
-                  const selected = countByTribe(tribe, editState.selectedIds);
-                  const tribeColor = tribeContestants[0]?.tribeColour ?? "#6B7280";
+                  const tribeContestants = contestants.filter((c) => c.tribeId === tribe.id);
+                  const selected = countByTribe(tribe.id, editState.selectedIds);
 
                   return (
-                    <div key={tribe}>
+                    <div key={tribe.id}>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: tribeColor }} />
-                        <span className="font-medium">{tribe} Tribe</span>
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: tribe.colour }} />
+                        <span className="font-medium">{tribe.name} Tribe</span>
                         <Badge variant="outline" className="text-xs">{selected}/{league.contestantsPerTribe}</Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-2">

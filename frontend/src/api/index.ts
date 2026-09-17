@@ -21,6 +21,12 @@ export interface Contestant {
   imageUrl: string | null;
 }
 
+export interface LeagueCast {
+  /** In the league's own order. */
+  tribes: Tribe[];
+  contestants: Contestant[];
+}
+
 export interface AuthUser {
   id: number;
   username: string;
@@ -316,15 +322,9 @@ export async function promoteToAdmin(leagueId: number, adminUserId: number, targ
 // Tribe and contestant identity is fixed by the creation wizard; the only
 // ongoing mutation is tracking a contestant's elimination/winner status.
 
-export async function getLeagueTribes(leagueId: number): Promise<Tribe[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/tribes`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch tribes: ${res.status}`);
-  return res.json();
-}
-
-export async function getLeagueContestants(leagueId: number): Promise<Contestant[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/contestants`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch contestants: ${res.status}`);
+export async function getLeagueCast(leagueId: number): Promise<LeagueCast> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/cast`, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to fetch cast: ${res.status}`);
   return res.json();
 }
 
