@@ -170,30 +170,19 @@ public class LeagueService {
         return toResponse(league);
     }
 
-    /**
-     * Promotes a member to admin or demotes an admin back to member. Admins can't change
-     * their own role (so a league can never be left without one), and the league creator
-     * can't be demoted by co-admins.
-     */
+    /** Promotes a member to admin. This is one-way: there is no demotion back to member. */
     @Transactional
-    public List<LeagueMemberResponse> setMemberRole(Long leagueId, Long adminUserId, Long targetUserId,
-                                                    LeagueMember.Role role) {
-        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can change member roles");
-        if (role == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "role is required");
-        }
-        if (targetUserId.equals(adminUserId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't change your own role");
-        }
+    public List<LeagueMemberResponse> promoteToAdmin(Long leagueId, Long adminUserId, Long targetUserId) {
+        requireAdminLeague(leagueId, adminUserId, "Only league admins can promote members");
 
         LeagueMember target = leagueMemberDao.findByLeagueIdAndUserId(leagueId, targetUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not a member of this league"));
 
-        if (role != LeagueMember.Role.ADMIN && targetUserId.equals(league.getCreatedBy())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "The league creator can't be removed as admin");
+        if (target.getRole() == LeagueMember.Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is already an admin");
         }
 
-        target.setRole(role);
+        target.setRole(LeagueMember.Role.ADMIN);
         return leagueMemberDao.findMembersWithUsernames(leagueId);
     }
 

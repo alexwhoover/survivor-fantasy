@@ -311,17 +311,15 @@ export async function getLeagueMembers(leagueId: number): Promise<LeagueMember[]
   return res.json();
 }
 
-export async function setMemberRole(
-  leagueId: number, adminUserId: number, targetUserId: number, role: LeagueMember["role"]
-): Promise<LeagueMember[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/members/${targetUserId}/role`, {
-    method: "PUT",
+export async function promoteToAdmin(leagueId: number, adminUserId: number, targetUserId: number): Promise<LeagueMember[]> {
+  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/members/${targetUserId}/promote`, {
+    method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, role }),
+    body: JSON.stringify({ adminUserId }),
   });
   if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to update member role"));
+    throw new Error(await extractErrorMessage(res, "Failed to promote member"));
   }
   return res.json();
 }

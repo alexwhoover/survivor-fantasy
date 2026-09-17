@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Crown, Pencil, CheckCircle2, Circle, ArrowLeftRight, Plus, ShieldCheck, ShieldOff } from "lucide-react";
+import { Crown, Pencil, CheckCircle2, Circle, ArrowLeftRight, Plus, ShieldCheck } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -9,7 +9,7 @@ import {
   getRosterForUser,
   adminUpdateRoster,
   getMyMergeAction,
-  setMemberRole,
+  promoteToAdmin,
   type LeagueApiResponse,
   type LeagueMember,
   type Contestant,
@@ -57,9 +57,9 @@ export function AdminPlayers({
   const [mergeEditTarget, setMergeEditTarget] = useState<MergeEditTarget | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [roleTarget, setRoleTarget] = useState<LeagueMember | null>(null);
-  const [roleSaving, setRoleSaving] = useState(false);
-  const [roleError, setRoleError] = useState("");
+  const [promoteTarget, setPromoteTarget] = useState<LeagueMember | null>(null);
+  const [promoting, setPromoting] = useState(false);
+  const [promoteError, setPromoteError] = useState("");
 
   useEffect(() => {
     members.forEach((m) => {
@@ -96,23 +96,22 @@ export function AdminPlayers({
     });
   };
 
-  const openRoleChange = (member: LeagueMember) => {
-    setRoleTarget(member);
-    setRoleError("");
+  const openPromote = (member: LeagueMember) => {
+    setPromoteTarget(member);
+    setPromoteError("");
   };
 
-  const handleConfirmRoleChange = async () => {
-    if (!roleTarget) return;
-    setRoleSaving(true);
-    setRoleError("");
+  const handleConfirmPromote = async () => {
+    if (!promoteTarget) return;
+    setPromoting(true);
+    setPromoteError("");
     try {
-      const newRole = roleTarget.role === "ADMIN" ? "MEMBER" : "ADMIN";
-      onMembersUpdated(await setMemberRole(league.id, adminUserId, roleTarget.userId, newRole));
-      setRoleTarget(null);
+      onMembersUpdated(await promoteToAdmin(league.id, adminUserId, promoteTarget.userId));
+      setPromoteTarget(null);
     } catch (e) {
-      setRoleError(e instanceof Error ? e.message : "Failed to update role");
+      setPromoteError(e instanceof Error ? e.message : "Failed to promote member");
     } finally {
-      setRoleSaving(false);
+      setPromoting(false);
     }
   };
 
@@ -165,8 +164,6 @@ export function AdminPlayers({
         const mergeInitiated = mergeStatus?.initiated ?? false;
         const canEditMerge = mergeInitiated && hasRoster;
         const isMemberAdmin = member.role === "ADMIN";
-        // Admins can't change their own role, and the league creator can't be demoted.
-        const canChangeRole = member.userId !== adminUserId && !(isMemberAdmin && member.userId === league.createdBy);
 
         return (
           <Card key={member.userId} style={{ padding: "12px 16px" }}>
@@ -193,11 +190,10 @@ export function AdminPlayers({
                   <Pencil className="h-3.5 w-3.5" />
                   Edit Roster
                 </Button>
-                {canChangeRole && (
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openRoleChange(member)}>
-                    {isMemberAdmin
-                      ? <><ShieldOff className="h-3.5 w-3.5" /> Remove Admin</>
-                      : <><ShieldCheck className="h-3.5 w-3.5" /> Make Admin</>}
+                {!isMemberAdmin && (
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openPromote(member)}>
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Make Admin
                   </Button>
                 )}
               </div>
@@ -303,26 +299,23 @@ export function AdminPlayers({
         </DialogContent>
       </Dialog>
 
-      {/* Role change confirmation */}
-      <Dialog open={roleTarget !== null} onOpenChange={(open) => { if (!open && !roleSaving) setRoleTarget(null); }}>
+      {/* Promote-to-admin confirmation */}
+      <Dialog open={promoteTarget !== null} onOpenChange={(open) => { if (!open && !promoting) setPromoteTarget(null); }}>
         <DialogContent className="max-w-md">
-          {roleTarget && (
+          {promoteTarget && (
             <>
               <DialogHeader>
-                <DialogTitle>
-                  {roleTarget.role === "ADMIN" ? "Remove admin" : "Make admin"} — {roleTarget.username}
-                </DialogTitle>
+                <DialogTitle>Make admin — {promoteTarget.username}</DialogTitle>
               </DialogHeader>
               <p className="text-sm text-muted-foreground">
-                {roleTarget.role === "ADMIN"
-                  ? `${roleTarget.username} will no longer be able to manage this league.`
-                  : `${roleTarget.username} will have full admin access to this league, including editing rosters, scores, episodes, and picking windows.`}
+                {promoteTarget.username} will have full admin access to this league, including editing rosters,
+                scores, episodes, and picking windows. This can't be undone.
               </p>
-              {roleError && <p className="text-sm text-destructive">{roleError}</p>}
+              {promoteError && <p className="text-sm text-destructive">{promoteError}</p>}
               <div className="flex justify-end gap-3 pt-2">
-                <Button variant="outline" onClick={() => setRoleTarget(null)} disabled={roleSaving}>Cancel</Button>
-                <Button onClick={handleConfirmRoleChange} disabled={roleSaving}>
-                  {roleSaving ? "Saving..." : roleTarget.role === "ADMIN" ? "Remove Admin" : "Make Admin"}
+                <Button variant="outline" onClick={() => setPromoteTarget(null)} disabled={promoting}>Cancel</Button>
+                <Button onClick={handleConfirmPromote} disabled={promoting}>
+                  {promoting ? "Saving..." : "Make Admin"}
                 </Button>
               </div>
             </>
