@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Badge } from "../components/ui/badge";
-import { useAuth } from "../context/AuthContext";
 import { createLeague, type TribeSetupItem, type ContestantSetupItem } from "../../api";
 
 const STEP_LABELS = ["League & Season", "Tribe Setup", "Contestant Setup"];
@@ -38,7 +37,6 @@ function nextKey(): string {
 }
 
 export function CreateLeague() {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -57,10 +55,6 @@ export function CreateLeague() {
   const [contestantsByTribe, setContestantsByTribe] = useState<Record<string, WizardContestant[]>>({});
   const [addForms, setAddForms] = useState<Record<string, ContestantForm>>({});
   const [contestantsPerTribe, setContestantsPerTribe] = useState("2");
-
-  if (!user) {
-    return <div className="p-8 text-muted-foreground">Loading...</div>;
-  }
 
   const step1Valid = leagueName.trim() !== "" && seasonName.trim() !== "";
   const step2Valid = tribes.length > 0 && tribes.every((t) => t.name.trim() !== "");
@@ -162,7 +156,6 @@ export function CreateLeague() {
       const league = await createLeague(
         leagueName.trim(),
         seasonName.trim(),
-        user.id,
         perTribe,
         tribePayload,
         contestantPayload
@@ -411,7 +404,7 @@ export function CreateLeague() {
             Back
           </Button>
         ) : (
-          <Link to="/leagues">
+          <Link to="/">
             <Button variant="outline">Cancel</Button>
           </Link>
         )}

@@ -73,7 +73,20 @@ function SelectedDot(props: any) {
 export function StandingsGraph({ leagueId }: Props) {
   const [history, setHistory] = useState<LeaderboardHistoryEntry[] | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  // A 340px chart leaves a phone with almost no room for the legend below it, so the
+  // plot gives up height on small screens rather than pushing the legend off-screen.
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false,
+  );
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)");
+    const handler = () => setIsNarrow(query.matches);
+    handler();
+    query.addEventListener("change", handler);
+    return () => query.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     getLeaderboardHistory(leagueId).then(setHistory).catch(() => setHistory([]));
@@ -124,8 +137,8 @@ export function StandingsGraph({ leagueId }: Props) {
 
   return (
     <div ref={containerRef}>
-      <ResponsiveContainer width="100%" height={340}>
-        <LineChart data={rows} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+      <ResponsiveContainer width="100%" height={isNarrow ? 250 : 340}>
+        <LineChart data={rows} margin={{ top: 10, right: isNarrow ? 8 : 20, bottom: 20, left: 0 }}>
           <CartesianGrid stroke="var(--border)" vertical={false} />
           <XAxis
             dataKey="episodeNumber"
@@ -140,7 +153,7 @@ export function StandingsGraph({ leagueId }: Props) {
             tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
             axisLine={{ stroke: "var(--border)" }}
             tickLine={false}
-            width={40}
+            width={isNarrow ? 30 : 40}
           />
           {seriesMeta.map((meta) => (
             <Line
@@ -177,7 +190,7 @@ export function StandingsGraph({ leagueId }: Props) {
             key={meta.userId}
             type="button"
             onClick={() => toggleSelected(meta.userId)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex min-h-[32px] items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <span
               style={{

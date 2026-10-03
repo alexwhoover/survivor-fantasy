@@ -12,7 +12,6 @@ import {
 
 interface Props {
   leagueId: number;
-  adminUserId: number;
   episode: Episode;
   contestants: Contestant[];
   onClose: () => void;
@@ -22,7 +21,7 @@ interface Props {
 }
 
 export function EpisodeModal({
-  leagueId, adminUserId, episode, contestants,
+  leagueId, episode, contestants,
   onClose, onEpisodeChanged, onContestantsChanged, onScoresChanged,
 }: Props) {
   const [scores, setScores] = useState<Record<number, number>>({});
@@ -65,7 +64,7 @@ export function EpisodeModal({
     setTogglingMerge(true);
     setError("");
     try {
-      const updated = await setEpisodeMergeFlag(leagueId, adminUserId, episode.id, !episode.isMergeEpisode);
+      const updated = await setEpisodeMergeFlag(leagueId, episode.id, !episode.isMergeEpisode);
       onEpisodeChanged(updated);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update merge episode flag");
@@ -79,7 +78,7 @@ export function EpisodeModal({
     setError("");
     try {
       const updated = await updateContestantStatus(
-        leagueId, adminUserId, c.id,
+        leagueId, c.id,
         isOutThisEpisode ? null : episode.episodeNumber,
         c.winner
       );
@@ -92,7 +91,7 @@ export function EpisodeModal({
   const handleToggleWinner = async (c: Contestant) => {
     setError("");
     try {
-      const updated = await updateContestantStatus(leagueId, adminUserId, c.id, c.eliminatedEpisode, !c.winner);
+      const updated = await updateContestantStatus(leagueId, c.id, c.eliminatedEpisode, !c.winner);
       onContestantsChanged(contestants.map((existing) => (existing.id === updated.id ? updated : existing)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update winner status");
@@ -101,7 +100,7 @@ export function EpisodeModal({
 
   return (
     <Dialog open={true} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="w-max sm:max-w-[calc(100%-2rem)] max-h-[82vh] overflow-y-auto [scrollbar-gutter:stable]">
+      <DialogContent className="max-h-[82vh] overflow-y-auto sm:w-max sm:max-w-[calc(100%-2rem)] [scrollbar-gutter:stable]">
         <DialogHeader>
           <DialogTitle>Episode {episode.episodeNumber}</DialogTitle>
         </DialogHeader>
@@ -124,7 +123,7 @@ export function EpisodeModal({
             return (
               <div
                 key={c.id}
-                className={`flex items-center justify-between gap-6 py-2.5 ${
+                className={`flex flex-col gap-1.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 ${
                   i < contestants.length - 1 ? "border-b border-border" : ""
                 }`}
               >
@@ -138,11 +137,11 @@ export function EpisodeModal({
                   </span>
                   {c.tribe && <span className="text-xs text-muted-foreground shrink-0">{c.tribe}</span>}
                 </div>
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
                   <Button
                     variant={c.winner ? "secondary" : "outline"}
                     size="sm"
-                    className="h-7 px-2.5 text-xs"
+                    className="h-8 px-2.5 text-xs"
                     onClick={() => handleToggleWinner(c)}
                   >
                     {c.winner ? "Winner" : "Mark Winner"}
@@ -150,7 +149,7 @@ export function EpisodeModal({
                   <Button
                     variant={isOutThisEpisode ? "secondary" : "outline"}
                     size="sm"
-                    className="h-7 px-2.5 text-xs"
+                    className="h-8 px-2.5 text-xs"
                     onClick={() => handleToggleEliminated(c)}
                   >
                     {isOutThisEpisode ? "Out" : "Mark Out"}
@@ -158,7 +157,7 @@ export function EpisodeModal({
                   <input
                     type="text"
                     inputMode="numeric"
-                    className="w-16 h-8 rounded border border-input bg-background px-2 text-center text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="h-9 w-14 rounded border border-input bg-background px-2 text-center text-sm focus:outline-none focus:ring-1 focus:ring-ring sm:w-16"
                     value={scores[c.id] ?? 0}
                     onChange={(e) => handleScoreChange(c.id, Number(e.target.value) || 0)}
                     onBlur={handleScoreBlur}
@@ -172,7 +171,7 @@ export function EpisodeModal({
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex justify-end pt-2">
-          <Button onClick={onClose}>Done</Button>
+          <Button className="min-h-[44px] w-full sm:w-auto" onClick={onClose}>Done</Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -27,22 +27,12 @@ export interface LeagueCast {
   contestants: Contestant[];
 }
 
-export interface AuthUser {
-  id: number;
-  username: string;
-  createdAt: string;
-}
-
 export interface LeagueApiResponse {
   id: number;
   name: string;
-  code: string;
   seasonName: string;
-  createdBy: number;
   createdAt: string;
   contestantsPerTribe: number;
-  initialPicksOpen: boolean;
-  mergePicksOpen: boolean;
   /** Number of the episode flagged as the merge, or null before one is flagged. */
   mergeEpisode: number | null;
   archived: boolean;
@@ -66,10 +56,10 @@ export interface ContestantSetupItem {
   tribeIndex: number;
 }
 
-export interface LeagueMember {
+/** A player in a league — a name the admin entered, not an account. */
+export interface Player {
   userId: number;
   username: string;
-  role: "ADMIN" | "MEMBER";
   joinedAt: string;
 }
 
@@ -77,7 +67,7 @@ export interface RosterResponse {
   userId: number;
   mvpContestantId: number;
   contestantIds: number[];
-  /** Null until this member has made (or been assigned) their merge move. */
+  /** Null until this player has been assigned their merge move. */
   mergeAction: MergeActionResponse | null;
 }
 
@@ -129,17 +119,9 @@ export interface MergeActionResponse {
 
 const API_BASE = "/api";
 
-async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
-  const res = await fetch(url, options);
-  if (res.status === 401) {
-    window.dispatchEvent(new CustomEvent("auth:unauthorized"));
-  }
-  return res;
-}
-
 /**
  * Extracts a human-readable message from a failed response. The backend's error
- * body is JSON (e.g. {"status":403,"error":"Forbidden","message":"..."}), not
+ * body is JSON (e.g. {"status":400,"error":"Bad Request","message":"..."}), not
  * plain text — falling back to res.text() would print that raw JSON to the user.
  */
 async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
@@ -154,72 +136,78 @@ async function extractErrorMessage(res: Response, fallback: string): Promise<str
   return fallback;
 }
 
-// --- Auth ---
-// The server session (a cookie validated on every request) is the sole source
-// of truth for auth state — nothing is cached client-side across page loads.
-
-/** Validates the current session against the server. Resolves null if it's missing, expired, or invalid. */
-export async function getCurrentUser(): Promise<AuthUser | null> {
-  const res = await apiFetch(`${API_BASE}/users/me`, { credentials: "include" });
-  if (!res.ok) return null;
+/**
+ * Every read below is public, so requests still send credentials but a 401 is never
+ * surprising — it just means an admin-only call was made without a session, which
+ * the caller surfaces locally. Reads never 401 at all.
+ */
+async function get<T>(path: string, failure: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { credentials: "include" });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, failure));
   return res.json();
 }
 
-export async function login(username: string, password: string): Promise<AuthUser> {
-  const res = await fetch(`${API_BASE}/users/login`, {
+/**
+ * `byStatus` names the few outcomes worth their own wording. It isn't belt-and-braces:
+ * this Spring Boot version leaves `message` out of the error body, so a status is often
+ * the only thing distinguishing one failure from another.
+ */
+async function write<T>(
+  method: string,
+  path: string,
+  body: unknown,
+  failure: string,
+  byStatus: Record<number, string> = {},
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    credentials: "include",
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const known = res.status === 401 ? "Your admin session expired — sign in again." : byStatus[res.status];
+    throw new Error(known ?? (await extractErrorMessage(res, failure)));
+  }
+  // 204 responses have no body to parse.
+  return res.status === 204 ? (undefined as T) : res.json();
+}
+
+// --- Admin session ---
+// The app's only authentication. Players never sign in, so this exists purely so the
+// admin can unlock the editing UI; the server session is the sole source of truth.
+
+/** Resolves true if the caller holds a valid admin session. */
+export async function isAdminSignedIn(): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/admin/session`, { credentials: "include" });
+  return res.ok;
+}
+
+export async function adminLogin(username: string, password: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/login`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
   if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Invalid credentials"));
+    throw new Error(res.status === 401 ? "Incorrect username or password" : await extractErrorMessage(res, "Sign-in failed"));
   }
-  return res.json();
 }
 
-/** Pre-check used by the registration form to flag a taken username before submit. */
-export async function isUsernameAvailable(username: string): Promise<boolean> {
-  const res = await apiFetch(`${API_BASE}/users/username-available?username=${encodeURIComponent(username)}`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(await extractErrorMessage(res, "Failed to check username"));
-  const data = await res.json();
-  return data.available;
-}
-
-export async function register(username: string, password: string, inviteCode: string): Promise<AuthUser> {
-  const res = await fetch(`${API_BASE}/users/register`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password, inviteCode }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Registration failed"));
-  }
-  return res.json();
-}
-
-export async function logout(): Promise<void> {
-  await fetch(`${API_BASE}/users/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+export async function adminLogout(): Promise<void> {
+  await fetch(`${API_BASE}/admin/logout`, { method: "POST", credentials: "include" });
 }
 
 // --- Leagues ---
+// Leagues are global: every visitor sees every league.
 
-export async function getMyLeagues(userId: number): Promise<LeagueApiResponse[]> {
-  const res = await apiFetch(`${API_BASE}/leagues?userId=${userId}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch leagues: ${res.status}`);
-  return res.json();
+export function getLeagues(): Promise<LeagueApiResponse[]> {
+  return get("/leagues", "Failed to load leagues");
 }
 
-export async function getLeagueById(id: number): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${id}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch league: ${res.status}`);
-  return res.json();
+export function getLeagueById(id: number): Promise<LeagueApiResponse> {
+  return get(`/leagues/${id}`, "Failed to load league");
 }
 
 /**
@@ -227,311 +215,135 @@ export async function getLeagueById(id: number): Promise<LeagueApiResponse> {
  * tribes, and its contestants. This is the only way a league's season data is
  * ever created; there is no separate season-setup step afterward.
  */
-export async function createLeague(
+export function createLeague(
   name: string,
   seasonName: string,
-  userId: number,
   contestantsPerTribe: number,
   tribes: TribeSetupItem[],
-  contestants: ContestantSetupItem[]
+  contestants: ContestantSetupItem[],
 ): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, seasonName, userId, contestantsPerTribe, tribes, contestants }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to create league"));
-  }
-  return res.json();
+  return write("POST", "/leagues", { name, seasonName, contestantsPerTribe, tribes, contestants },
+    "Failed to create league");
 }
 
-export async function setInitialPicksOpen(leagueId: number, adminUserId: number, open: boolean): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/initial-picking`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, open }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to update initial picking state"));
-  }
-  return res.json();
+export function setLeagueArchived(leagueId: number, archived: boolean): Promise<LeagueApiResponse> {
+  return write("PUT", `/leagues/${leagueId}/archived`, { archived }, "Failed to update archived state");
 }
 
-export async function setMergePicksOpen(leagueId: number, adminUserId: number, open: boolean): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge-picking`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, open }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to update merge picking state"));
-  }
-  return res.json();
+// --- Players ---
+
+export function getPlayers(leagueId: number): Promise<Player[]> {
+  return get(`/leagues/${leagueId}/players`, "Failed to load players");
 }
 
-export async function setLeagueArchived(leagueId: number, adminUserId: number, archived: boolean): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/archived`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, archived }),
+export function addPlayer(leagueId: number, name: string): Promise<Player[]> {
+  return write("POST", `/leagues/${leagueId}/players`, { name }, "Failed to add player", {
+    409: "That player is already in this league.",
   });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to update archived state"));
-  }
-  return res.json();
 }
 
-export async function joinLeague(code: string, userId: number): Promise<LeagueApiResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/join`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, userId }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to join league"));
-  }
-  return res.json();
-}
-
-export async function getLeagueMembers(leagueId: number): Promise<LeagueMember[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/members`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch members: ${res.status}`);
-  return res.json();
-}
-
-export async function promoteToAdmin(leagueId: number, adminUserId: number, targetUserId: number): Promise<LeagueMember[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/members/${targetUserId}/promote`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to promote member"));
-  }
-  return res.json();
+export function removePlayer(leagueId: number, playerId: number): Promise<Player[]> {
+  return write("DELETE", `/leagues/${leagueId}/players/${playerId}`, undefined, "Failed to remove player");
 }
 
 // --- Season configuration (tribes + contestants, owned by the league) ---
 // Tribe and contestant identity is fixed by the creation wizard; the only
 // ongoing mutation is tracking a contestant's elimination/winner status.
 
-export async function getLeagueCast(leagueId: number): Promise<LeagueCast> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/cast`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch cast: ${res.status}`);
-  return res.json();
+export function getLeagueCast(leagueId: number): Promise<LeagueCast> {
+  return get(`/leagues/${leagueId}/cast`, "Failed to load cast");
 }
 
-export async function updateContestantStatus(
+export function updateContestantStatus(
   leagueId: number,
-  adminUserId: number,
   contestantId: number,
   eliminatedEpisode: number | null,
-  winner: boolean
+  winner: boolean,
 ): Promise<Contestant> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/contestants/${contestantId}/status`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, eliminatedEpisode, winner }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to update contestant status"));
-  }
-  return res.json();
+  return write("PUT", `/leagues/${leagueId}/contestants/${contestantId}/status`,
+    { eliminatedEpisode, winner }, "Failed to update contestant status");
 }
 
 // --- Episodes ---
 // Episodes are created manually by the admin as the season progresses.
 
-export async function getEpisodes(leagueId: number): Promise<Episode[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch episodes: ${res.status}`);
-  return res.json();
+export function getEpisodes(leagueId: number): Promise<Episode[]> {
+  return get(`/leagues/${leagueId}/episodes`, "Failed to load episodes");
 }
 
-export async function addEpisode(leagueId: number, adminUserId: number): Promise<Episode> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to add episode"));
-  }
-  return res.json();
+export function addEpisode(leagueId: number): Promise<Episode> {
+  return write("POST", `/leagues/${leagueId}/episodes`, {}, "Failed to add episode");
 }
 
-export async function deleteEpisode(leagueId: number, adminUserId: number, episodeId: number): Promise<void> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeId}?adminUserId=${adminUserId}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to remove episode"));
-  }
+export function deleteEpisode(leagueId: number, episodeId: number): Promise<void> {
+  return write("DELETE", `/leagues/${leagueId}/episodes/${episodeId}`, undefined, "Failed to remove episode");
 }
 
 /** Flags (or unflags) an episode as the season's merge episode. At most one may be flagged. */
-export async function setEpisodeMergeFlag(
+export function setEpisodeMergeFlag(
   leagueId: number,
-  adminUserId: number,
   episodeId: number,
-  isMergeEpisode: boolean
+  isMergeEpisode: boolean,
 ): Promise<Episode> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeId}/merge-flag`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, isMergeEpisode }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to update merge episode flag"));
-  }
-  return res.json();
+  return write("PUT", `/leagues/${leagueId}/episodes/${episodeId}/merge-flag`,
+    { isMergeEpisode }, "Failed to update merge episode flag");
 }
 
 // --- Rosters ---
 
-export async function getRosterForUser(leagueId: number, userId: number): Promise<RosterResponse | null> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/${userId}`, { credentials: "include" });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Failed to fetch roster: ${res.status}`);
-  return res.json();
+export function getAllRosters(leagueId: number): Promise<RosterResponse[]> {
+  return get(`/leagues/${leagueId}/rosters`, "Failed to load rosters");
 }
 
-export async function submitRoster(
+/** Sets a player's picks, creating their roster if they didn't have one. */
+export function setRoster(
   leagueId: number,
-  userId: number,
+  playerId: number,
   contestantIds: number[],
-  mvpContestantId: number
+  mvpContestantId: number,
 ): Promise<RosterResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, contestantIds, mvpContestantId }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to submit roster"));
-  }
-  return res.json();
+  return write("PUT", `/leagues/${leagueId}/rosters/${playerId}`,
+    { contestantIds, mvpContestantId }, "Failed to save roster");
 }
 
-export async function adminUpdateRoster(
-  leagueId: number,
-  adminUserId: number,
-  targetUserId: number,
-  contestantIds: number[],
-  mvpContestantId: number
-): Promise<RosterResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters/${targetUserId}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: adminUserId, contestantIds, mvpContestantId }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to update roster"));
-  }
-  return res.json();
+// --- Episode scores ---
+
+export function getEpisodeScores(leagueId: number, episodeNumber: number): Promise<EpisodeScoreItem[]> {
+  return get(`/leagues/${leagueId}/episodes/${episodeNumber}/scores`, "Failed to load scores");
 }
 
-// --- Episode Scores ---
-
-export async function getEpisodeScores(leagueId: number, episodeNumber: number): Promise<EpisodeScoreItem[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeNumber}/scores`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch scores: ${res.status}`);
-  return res.json();
-}
-
-export async function saveEpisodeScores(
+export function saveEpisodeScores(
   leagueId: number,
   episodeNumber: number,
-  scores: EpisodeScoreItem[]
+  scores: EpisodeScoreItem[],
 ): Promise<EpisodeScoreItem[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/episodes/${episodeNumber}/scores`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(scores),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to save scores"));
-  }
-  return res.json();
+  return write("POST", `/leagues/${leagueId}/episodes/${episodeNumber}/scores`, scores, "Failed to save scores");
 }
 
-// --- Leaderboard ---
+// --- Standings ---
 
-export async function getLeaderboard(leagueId: number): Promise<LeaderboardEntry[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/leaderboard`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch leaderboard: ${res.status}`);
-  return res.json();
+export function getLeaderboard(leagueId: number): Promise<LeaderboardEntry[]> {
+  return get(`/leagues/${leagueId}/leaderboard`, "Failed to load leaderboard");
 }
 
-export async function getLeaderboardHistory(leagueId: number): Promise<LeaderboardHistoryEntry[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/leaderboard/history`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch leaderboard history: ${res.status}`);
-  return res.json();
+export function getLeaderboardHistory(leagueId: number): Promise<LeaderboardHistoryEntry[]> {
+  return get(`/leagues/${leagueId}/leaderboard/history`, "Failed to load leaderboard history");
 }
 
-export async function getScoringGrid(leagueId: number): Promise<ScoringGridResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/scoring-grid`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch scoring grid: ${res.status}`);
-  return res.json();
+export function getScoringGrid(leagueId: number): Promise<ScoringGridResponse> {
+  return get(`/leagues/${leagueId}/scoring-grid`, "Failed to load scoring grid");
 }
 
 // --- Merge ---
 
-export async function getAllRosters(leagueId: number): Promise<RosterResponse[]> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/rosters`, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch rosters: ${res.status}`);
-  return res.json();
-}
-
-export async function adminSetMergeAction(
+/** Sets (or corrects) a player's post-merge move. */
+export function setMergeAction(
   leagueId: number,
-  adminUserId: number,
-  targetUserId: number,
+  playerId: number,
   addedContestantId: number | null,
   removedContestantId: number | null,
-  noChange: boolean = false
+  noChange: boolean = false,
 ): Promise<RosterResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action/${targetUserId}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ adminUserId, addedContestantId, removedContestantId, noChange }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to set merge action"));
-  }
-  return res.json();
-}
-
-export async function performMergeAction(
-  leagueId: number,
-  userId: number,
-  addedContestantId: number | null,
-  removedContestantId: number | null,
-  noChange = false
-): Promise<RosterResponse> {
-  const res = await apiFetch(`${API_BASE}/leagues/${leagueId}/merge/action`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, addedContestantId, removedContestantId, noChange }),
-  });
-  if (!res.ok) {
-    throw new Error(await extractErrorMessage(res, "Failed to perform merge action"));
-  }
-  return res.json();
+  return write("PUT", `/leagues/${leagueId}/merge/action/${playerId}`,
+    { addedContestantId, removedContestantId, noChange }, "Failed to set merge action");
 }

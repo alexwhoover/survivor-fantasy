@@ -26,4 +26,8 @@ public class UserDao {
     public Optional<User> findById(Long id) {
         return Optional.ofNullable(entityManager.find(User.class, id));
     }
+
+    public void delete(User user) {
+        entityManager.remove(user);
+    }
 }

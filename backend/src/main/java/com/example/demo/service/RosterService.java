@@ -1,14 +1,11 @@
 package com.example.demo.service;
 
-import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.MergeActionDao;
 import com.example.demo.dao.RosterDao;
 import com.example.demo.dao.RosterPickDao;
 import com.example.demo.dto.MergeActionResponse;
 import com.example.demo.dto.RosterResponse;
-import com.example.demo.entity.League;
-import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.MergeAction;
 import com.example.demo.entity.Roster;
 import com.example.demo.entity.RosterPick;
@@ -25,22 +22,24 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Rosters are read by everyone and written only by the admin, on a player's behalf —
+ * there is no self-service picking, so there's a single write path.
+ */
 @Service
 public class RosterService {
 
     private final RosterDao rosterDao;
     private final RosterPickDao rosterPickDao;
     private final LeagueMemberDao leagueMemberDao;
-    private final LeagueDao leagueDao;
     private final MergeActionDao mergeActionDao;
 
     @Autowired
-    public RosterService(RosterDao rosterDao, RosterPickDao rosterPickDao, LeagueMemberDao leagueMemberDao,
-                         LeagueDao leagueDao, MergeActionDao mergeActionDao) {
+    public RosterService(RosterDao rosterDao, RosterPickDao rosterPickDao,
+                         LeagueMemberDao leagueMemberDao, MergeActionDao mergeActionDao) {
         this.rosterDao = rosterDao;
         this.rosterPickDao = rosterPickDao;
         this.leagueMemberDao = leagueMemberDao;
-        this.leagueDao = leagueDao;
         this.mergeActionDao = mergeActionDao;
     }
 
@@ -58,53 +57,26 @@ public class RosterService {
     }
 
     @Transactional
-    public RosterResponse submitRoster(Long leagueId, Long userId, Long mvpContestantId, List<Long> contestantIds) {
-        League league = leagueDao.findById(leagueId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-
-        LeagueMember member = leagueMemberDao.findByLeagueIdAndUserId(leagueId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a member of this league"));
-
-        if (member.getRole() != LeagueMember.Role.ADMIN && !league.isInitialPicksOpen()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Initial picks are currently closed for this league");
+    public RosterResponse setRoster(Long leagueId, Long playerId, Long mvpContestantId, List<Long> contestantIds) {
+        if (!leagueMemberDao.existsByLeagueIdAndUserId(leagueId, playerId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player is not in this league");
         }
 
-        validatePicksInput(mvpContestantId, contestantIds);
-        return upsertRoster(leagueId, userId, mvpContestantId, contestantIds);
-    }
-
-    @Transactional
-    public RosterResponse adminUpdateRoster(Long leagueId, Long adminUserId, Long targetUserId, Long mvpContestantId, List<Long> contestantIds) {
-        leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
-                .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Only league admins can modify other users' rosters"));
-
-        if (!leagueMemberDao.existsByLeagueIdAndUserId(leagueId, targetUserId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Target user is not a member of this league");
-        }
-
-        validatePicksInput(mvpContestantId, contestantIds);
-        return upsertRoster(leagueId, targetUserId, mvpContestantId, contestantIds);
-    }
-
-    private void validatePicksInput(Long mvpContestantId, List<Long> contestantIds) {
         if (mvpContestantId == null || contestantIds == null || contestantIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "mvpContestantId and contestantIds are required");
         }
         if (!contestantIds.contains(mvpContestantId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MVP must be one of the picked contestants");
         }
-    }
 
-    private RosterResponse upsertRoster(Long leagueId, Long userId, Long mvpContestantId, List<Long> contestantIds) {
-        Roster roster = rosterDao.findByLeagueIdAndUserId(leagueId, userId).orElse(null);
+        Roster roster = rosterDao.findByLeagueIdAndUserId(leagueId, playerId).orElse(null);
 
         if (roster != null) {
             rosterPickDao.deleteByRosterId(roster.getId());
             roster.setMvpContestantId(mvpContestantId);
             roster.setSubmittedAt(LocalDateTime.now());
         } else {
-            roster = new Roster(leagueId, userId, mvpContestantId, LocalDateTime.now());
+            roster = new Roster(leagueId, playerId, mvpContestantId, LocalDateTime.now());
             rosterDao.save(roster);
         }
 
@@ -112,7 +84,7 @@ public class RosterService {
             rosterPickDao.save(new RosterPick(roster.getId(), scId));
         }
 
-        return toResponse(roster, contestantIds, mergeActionDao.findByLeagueIdAndUserId(leagueId, userId).orElse(null));
+        return toResponse(roster, contestantIds, mergeActionDao.findByLeagueIdAndUserId(leagueId, playerId).orElse(null));
     }
 
     private RosterResponse toResponse(Roster roster) {

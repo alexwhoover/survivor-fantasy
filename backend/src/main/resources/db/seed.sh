@@ -28,4 +28,4 @@ if [ -n "$CHECKPOINT" ]; then
     run_sql "$file"
 fi
 
-echo "Done. Seeded league 'Season 51 League' with sample players (alex, jordan, sam, casey)."
+echo "Done. Seeded two sample leagues with sample players (no passwords — players don't sign in)."

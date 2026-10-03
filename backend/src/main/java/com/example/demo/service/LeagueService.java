@@ -4,7 +4,11 @@ import com.example.demo.dao.ContestantDao;
 import com.example.demo.dao.EpisodeDao;
 import com.example.demo.dao.LeagueDao;
 import com.example.demo.dao.LeagueMemberDao;
+import com.example.demo.dao.MergeActionDao;
+import com.example.demo.dao.RosterDao;
+import com.example.demo.dao.RosterPickDao;
 import com.example.demo.dao.TribeDao;
+import com.example.demo.dao.UserDao;
 import com.example.demo.dto.ContestantSetupItem;
 import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
@@ -14,13 +18,13 @@ import com.example.demo.entity.Episode;
 import com.example.demo.entity.League;
 import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.Tribe;
+import com.example.demo.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,32 +34,38 @@ import java.util.Set;
 @Service
 public class LeagueService {
 
-    private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    private static final int CODE_LENGTH = 6;
     private static final int DEFAULT_CONTESTANTS_PER_TRIBE = 2;
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final LeagueDao leagueDao;
     private final LeagueMemberDao leagueMemberDao;
     private final TribeDao tribeDao;
     private final ContestantDao contestantDao;
     private final EpisodeDao episodeDao;
+    private final UserDao userDao;
+    private final RosterDao rosterDao;
+    private final RosterPickDao rosterPickDao;
+    private final MergeActionDao mergeActionDao;
 
     @Autowired
     public LeagueService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao,
-                         TribeDao tribeDao, ContestantDao contestantDao, EpisodeDao episodeDao) {
+                         TribeDao tribeDao, ContestantDao contestantDao, EpisodeDao episodeDao,
+                         UserDao userDao, RosterDao rosterDao, RosterPickDao rosterPickDao,
+                         MergeActionDao mergeActionDao) {
         this.leagueDao = leagueDao;
         this.leagueMemberDao = leagueMemberDao;
         this.tribeDao = tribeDao;
         this.contestantDao = contestantDao;
         this.episodeDao = episodeDao;
+        this.userDao = userDao;
+        this.rosterDao = rosterDao;
+        this.rosterPickDao = rosterPickDao;
+        this.mergeActionDao = mergeActionDao;
     }
 
-    public List<LeagueResponse> getLeaguesForUser(Long userId) {
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
-        }
-        return leagueDao.findByUserId(userId).stream().map(this::toResponse).toList();
+    /** Leagues are global — every visitor sees every league, active and archived. */
+    @Transactional(readOnly = true)
+    public List<LeagueResponse> getAllLeagues() {
+        return leagueDao.findAll().stream().map(this::toResponse).toList();
     }
 
     /**
@@ -64,16 +74,13 @@ public class LeagueService {
      * there is no separate season-setup flow after a league exists.
      */
     @Transactional
-    public LeagueResponse createLeague(String name, String seasonName, Long userId, Integer contestantsPerTribe,
+    public LeagueResponse createLeague(String name, String seasonName, Integer contestantsPerTribe,
                                        List<TribeSetupItem> tribeItems, List<ContestantSetupItem> contestantItems) {
         if (name == null || name.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "League name is required");
         }
         if (seasonName == null || seasonName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Season name is required");
-        }
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }
 
         int perTribe = contestantsPerTribe != null ? contestantsPerTribe : DEFAULT_CONTESTANTS_PER_TRIBE;
@@ -117,15 +124,11 @@ public class LeagueService {
             }
         }
 
-        String code = generateUniqueCode();
         LocalDateTime now = LocalDateTime.now();
 
-        League league = new League(name.strip(), code, seasonName.strip(), userId, now);
+        League league = new League(name.strip(), seasonName.strip(), now);
         league.setContestantsPerTribe(perTribe);
         leagueDao.save(league);
-
-        LeagueMember admin = new LeagueMember(league.getId(), userId, LeagueMember.Role.ADMIN, now);
-        leagueMemberDao.save(admin);
 
         List<Tribe> savedTribes = new ArrayList<>();
         for (TribeSetupItem t : tribeItems) {
@@ -145,121 +148,99 @@ public class LeagueService {
     }
 
     @Transactional
-    public LeagueResponse setInitialPicksOpen(Long leagueId, Long adminUserId, boolean open) {
-        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can control picking");
-        league.setInitialPicksOpen(open);
-        return toResponse(league);
-    }
-
-    @Transactional
-    public LeagueResponse setMergePicksOpen(Long leagueId, Long adminUserId, boolean open) {
-        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can control picking");
-
-        if (open && episodeDao.findMergeEpisode(leagueId).isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Flag an episode as the merge episode before opening merge picks");
-        }
-
-        league.setMergePicksOpen(open);
-        return toResponse(league);
-    }
-
-    @Transactional
-    public LeagueResponse setArchived(Long leagueId, Long adminUserId, boolean archived) {
-        League league = requireAdminLeague(leagueId, adminUserId, "Only league admins can archive this league");
+    public LeagueResponse setArchived(Long leagueId, boolean archived) {
+        League league = requireLeague(leagueId);
         league.setArchived(archived);
         return toResponse(league);
     }
 
-    /** Promotes a member to admin. This is one-way: there is no demotion back to member. */
-    @Transactional
-    public List<LeagueMemberResponse> promoteToAdmin(Long leagueId, Long adminUserId, Long targetUserId) {
-        requireAdminLeague(leagueId, adminUserId, "Only league admins can promote members");
+    // --- Players ---
+    // Players don't sign up; the admin creates them. A player is a `users` row (a name)
+    // plus a membership row, so adding one creates both and the frontend only ever
+    // deals with the league's player list.
 
-        LeagueMember target = leagueMemberDao.findByLeagueIdAndUserId(leagueId, targetUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User is not a member of this league"));
-
-        if (target.getRole() == LeagueMember.Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is already an admin");
-        }
-
-        target.setRole(LeagueMember.Role.ADMIN);
+    @Transactional(readOnly = true)
+    public List<LeagueMemberResponse> getPlayers(Long leagueId) {
+        requireLeague(leagueId);
         return leagueMemberDao.findMembersWithUsernames(leagueId);
     }
 
-    private League requireAdminLeague(Long leagueId, Long adminUserId, String forbiddenMessage) {
-        if (adminUserId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "adminUserId is required");
-        }
-
-        League league = leagueDao.findById(leagueId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-
-        leagueMemberDao.findByLeagueIdAndUserId(leagueId, adminUserId)
-                .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, forbiddenMessage));
-
-        return league;
-    }
-
     @Transactional
-    public LeagueResponse joinLeague(String code, Long userId) {
-        if (code == null || code.isBlank() || userId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "code and userId are required");
+    public List<LeagueMemberResponse> addPlayer(Long leagueId, String name) {
+        requireLeague(leagueId);
+        if (name == null || name.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A player name is required");
         }
 
-        League league = leagueDao.findByCode(code.toUpperCase().strip())
+        String trimmed = name.strip();
+        // Player names are globally unique (the column's own constraint), so a name used
+        // in another season is reused as the same player rather than rejected.
+        User player = userDao.findByUsername(trimmed)
+                .orElseGet(() -> {
+                    User created = new User(trimmed, LocalDateTime.now());
+                    userDao.save(created);
+                    return created;
+                });
+
+        if (leagueMemberDao.existsByLeagueIdAndUserId(leagueId, player.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "\"" + trimmed + "\" is already in this league");
+        }
+
+        leagueMemberDao.save(new LeagueMember(leagueId, player.getId(), LocalDateTime.now()));
+        return leagueMemberDao.findMembersWithUsernames(leagueId);
+    }
+
+    /**
+     * Removes a player from a league, along with the roster and merge action that only
+     * meant anything inside it. The {@code users} row itself survives if the player is
+     * still in another league, so removing someone from this season doesn't rewrite
+     * an archived one.
+     */
+    @Transactional
+    public List<LeagueMemberResponse> removePlayer(Long leagueId, Long playerId) {
+        requireLeague(leagueId);
+
+        LeagueMember membership = leagueMemberDao.findByLeagueIdAndUserId(leagueId, playerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Player is not in this league"));
+
+        mergeActionDao.deleteByLeagueIdAndUserId(leagueId, playerId);
+        rosterDao.findByLeagueIdAndUserId(leagueId, playerId).ifPresent(roster -> {
+            rosterPickDao.deleteByRosterId(roster.getId());
+            rosterDao.delete(roster);
+        });
+        leagueMemberDao.delete(membership);
+
+        // The player row is shared across leagues, so it only goes when nothing is left
+        // pointing at it. Hibernate flushes the delete above before running this query,
+        // so the membership just removed isn't counted.
+        if (leagueMemberDao.findByUserId(playerId).isEmpty()) {
+            userDao.findById(playerId).ifPresent(userDao::delete);
+        }
+
+        return leagueMemberDao.findMembersWithUsernames(leagueId);
+    }
+
+    private League requireLeague(Long leagueId) {
+        return leagueDao.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-
-        if (leagueMemberDao.existsByLeagueIdAndUserId(league.getId(), userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User is already a member of this league");
-        }
-
-        LeagueMember member = new LeagueMember(league.getId(), userId, LeagueMember.Role.MEMBER, LocalDateTime.now());
-        leagueMemberDao.save(member);
-
-        return toResponse(league);
-    }
-
-    private String generateUniqueCode() {
-        for (int attempts = 0; attempts < 10; attempts++) {
-            String code = randomCode();
-            if (!leagueDao.existsByCode(code)) {
-                return code;
-            }
-        }
-        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to generate unique league code");
-    }
-
-    private String randomCode() {
-        StringBuilder sb = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            sb.append(CODE_CHARS.charAt(RANDOM.nextInt(CODE_CHARS.length())));
-        }
-        return sb.toString();
     }
 
     private String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.strip();
     }
 
+    @Transactional(readOnly = true)
     public LeagueResponse getLeagueById(Long id) {
-        League league = leagueDao.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-        return toResponse(league);
+        return toResponse(requireLeague(id));
     }
 
     public LeagueResponse toResponse(League league) {
         return new LeagueResponse(
                 league.getId(),
                 league.getName(),
-                league.getCode(),
                 league.getSeasonName(),
-                league.getCreatedBy(),
                 league.getCreatedAt(),
                 league.getContestantsPerTribe(),
-                league.isInitialPicksOpen(),
-                league.isMergePicksOpen(),
                 episodeDao.findMergeEpisode(league.getId()).map(Episode::getEpisodeNumber).orElse(null),
                 league.isArchived()
         );

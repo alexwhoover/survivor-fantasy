@@ -31,4 +31,5 @@ logs/
 
 # Secrets (root env file loaded by docker compose)
 .env
+.env.bak*
 !.env.example

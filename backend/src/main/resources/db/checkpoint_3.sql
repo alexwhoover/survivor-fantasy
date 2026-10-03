@@ -1,17 +1,17 @@
 -- Checkpoint 3: Between ep 7 and ep 8, merge window open.
 -- Eliminations: Brandon(1) Natalie(2) Danny(3) Priya(4) Marcus(5) Kevin(6) Rachel(7/merge)
 -- Scores entered for episodes 2–7.
--- Merge initiated. Alex and Jordan have made their merge moves; Sam and Casey have not.
+-- Merge initiated. Alex and Reed have made their merge moves; Sam and Casey have not.
 --   Alex:   SWAP Tyler  → Noah
---   Jordan: SWAP Aisha  → Tyler
+--   Reed: SWAP Aisha  → Tyler
 -- Run: ./seed.sh 3
 
 -- ─── Variables ────────────────────────────────────────────────────────────────
 
-SET @lid = (SELECT id FROM leagues WHERE code = 'SURV51');
+SET @lid = (SELECT id FROM leagues WHERE name = 'Season 51 League');
 
 SET @uid_alex   = (SELECT id FROM users WHERE username = 'alex');
-SET @uid_jordan = (SELECT id FROM users WHERE username = 'jordan');
+SET @uid_reed = (SELECT id FROM users WHERE username = 'reed');
 SET @uid_sam    = (SELECT id FROM users WHERE username = 'sam');
 SET @uid_casey  = (SELECT id FROM users WHERE username = 'casey');
 
@@ -43,12 +43,6 @@ DELETE rp FROM roster_picks   rp JOIN rosters     r ON rp.roster_id     = r.id W
 DELETE FROM rosters WHERE league_id = @lid;
 UPDATE contestants SET eliminated_episode = NULL, winner = FALSE WHERE league_id = @lid;
 
--- ─── League state (merge episode flagged, merge picks open) ───────────────────
-
-UPDATE leagues
-SET initial_picks_open = FALSE, merge_picks_open = TRUE
-WHERE id = @lid;
-
 INSERT INTO episodes (league_id, episode_number, is_merge_episode) VALUES
 (@lid, 1, FALSE), (@lid, 2, FALSE), (@lid, 3, FALSE), (@lid, 4, FALSE),
 (@lid, 5, FALSE), (@lid, 6, FALSE), (@lid, 7, TRUE);
@@ -65,12 +59,12 @@ UPDATE contestants SET eliminated_episode = 7 WHERE id = @c_rachel;
 
 INSERT INTO rosters (league_id, user_id, mvp_contestant_id, submitted_at) VALUES
 (@lid, @uid_alex,   @c_maya,  '2026-05-28 10:00:00'),
-(@lid, @uid_jordan, @c_jake,  '2026-05-28 12:30:00'),
+(@lid, @uid_reed, @c_jake,  '2026-05-28 12:30:00'),
 (@lid, @uid_sam,    @c_elena, '2026-05-28 18:45:00'),
 (@lid, @uid_casey,  @c_priya, '2026-05-28 22:00:00');
 
 SET @rid_alex   = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_alex);
-SET @rid_jordan = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_jordan);
+SET @rid_reed = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_reed);
 SET @rid_sam    = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_sam);
 SET @rid_casey  = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_casey);
 
@@ -79,11 +73,11 @@ INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 (@rid_alex, @c_maya), (@rid_alex, @c_rachel), (@rid_alex, @c_kevin),
 (@rid_alex, @c_zoe), (@rid_alex, @c_carlos), (@rid_alex, @c_noah);
 
--- jordan: Aisha replaced by Tyler (merge action below)
+-- reed: Aisha replaced by Tyler (merge action below)
 INSERT INTO roster_picks (roster_id, contestant_id) VALUES
-(@rid_jordan, @c_priya), (@rid_jordan, @c_danny),
-(@rid_jordan, @c_jake), (@rid_jordan, @c_hannah), (@rid_jordan, @c_brandon),
-(@rid_jordan, @c_tyler);
+(@rid_reed, @c_priya), (@rid_reed, @c_danny),
+(@rid_reed, @c_jake), (@rid_reed, @c_hannah), (@rid_reed, @c_brandon),
+(@rid_reed, @c_tyler);
 
 -- sam: no merge action yet — original picks
 INSERT INTO roster_picks (roster_id, contestant_id) VALUES
@@ -101,7 +95,7 @@ INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 
 INSERT INTO merge_actions (league_id, user_id, action_type, added_contestant_id, removed_contestant_id) VALUES
 (@lid, @uid_alex,   'SWAP', @c_noah,  @c_tyler),
-(@lid, @uid_jordan, 'SWAP', @c_tyler, @c_aisha);
+(@lid, @uid_reed, 'SWAP', @c_tyler, @c_aisha);
 
 -- ─── Episode scores (eps 2–7) ─────────────────────────────────────────────────
 

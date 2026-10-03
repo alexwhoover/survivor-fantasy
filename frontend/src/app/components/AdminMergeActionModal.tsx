@@ -2,14 +2,13 @@ import { useState, useMemo } from "react";
 import { ArrowLeftRight, Plus, Crown, CheckCircle2, Circle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
-import { adminSetMergeAction, type Contestant, type RosterResponse } from "../../api";
+import { setMergeAction, type Contestant, type Player, type RosterResponse } from "../../api";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   leagueId: number;
-  adminUserId: number;
-  targetMember: { userId: number; username: string };
+  targetPlayer: Player;
   currentRoster: RosterResponse;
   contestants: Contestant[];
   maxRosterSize: number;
@@ -20,8 +19,7 @@ export function AdminMergeActionModal({
   open,
   onClose,
   leagueId,
-  adminUserId,
-  targetMember,
+  targetPlayer,
   currentRoster,
   contestants,
   maxRosterSize,
@@ -75,7 +73,7 @@ export function AdminMergeActionModal({
     if (isSwap && !removeId) { setError("Select a contestant to remove"); return; }
     setSubmitting(true);
     try {
-      onSuccess(await adminSetMergeAction(leagueId, adminUserId, targetMember.userId, addId, isSwap ? removeId : null));
+      onSuccess(await setMergeAction(leagueId, targetPlayer.userId, addId, isSwap ? removeId : null));
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to set merge action");
@@ -88,7 +86,7 @@ export function AdminMergeActionModal({
     setError("");
     setSubmitting(true);
     try {
-      onSuccess(await adminSetMergeAction(leagueId, adminUserId, targetMember.userId, null, null, true));
+      onSuccess(await setMergeAction(leagueId, targetPlayer.userId, null, null, true));
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to keep the roster unchanged");
@@ -105,16 +103,16 @@ export function AdminMergeActionModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isSwap ? <ArrowLeftRight className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
-            {existingAction ? "Override" : "Set"} Merge {isSwap ? "Swap" : "Add"} — {targetMember.username}
+            {existingAction ? "Override" : "Set"} Merge {isSwap ? "Swap" : "Add"} — {targetPlayer.username}
           </DialogTitle>
           <DialogDescription>
             {isSwap
               ? "Select the contestant to remove and the contestant to add."
-              : "Select the contestant to add to this user's roster."}
+              : "Select the contestant to add to this player's roster."}
           </DialogDescription>
         </DialogHeader>
 
@@ -126,7 +124,7 @@ export function AdminMergeActionModal({
                 <span className="w-5 h-5 rounded-full bg-destructive/20 text-destructive flex items-center justify-center text-xs font-bold">–</span>
                 Contestant to remove
               </h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {removableContestants.map((c) => {
                   const selected = removeId === c.id;
                   const isMVP = c.id === currentRoster.mvpContestantId;
@@ -183,7 +181,7 @@ export function AdminMergeActionModal({
                         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: tribeColor }} />
                         <span className="text-sm font-medium text-muted-foreground">{tribe} Tribe</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {tribeContestants.map((c) => {
                           const selected = addId === c.id;
                           return (
@@ -234,17 +232,17 @@ export function AdminMergeActionModal({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
             {isSwap && (
-              <Button variant="outline" onClick={handleKeepRoster} disabled={submitting} className="mr-auto">
+              <Button variant="outline" onClick={handleKeepRoster} disabled={submitting} className="min-h-[44px] sm:mr-auto">
                 {submitting ? "Saving..." : "Keep Roster As-Is"}
               </Button>
             )}
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button variant="outline" className="min-h-[44px]" onClick={onClose}>Cancel</Button>
             <Button
               onClick={handleSubmit}
               disabled={submitting || !addId || (isSwap && !removeId)}
-              className="gap-2"
+              className="min-h-[44px] gap-2"
             >
               {isSwap ? <ArrowLeftRight className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               {submitting ? "Saving..." : existingAction ? "Override Action" : "Set Action"}

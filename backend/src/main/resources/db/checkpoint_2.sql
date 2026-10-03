@@ -5,10 +5,10 @@
 
 -- ─── Variables ────────────────────────────────────────────────────────────────
 
-SET @lid = (SELECT id FROM leagues WHERE code = 'SURV51');
+SET @lid = (SELECT id FROM leagues WHERE name = 'Season 51 League');
 
 SET @uid_alex   = (SELECT id FROM users WHERE username = 'alex');
-SET @uid_jordan = (SELECT id FROM users WHERE username = 'jordan');
+SET @uid_reed = (SELECT id FROM users WHERE username = 'reed');
 SET @uid_sam    = (SELECT id FROM users WHERE username = 'sam');
 SET @uid_casey  = (SELECT id FROM users WHERE username = 'casey');
 
@@ -40,12 +40,6 @@ DELETE rp FROM roster_picks   rp JOIN rosters     r ON rp.roster_id     = r.id W
 DELETE FROM rosters WHERE league_id = @lid;
 UPDATE contestants SET eliminated_episode = NULL, winner = FALSE WHERE league_id = @lid;
 
--- ─── League state (picking closed — season underway) ──────────────────────────
-
-UPDATE leagues
-SET initial_picks_open = FALSE, merge_picks_open = FALSE
-WHERE id = @lid;
-
 INSERT INTO episodes (league_id, episode_number) VALUES
 (@lid, 1), (@lid, 2), (@lid, 3), (@lid, 4);
 
@@ -61,12 +55,12 @@ UPDATE contestants SET eliminated_episode = 4 WHERE id = @c_priya;
 
 INSERT INTO rosters (league_id, user_id, mvp_contestant_id, submitted_at) VALUES
 (@lid, @uid_alex,   @c_maya,  '2026-05-28 10:00:00'),
-(@lid, @uid_jordan, @c_jake,  '2026-05-28 12:30:00'),
+(@lid, @uid_reed, @c_jake,  '2026-05-28 12:30:00'),
 (@lid, @uid_sam,    @c_elena, '2026-05-28 18:45:00'),
 (@lid, @uid_casey,  @c_priya, '2026-05-28 22:00:00');
 
 SET @rid_alex   = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_alex);
-SET @rid_jordan = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_jordan);
+SET @rid_reed = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_reed);
 SET @rid_sam    = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_sam);
 SET @rid_casey  = (SELECT id FROM rosters WHERE league_id = @lid AND user_id = @uid_casey);
 
@@ -76,11 +70,11 @@ INSERT INTO roster_picks (roster_id, contestant_id) VALUES
 (@rid_alex, @c_rachel), (@rid_alex, @c_kevin),
 (@rid_alex, @c_zoe), (@rid_alex, @c_carlos);
 
--- jordan: Loa(Priya, Danny)   Moku(Aisha, Jake)    Puna(Hannah, Brandon)
+-- reed: Loa(Priya, Danny)   Moku(Aisha, Jake)    Puna(Hannah, Brandon)
 INSERT INTO roster_picks (roster_id, contestant_id) VALUES
-(@rid_jordan, @c_priya), (@rid_jordan, @c_danny),
-(@rid_jordan, @c_aisha), (@rid_jordan, @c_jake),
-(@rid_jordan, @c_hannah), (@rid_jordan, @c_brandon);
+(@rid_reed, @c_priya), (@rid_reed, @c_danny),
+(@rid_reed, @c_aisha), (@rid_reed, @c_jake),
+(@rid_reed, @c_hannah), (@rid_reed, @c_brandon);
 
 -- sam:    Loa(Sofia, Marcus)  Moku(Elena, Noah)    Puna(Natalie, Drew)
 INSERT INTO roster_picks (roster_id, contestant_id) VALUES

@@ -1,17 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AdminProvider, useAdmin } from "./context/AdminContext";
 import { Navigation } from "./components/Navigation";
-import { RequireAuth } from "./components/RequireAuth";
-import { RequireGuest } from "./components/RequireGuest";
-import { Login } from "./pages/Login";
-import { Home } from "./pages/Home";
-import { CreateLeague } from "./pages/CreateLeague";
+import { Leagues } from "./pages/Leagues";
 import { LeagueOverview } from "./pages/LeagueOverview";
-import { RosterPicker } from "./pages/RosterPicker";
 import { HowToPlay } from "./pages/HowToPlay";
+import { AdminLogin } from "./pages/AdminLogin";
+import { CreateLeague } from "./pages/CreateLeague";
 
-/** Every authenticated page shares the nav bar. */
-function AuthenticatedLayout() {
+/** Every page shares the nav bar — there are no gated areas of the site. */
+function Layout() {
   return (
     <>
       <Navigation />
@@ -20,35 +17,30 @@ function AuthenticatedLayout() {
   );
 }
 
-/** Sends stray/unknown paths wherever the visitor actually belongs. */
-function CatchAll() {
-  const { user, loading } = useAuth();
+/**
+ * The only gate left. Visitors aren't "logged out" — they're the intended audience —
+ * so the few admin-only pages send them home rather than to a login form.
+ */
+function RequireAdmin() {
+  const { isAdmin, loading } = useAdmin();
   if (loading) return null;
-  return <Navigate to={user ? "/leagues" : "/"} replace />;
+  return isAdmin ? <Outlet /> : <Navigate to="/" replace />;
 }
 
 function AppContent() {
   return (
     <div className="min-h-screen bg-background isolate">
       <Routes>
-        <Route
-          path="/"
-          element={
-            <RequireGuest>
-              <Login />
-            </RequireGuest>
-          }
-        />
-        <Route element={<RequireAuth />}>
-          <Route element={<AuthenticatedLayout />}>
-            <Route path="/leagues" element={<Home />} />
-            <Route path="/leagues/new" element={<CreateLeague />} />
-            <Route path="/league/:leagueId" element={<LeagueOverview />} />
-            <Route path="/league/:leagueId/pick" element={<RosterPicker />} />
-            <Route path="/how-to-play" element={<HowToPlay />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<Leagues />} />
+          <Route path="/league/:leagueId" element={<LeagueOverview />} />
+          <Route path="/how-to-play" element={<HowToPlay />} />
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin/new-league" element={<CreateLeague />} />
           </Route>
         </Route>
-        <Route path="*" element={<CatchAll />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );
@@ -57,9 +49,9 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <AdminProvider>
         <AppContent />
-      </AuthProvider>
+      </AdminProvider>
     </BrowserRouter>
   );
 }

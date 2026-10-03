@@ -1,26 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
-import { Archive, ArchiveRestore, Lock, Plus, Trash2, Unlock } from "lucide-react";
+import { Archive, ArchiveRestore, Plus, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { EpisodeModal } from "./EpisodeModal";
 import {
-  setInitialPicksOpen,
-  setMergePicksOpen,
   setLeagueArchived,
   getEpisodes,
   addEpisode,
   deleteEpisode,
   type LeagueApiResponse,
-  type Tribe,
   type Contestant,
   type Episode,
 } from "../../api";
 
 interface Props {
   league: LeagueApiResponse;
-  adminUserId: number;
-  tribes: Tribe[];
   contestants: Contestant[];
   onLeagueUpdated: (league: LeagueApiResponse) => void;
   onContestantsChanged: (contestants: Contestant[]) => void;
@@ -28,61 +23,30 @@ interface Props {
 }
 
 export function AdminSeason({
-  league, adminUserId, contestants,
-  onLeagueUpdated, onContestantsChanged, onScoresChanged,
+  league, contestants, onLeagueUpdated, onContestantsChanged, onScoresChanged,
 }: Props) {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [openEpisodeId, setOpenEpisodeId] = useState<number | null>(null);
-  const [togglingInitial, setTogglingInitial] = useState(false);
-  const [togglingMerge, setTogglingMerge] = useState(false);
   const [togglingArchived, setTogglingArchived] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
   const refreshEpisodes = useCallback(() => {
-    getEpisodes(league.id).then(setEpisodes);
+    getEpisodes(league.id).then(setEpisodes).catch(() => {});
   }, [league.id]);
 
   useEffect(() => {
     refreshEpisodes();
   }, [refreshEpisodes]);
 
-  const mergeEpisodeFlagged = episodes.some((e) => e.isMergeEpisode);
   const latestEpisode = episodes.length > 0 ? episodes[episodes.length - 1] : null;
   const openEpisode = episodes.find((e) => e.id === openEpisodeId) ?? null;
-
-  const handleToggleInitial = async () => {
-    setError("");
-    setTogglingInitial(true);
-    try {
-      const updated = await setInitialPicksOpen(league.id, adminUserId, !league.initialPicksOpen);
-      onLeagueUpdated(updated);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update initial picks state");
-    } finally {
-      setTogglingInitial(false);
-    }
-  };
-
-  const handleToggleMerge = async () => {
-    setError("");
-    setTogglingMerge(true);
-    try {
-      const updated = await setMergePicksOpen(league.id, adminUserId, !league.mergePicksOpen);
-      onLeagueUpdated(updated);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update merge picks state");
-    } finally {
-      setTogglingMerge(false);
-    }
-  };
 
   const handleToggleArchived = async () => {
     setError("");
     setTogglingArchived(true);
     try {
-      const updated = await setLeagueArchived(league.id, adminUserId, !league.archived);
-      onLeagueUpdated(updated);
+      onLeagueUpdated(await setLeagueArchived(league.id, !league.archived));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update archived state");
     } finally {
@@ -94,7 +58,7 @@ export function AdminSeason({
     setError("");
     setAdding(true);
     try {
-      const episode = await addEpisode(league.id, adminUserId);
+      const episode = await addEpisode(league.id);
       setEpisodes((prev) => [...prev, episode]);
       setOpenEpisodeId(episode.id);
     } catch (e) {
@@ -107,7 +71,7 @@ export function AdminSeason({
   const handleDeleteEpisode = async (episode: Episode) => {
     setError("");
     try {
-      await deleteEpisode(league.id, adminUserId, episode.id);
+      await deleteEpisode(league.id, episode.id);
       refreshEpisodes();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to remove episode");
@@ -133,56 +97,11 @@ export function AdminSeason({
 
   return (
     <div className="space-y-4">
-      {/* ── Season Controls ── */}
-      <Card style={{ padding: "16px" }}>
-        <div className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Season Controls</div>
-        <div className="flex items-center justify-between py-2 border-b border-border">
-          <span className="text-sm text-muted-foreground">Initial Picks</span>
-          <Button
-            variant={league.initialPicksOpen ? "secondary" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={handleToggleInitial}
-            disabled={togglingInitial}
-          >
-            {league.initialPicksOpen ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-            {league.initialPicksOpen ? "Open" : "Closed"}
-          </Button>
-        </div>
-        <div className="flex items-center justify-between py-2 border-b border-border">
-          <span className="text-sm text-muted-foreground">Merge Picks</span>
-          <Button
-            variant={league.mergePicksOpen ? "secondary" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={handleToggleMerge}
-            disabled={togglingMerge || !mergeEpisodeFlagged}
-            title={!mergeEpisodeFlagged ? "Flag an episode as the merge episode first" : undefined}
-          >
-            {league.mergePicksOpen ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-            {league.mergePicksOpen ? "Open" : "Closed"}
-          </Button>
-        </div>
-        <div className="flex items-center justify-between py-2">
-          <span className="text-sm text-muted-foreground">Archive League</span>
-          <Button
-            variant={league.archived ? "secondary" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={handleToggleArchived}
-            disabled={togglingArchived}
-          >
-            {league.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
-            {league.archived ? "Unarchive" : "Archive"}
-          </Button>
-        </div>
-      </Card>
-
       {/* ── Episodes ── */}
       <Card style={{ padding: "16px" }}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-xs text-muted-foreground uppercase tracking-wide">Episodes</div>
-          <Button size="sm" className="gap-1.5" onClick={handleAddEpisode} disabled={adding}>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Episodes</div>
+          <Button size="sm" className="min-h-[36px] gap-1.5" onClick={handleAddEpisode} disabled={adding}>
             <Plus className="h-3.5 w-3.5" />
             {adding ? "Adding..." : "Add Episode"}
           </Button>
@@ -195,7 +114,7 @@ export function AdminSeason({
             {episodes.map((ep, i) => (
               <div
                 key={ep.id}
-                className={`flex items-center justify-between py-2.5 cursor-pointer ${
+                className={`flex min-h-[44px] cursor-pointer items-center justify-between py-2.5 ${
                   i < episodes.length - 1 ? "border-b border-border" : ""
                 }`}
                 onClick={() => setOpenEpisodeId(ep.id)}
@@ -209,7 +128,7 @@ export function AdminSeason({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground gap-1"
+                      className="h-8 gap-1 px-2 text-xs text-muted-foreground"
                       onClick={(e) => { e.stopPropagation(); handleDeleteEpisode(ep); }}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -224,12 +143,31 @@ export function AdminSeason({
         )}
       </Card>
 
+      {/* ── Season state ── */}
+      <Card style={{ padding: "16px" }}>
+        <div className="mb-3 text-xs uppercase tracking-wide text-muted-foreground">Season</div>
+        <div className="flex items-center justify-between gap-3 py-1">
+          <span className="text-sm text-muted-foreground">
+            Archiving moves this league to "Past seasons" on the home page.
+          </span>
+          <Button
+            variant={league.archived ? "secondary" : "outline"}
+            size="sm"
+            className="min-h-[36px] shrink-0 gap-1.5"
+            onClick={handleToggleArchived}
+            disabled={togglingArchived}
+          >
+            {league.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+            {league.archived ? "Unarchive" : "Archive"}
+          </Button>
+        </div>
+      </Card>
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {openEpisode && (
         <EpisodeModal
           leagueId={league.id}
-          adminUserId={adminUserId}
           episode={openEpisode}
           contestants={contestants}
           onClose={() => setOpenEpisodeId(null)}

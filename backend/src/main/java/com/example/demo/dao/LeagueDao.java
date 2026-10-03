@@ -18,31 +18,14 @@ public class LeagueDao {
         entityManager.persist(league);
     }
 
-    public boolean existsByCode(String code) {
-        return !entityManager.createQuery(
-                "SELECT l FROM League l WHERE l.code = :code", League.class)
-                .setParameter("code", code)
-                .getResultStream()
-                .findFirst()
-                .isEmpty();
-    }
-
     public Optional<League> findById(Long id) {
         return Optional.ofNullable(entityManager.find(League.class, id));
     }
 
-    public Optional<League> findByCode(String code) {
+    /** Every league, newest first — leagues are global, so this is what visitors browse. */
+    public List<League> findAll() {
         return entityManager.createQuery(
-                "SELECT l FROM League l WHERE l.code = :code", League.class)
-                .setParameter("code", code)
-                .getResultStream()
-                .findFirst();
-    }
-
-    public List<League> findByUserId(Long userId) {
-        return entityManager.createQuery(
-                "SELECT l FROM League l JOIN LeagueMember m ON l.id = m.leagueId WHERE m.userId = :userId", League.class)
-                .setParameter("userId", userId)
+                "SELECT l FROM League l ORDER BY l.createdAt DESC, l.id DESC", League.class)
                 .getResultList();
     }
 }

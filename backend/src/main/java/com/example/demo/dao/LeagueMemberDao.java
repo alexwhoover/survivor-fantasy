@@ -18,6 +18,10 @@ public class LeagueMemberDao {
         entityManager.persist(leagueMember);
     }
 
+    public void delete(LeagueMember leagueMember) {
+        entityManager.remove(leagueMember);
+    }
+
     public Optional<LeagueMember> findByLeagueIdAndUserId(Long leagueId, Long userId) {
         return entityManager.createQuery(
                 "SELECT m FROM LeagueMember m WHERE m.leagueId = :leagueId AND m.userId = :userId",
@@ -30,7 +34,7 @@ public class LeagueMemberDao {
 
     public List<LeagueMemberResponse> findMembersWithUsernames(Long leagueId) {
         return entityManager.createQuery(
-                "SELECT new com.example.demo.dto.LeagueMemberResponse(m.userId, u.username, m.role, m.joinedAt) " +
+                "SELECT new com.example.demo.dto.LeagueMemberResponse(m.userId, u.username, m.joinedAt) " +
                 "FROM LeagueMember m, User u " +
                 "WHERE u.id = m.userId AND m.leagueId = :leagueId " +
                 "ORDER BY m.joinedAt ASC",
@@ -46,5 +50,13 @@ public class LeagueMemberDao {
                 .setParameter("userId", userId)
                 .getSingleResult();
         return count > 0;
+    }
+
+    /** Memberships this player holds anywhere — checked before deleting the player row itself. */
+    public List<LeagueMember> findByUserId(Long userId) {
+        return entityManager.createQuery(
+                "SELECT m FROM LeagueMember m WHERE m.userId = :userId", LeagueMember.class)
+                .setParameter("userId", userId)
+                .getResultList();
     }
 }

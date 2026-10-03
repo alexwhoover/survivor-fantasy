@@ -3,10 +3,8 @@ package com.example.demo.service;
 import com.example.demo.dao.EpisodeDao;
 import com.example.demo.dao.EpisodeScoreDao;
 import com.example.demo.dao.LeagueDao;
-import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dto.EpisodeDto;
 import com.example.demo.entity.Episode;
-import com.example.demo.entity.LeagueMember;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Episodes are created manually by the league admin as the season progresses —
+ * Episodes are created manually by the site admin as the season progresses —
  * there's no fixed episode count decided up front. Episodes are always added in
  * sequence, and only the most recently added one can be removed (to undo a mistake).
  */
@@ -27,15 +25,12 @@ public class EpisodeService {
     private final EpisodeDao episodeDao;
     private final EpisodeScoreDao episodeScoreDao;
     private final LeagueDao leagueDao;
-    private final LeagueMemberDao leagueMemberDao;
 
     @Autowired
-    public EpisodeService(EpisodeDao episodeDao, EpisodeScoreDao episodeScoreDao,
-                          LeagueDao leagueDao, LeagueMemberDao leagueMemberDao) {
+    public EpisodeService(EpisodeDao episodeDao, EpisodeScoreDao episodeScoreDao, LeagueDao leagueDao) {
         this.episodeDao = episodeDao;
         this.episodeScoreDao = episodeScoreDao;
         this.leagueDao = leagueDao;
-        this.leagueMemberDao = leagueMemberDao;
     }
 
     @Transactional(readOnly = true)
@@ -45,9 +40,8 @@ public class EpisodeService {
     }
 
     @Transactional
-    public EpisodeDto addEpisode(Long leagueId, Long adminUserId) {
+    public EpisodeDto addEpisode(Long leagueId) {
         requireLeague(leagueId);
-        requireAdmin(leagueId, adminUserId);
 
         Integer maxNumber = episodeDao.findMaxEpisodeNumber(leagueId);
         int nextNumber = (maxNumber != null ? maxNumber : 0) + 1;
@@ -58,8 +52,8 @@ public class EpisodeService {
     }
 
     @Transactional
-    public void deleteEpisode(Long leagueId, Long adminUserId, Long episodeId) {
-        requireAdmin(leagueId, adminUserId);
+    public void deleteEpisode(Long leagueId, Long episodeId) {
+        requireLeague(leagueId);
         Episode episode = episodeDao.findById(episodeId)
                 .filter(e -> e.getLeagueId().equals(leagueId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Episode not found in this league"));
@@ -79,10 +73,10 @@ public class EpisodeService {
         episodeDao.delete(episode);
     }
 
-    /** Admin-only: flags (or unflags) this episode as the season's merge episode. At most one may be flagged. */
+    /** Flags (or unflags) this episode as the season's merge episode. At most one may be flagged. */
     @Transactional
-    public EpisodeDto setMergeEpisode(Long leagueId, Long adminUserId, Long episodeId, boolean isMergeEpisode) {
-        requireAdmin(leagueId, adminUserId);
+    public EpisodeDto setMergeEpisode(Long leagueId, Long episodeId, boolean isMergeEpisode) {
+        requireLeague(leagueId);
         Episode episode = episodeDao.findById(episodeId)
                 .filter(e -> e.getLeagueId().equals(leagueId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Episode not found in this league"));
@@ -97,15 +91,6 @@ public class EpisodeService {
     private void requireLeague(Long leagueId) {
         leagueDao.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-    }
-
-    private void requireAdmin(Long leagueId, Long userId) {
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "adminUserId is required");
-        }
-        leagueMemberDao.findByLeagueIdAndUserId(leagueId, userId)
-                .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Only league admins can manage episodes"));
     }
 
     private EpisodeDto toDto(Episode episode) {

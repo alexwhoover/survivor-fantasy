@@ -3,9 +3,9 @@
 -- Run manually against local DB via ./seed.sh [1|2|3|4]. NOT a Flyway migration.
 
 -- ─── Cleanup any previous seed data ───────────────────────────────────────────
--- Test users are fully disposable, so wipe every league they created (not just
--- the SURV51 seed league) plus any membership/roster rows tied to them directly —
--- they may have created or joined other leagues manually while testing the app.
+-- Test players are fully disposable, so wipe both seed leagues plus any
+-- membership/roster rows tied to those players directly — they may have been added
+-- to other leagues manually while testing the app.
 
 CREATE TEMPORARY TABLE _seed_user_ids AS
     SELECT id FROM users WHERE username IN (
@@ -14,8 +14,9 @@ CREATE TEMPORARY TABLE _seed_user_ids AS
         'john', 'karen', 'marin', 'marko', 'norah', 'polina', 'reed', 'sophia'
     );
 
+-- Leagues no longer record who created them, so the seed leagues are matched by name.
 CREATE TEMPORARY TABLE _seed_league_ids AS
-    SELECT id FROM leagues WHERE created_by IN (SELECT id FROM _seed_user_ids);
+    SELECT id FROM leagues WHERE name IN ('Season 51 League', 'Reed''s Survivor League');
 
 DELETE FROM merge_actions
     WHERE league_id IN (SELECT id FROM _seed_league_ids)
@@ -49,27 +50,24 @@ DROP TEMPORARY TABLE _seed_league_ids;
 DELETE FROM SPRING_SESSION_ATTRIBUTES;
 DELETE FROM SPRING_SESSION;
 
--- ─── Users (password: "password") ─────────────────────────────────────────────
+-- ─── Players ──────────────────────────────────────────────────────────────────
+-- Players are names, not accounts — there is no password to seed.
 
-INSERT INTO users (username, password_hash) VALUES
-('alex',   '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('reed',   '$2b$10$HQgVmAe6pvRoqGFhmEL1MuNdQnTK08U4khsM72v/VVpnXWwV5OCl6'),
-('sam',    '$2b$10$l4OrCgQWYT/4B4tfGnoQqegoa0a8d.b7HQ8KpcmtdpXzAQRmSHx8e'),
-('casey',  '$2b$10$NRYKi8nMQOdxvNMlrEF0XeSL4u9.RM/IdFHE3NkeI5kEaUCFikpTW');
+INSERT INTO users (username) VALUES ('alex'), ('reed'), ('sam'), ('casey');
 
+-- alex and reed are shared with the Season 50 league further down.
 SET @uid_alex = (SELECT id FROM users WHERE username = 'alex');
 SET @uid_reed = (SELECT id FROM users WHERE username = 'reed');
 
 -- ─── League with its own season configuration ─────────────────────────────────
 
-INSERT INTO leagues (name, code, season_name, initial_picks_open, contestants_per_tribe, created_by)
-VALUES ('Season 51 League', 'SURV51', 'Survivor: New Horizons', TRUE, 2, @uid_alex);
+INSERT INTO leagues (name, season_name, contestants_per_tribe)
+VALUES ('Season 51 League', 'Survivor: New Horizons', 2);
 
 SET @lid = LAST_INSERT_ID();
 
-INSERT INTO league_members (league_id, user_id, role)
-SELECT @lid, id, IF(username IN ('alex', 'reed'), 'ADMIN', 'MEMBER')
-FROM users WHERE username IN ('alex', 'reed', 'sam', 'casey');
+INSERT INTO league_members (league_id, user_id)
+SELECT @lid, id FROM users WHERE username IN ('alex', 'reed', 'sam', 'casey');
 
 -- ─── Tribes ───────────────────────────────────────────────────────────────────
 
@@ -112,24 +110,13 @@ INSERT INTO contestants (league_id, tribe_id, first_name, last_name) VALUES
 -- eliminated_episode/winner and the (Ep. X) tags come from the episode each
 -- pick's owner recorded; episode_scores below are 0 placeholders to fill in.
 
--- ─── Users (password: "password") ─────────────────────────────────────────────
+-- ─── Players ──────────────────────────────────────────────────────────────────
 
-INSERT INTO users (username, password_hash) VALUES
-('alexf',      '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('ali',        '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('antony',     '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('christophe', '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('dustin',     '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('hiro',       '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('john',       '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('karen',      '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('marin',      '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('marko',      '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('norah',      '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('polina',     '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK'),
-('sophia',     '$2b$10$cVQc4XpQmf9OZ6aZ1NBvi.0hBy0BbsBL01QUqEPO8tUx/.ZwAZPNK');
+INSERT INTO users (username) VALUES
+('alexf'), ('ali'), ('antony'), ('christophe'), ('dustin'), ('hiro'),
+('john'), ('karen'), ('marin'), ('marko'), ('norah'), ('polina'), ('sophia');
 
--- alexh and reed were created earlier as 'alex' and 'reed' (same real people, shared with SURV51)
+-- alex and reed already exist from the Season 51 league above (same real people).
 SET @uid_alexf      = (SELECT id FROM users WHERE username = 'alexf');
 SET @uid_ali        = (SELECT id FROM users WHERE username = 'ali');
 SET @uid_antony     = (SELECT id FROM users WHERE username = 'antony');
@@ -146,14 +133,13 @@ SET @uid_sophia     = (SELECT id FROM users WHERE username = 'sophia');
 
 -- ─── League with its own season configuration ─────────────────────────────────
 
-INSERT INTO leagues (name, code, season_name, initial_picks_open, merge_picks_open, contestants_per_tribe, created_by)
-VALUES ('Reed''s Survivor League', 'SURV50', 'Season 50', FALSE, FALSE, 3, @uid_reed);
+INSERT INTO leagues (name, season_name, contestants_per_tribe)
+VALUES ('Reed''s Survivor League', 'Season 50', 3);
 
 SET @lid50 = LAST_INSERT_ID();
 
-INSERT INTO league_members (league_id, user_id, role)
-SELECT @lid50, id, IF(username = 'reed', 'ADMIN', 'MEMBER')
-FROM users WHERE username IN ('alexf', 'alex', 'ali', 'antony', 'christophe', 'dustin', 'hiro',
+INSERT INTO league_members (league_id, user_id)
+SELECT @lid50, id FROM users WHERE username IN ('alexf', 'alex', 'ali', 'antony', 'christophe', 'dustin', 'hiro',
                                'john', 'karen', 'marin', 'marko', 'norah', 'polina', 'reed', 'sophia');
 
 -- ─── Tribes ───────────────────────────────────────────────────────────────────

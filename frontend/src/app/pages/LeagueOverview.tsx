@@ -1,212 +1,70 @@
-import { useState, useEffect, useCallback } from "react";
-import type { CSSProperties } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Crown, Eye, GitMerge, Medal } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useParams } from "react-router-dom";
+import { Archive, Crown, GitMerge, Medal } from "lucide-react";
+import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { useAuth } from "../context/AuthContext";
+import { useAdmin } from "../context/AdminContext";
 import { AdminPlayers } from "../components/AdminPlayers";
 import { AdminSeason } from "../components/AdminSeason";
-import { MergeActionModal } from "../components/MergeActionModal";
 import { ScoringGrid } from "../components/ScoringGrid";
 import { StandingsGraph } from "../components/StandingsGraph";
 import {
   getLeagueById,
   getLeagueCast,
-  getLeagueMembers,
+  getPlayers,
   getLeaderboard,
-  getRosterForUser,
+  getAllRosters,
   type LeagueApiResponse,
   type Tribe,
   type Contestant,
   type RosterResponse,
-  type LeagueMember,
+  type Player,
   type LeaderboardEntry,
 } from "../../api";
 
-type Tab = "roster" | "standings" | "admin";
+type Tab = "standings" | "rosters" | "admin";
 type StandingsView = "leaderboard" | "graph" | "scoring";
 type AdminSubtab = "players" | "season";
 
-function pickingBadgeClass(open: boolean): string {
-  return open
-    ? "bg-green-500/10 text-green-500 border-green-500"
-    : "bg-red-500/10 text-red-500 border-red-500";
-}
+// ─── Tab bar ─────────────────────────────────────────────────────────────────
 
-// ─── Roster view modal ────────────────────────────────────────────────────────
-
-function RosterViewModal({
-  member,
-  leagueId,
-  contestants,
-  tribes,
-  onClose,
+/**
+ * Horizontal tabs rather than the old left rail: a 220px sidebar has nowhere to go on
+ * a phone, and with three destinations a row of tabs reads the same at every width.
+ */
+function TabBar({
+  tabs,
+  active,
+  onSelect,
 }: {
-  member: LeagueMember | null;
-  leagueId: number;
-  contestants: Contestant[];
-  tribes: Tribe[];
-  onClose: () => void;
+  tabs: { id: string; label: string }[];
+  active: string;
+  onSelect: (id: string) => void;
 }) {
-  const [roster, setRoster] = useState<RosterResponse | null | undefined>(undefined);
-
-  useEffect(() => {
-    if (!member) return;
-    setRoster(undefined);
-    getRosterForUser(leagueId, member.userId).then(setRoster);
-  }, [member, leagueId]);
-
-  // The contestant taken at the merge, whether that was an add or the added half of a swap.
-  const mergePickId = roster?.mergeAction?.addedContestantId ?? null;
-
-  const rosterContestants =
-    roster?.contestantIds
-      .map((id) => contestants.find((c) => c.id === id))
-      .filter(Boolean) as Contestant[] ?? [];
-
-  /**
-   * One column per tribe, so a full roster reads across rather than down — nine or ten
-   * picks stacked vertically ran past the bottom of a desktop viewport. Tribes keep the
-   * league's own order, and picks whose tribe was cleared fall into a trailing column
-   * rather than being dropped.
-   */
-  const untribed = rosterContestants.filter((c) => c.tribeId === null);
-  const columns: { key: string; name: string; colour: string | null; picks: Contestant[] }[] = [
-    ...tribes.map((t) => ({
-      key: `tribe-${t.id}`,
-      name: t.name,
-      colour: t.colour,
-      picks: rosterContestants.filter((c) => c.tribeId === t.id),
-    })),
-    ...(untribed.length > 0
-      ? [{ key: "no-tribe", name: "No tribe", colour: null, picks: untribed }]
-      : []),
-  ];
-
   return (
-    <Dialog open={member !== null} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="sm:max-w-3xl">
-        {member && (
-          <>
-            <DialogHeader>
-              <DialogTitle>{member.username}'s Roster</DialogTitle>
-            </DialogHeader>
-            <div className="py-2 max-h-[70vh] overflow-y-auto">
-              {roster === undefined ? (
-                <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : roster === null ? (
-                <p className="text-sm text-muted-foreground">No roster submitted yet.</p>
-              ) : (
-                <div
-                  className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-[repeat(var(--tribe-cols),minmax(0,1fr))]"
-                  style={{ "--tribe-cols": columns.length } as CSSProperties}
-                >
-                  {columns.map((col) => (
-                    <div key={col.key}>
-                      <div className="flex items-center gap-1.5 pb-1.5 mb-1 border-b border-border">
-                        {col.colour && (
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.colour }} />
-                        )}
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground truncate">
-                          {col.name}
-                        </span>
-                      </div>
-
-                      {col.picks.length === 0 ? (
-                        <div className="text-sm text-muted-foreground/50 py-1.5">—</div>
-                      ) : (
-                        col.picks.map((c) => {
-                          const isMVP = c.id === roster.mvpContestantId;
-                          const isOut = c.eliminatedEpisode !== null;
-                          return (
-                            <div key={c.id} className="flex items-start gap-1.5 py-1.5">
-                              <span
-                                className={`text-sm font-medium ${
-                                  isOut ? "line-through text-muted-foreground" : ""
-                                }`}
-                              >
-                                {c.firstName} {c.lastName}
-                              </span>
-                              {c.id === mergePickId && (
-                                <span
-                                  className={`text-sm font-medium shrink-0 ${
-                                    isOut ? "text-muted-foreground" : ""
-                                  }`}
-                                >
-                                  (merge)
-                                </span>
-                              )}
-                              {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Merge alert banner ───────────────────────────────────────────────────────
-
-function MergeAlert({
-  league,
-  hasActed,
-  onOpenMergeAction,
-}: {
-  league: LeagueApiResponse;
-  hasActed: boolean;
-  onOpenMergeAction: () => void;
-}) {
-  if (league.mergeEpisode === null) return null;
-
-  if (hasActed) {
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-green-600/30 bg-green-950/20 text-sm">
-        <GitMerge className="h-4 w-4 text-green-500 shrink-0" />
-        <span className="text-green-400 font-medium">Merge action complete.</span>
-      </div>
-    );
-  }
-
-  if (!league.mergePicksOpen) {
-    return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground">
-        <GitMerge className="h-4 w-4 shrink-0" />
-        Merge picks aren't open right now.
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-primary/50 bg-accent">
-      <div className="flex items-center gap-3 text-sm">
-        <GitMerge className="h-4 w-4 text-primary shrink-0" />
-        <span>
-          <span className="font-semibold text-primary">Merge is active</span>
-          {" — "}Episode {league.mergeEpisode}. You haven't made your move yet.
-        </span>
-      </div>
-      <Button size="sm" onClick={onOpenMergeAction} className="gap-1.5 shrink-0">
-        <GitMerge className="h-3.5 w-3.5" />
-        Make Move
-      </Button>
+    <div className="flex gap-1 border-b border-border" role="tablist">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={active === tab.id}
+          onClick={() => onSelect(tab.id)}
+          className={`-mb-px min-h-[44px] border-b-2 px-3 text-sm transition-colors sm:px-4 ${
+            active === tab.id
+              ? "border-primary font-medium text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-// ─── Left-rail nav ──────────────────────────────────────────────────────────────
-
-function RailButton({
+function SegmentedButton({
   active,
   onClick,
   children,
@@ -216,114 +74,204 @@ function RailButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left px-2.5 py-2 rounded-md text-sm transition-colors ${
-        active ? "bg-accent text-foreground font-medium" : "text-muted-foreground hover:bg-accent/50"
-      }`}
-    >
+    <Button variant={active ? "default" : "outline"} size="sm" onClick={onClick} className="min-h-[36px] flex-1 sm:flex-none">
       {children}
-    </button>
+    </Button>
   );
 }
 
-function RailSubButton({
-  active,
-  onClick,
-  children,
+// ─── Rosters tab ─────────────────────────────────────────────────────────────
+
+/**
+ * One card per player, all of them on the page at once. Previously a roster was
+ * something you opened a modal to peek at — now that nobody has a roster "of their
+ * own", comparing them side by side is the whole point of the view.
+ */
+function RosterCard({
+  player,
+  roster,
+  contestants,
+  tribes,
+  points,
+  total,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  player: Player;
+  roster: RosterResponse | undefined;
+  contestants: Contestant[];
+  tribes: Tribe[];
+  points: Record<number, number>;
+  total: number | undefined;
 }) {
+  const mergeAction = roster?.mergeAction ?? null;
+  const addedId = mergeAction?.addedContestantId ?? null;
+  const removedId = mergeAction?.actionType === "SWAP" ? mergeAction.removedContestantId : null;
+
+  const byId = (id: number) => contestants.find((c) => c.id === id);
+
+  // The contestant swapped out at the merge can still be in the pick list (reverting an
+  // admin override restores it, and seeded leagues carry it), so it's pulled out here —
+  // otherwise it renders twice, once struck through and again as a current pick.
+  const picks = (roster?.contestantIds ?? [])
+    .filter((id) => id !== removedId)
+    .map(byId)
+    .filter(Boolean) as Contestant[];
+
+  // Tribe order follows the league's own, so the same castaway sits in the same place
+  // on every card and the cards can be read against each other.
+  const ordered = [
+    ...tribes.flatMap((t) => picks.filter((c) => c.tribeId === t.id)),
+    ...picks.filter((c) => c.tribeId === null || !tribes.some((t) => t.id === c.tribeId)),
+  ];
+
+  const removed = removedId !== null ? byId(removedId) : undefined;
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors ${
-        active ? "text-primary font-medium" : "text-muted-foreground hover:bg-accent/40"
-      }`}
-    >
-      {children}
-    </button>
+    <Card className="p-4">
+      <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-border pb-2.5">
+        <span className="truncate text-base font-medium">{player.username}</span>
+        <span className="shrink-0 text-sm text-muted-foreground">
+          <span className="text-base font-semibold text-primary tabular-nums">{total ?? 0}</span> pts
+        </span>
+      </div>
+
+      {!roster ? (
+        <p className="text-sm text-muted-foreground">No roster yet.</p>
+      ) : (
+        <div className="space-y-1">
+          {removed && (
+            <RosterRow
+              contestant={removed}
+              points={points[removed.id] ?? 0}
+              struck
+              note="swapped out at merge"
+            />
+          )}
+          {ordered.map((c) => (
+            <RosterRow
+              key={c.id}
+              contestant={c}
+              points={points[c.id] ?? 0}
+              isMVP={c.id === roster.mvpContestantId}
+              isMergePick={c.id === addedId}
+            />
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+function RosterRow({
+  contestant,
+  points,
+  isMVP,
+  isMergePick,
+  struck,
+  note,
+}: {
+  contestant: Contestant;
+  points: number;
+  isMVP?: boolean;
+  isMergePick?: boolean;
+  struck?: boolean;
+  note?: string;
+}) {
+  const isOut = contestant.eliminatedEpisode !== null;
+  return (
+    <div className={`flex items-start justify-between gap-2 py-1.5 ${struck ? "opacity-60" : ""}`}>
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        {contestant.tribeColour && (
+          <span
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: contestant.tribeColour }}
+          />
+        )}
+        <span
+          className={`text-sm ${struck ? "text-muted-foreground line-through" : isOut ? "text-muted-foreground" : "font-medium"}`}
+        >
+          {contestant.firstName} {contestant.lastName}
+        </span>
+        {isMVP && <Crown className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="MVP" />}
+        {isMergePick && <GitMerge className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Merge pick" />}
+        {note && <span className="text-[11px] italic text-muted-foreground/70">{note}</span>}
+        {isOut && !struck && (
+          <span className="text-[11px] text-muted-foreground/70">E{contestant.eliminatedEpisode}</span>
+        )}
+      </div>
+      <span className="shrink-0 text-sm tabular-nums">{points}</span>
+    </div>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
 
 export function LeagueOverview() {
   const { leagueId } = useParams();
-  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const [league, setLeague] = useState<LeagueApiResponse | null>(null);
   const [tribes, setTribes] = useState<Tribe[]>([]);
   const [contestants, setContestants] = useState<Contestant[]>([]);
-  const [myRoster, setMyRoster] = useState<RosterResponse | null>(null);
-  const [leagueMembers, setLeagueMembers] = useState<LeagueMember[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [rosters, setRosters] = useState<RosterResponse[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [viewingMember, setViewingMember] = useState<LeagueMember | null>(null);
-  const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [error, setError] = useState("");
 
-  const [tab, setTab] = useState<Tab>("roster");
+  const [tab, setTab] = useState<Tab>("standings");
   const [adminSubtab, setAdminSubtab] = useState<AdminSubtab>("players");
   const [standingsView, setStandingsView] = useState<StandingsView>("leaderboard");
 
   const numId = Number(leagueId);
 
-  const refreshLeaderboard = useCallback(() => {
+  const refreshStandings = useCallback(() => {
     getLeaderboard(numId).then(setLeaderboard).catch(() => {});
+    getAllRosters(numId).then(setRosters).catch(() => {});
   }, [numId]);
 
-  // Initial data load
   useEffect(() => {
     if (!leagueId) return;
-    getLeagueById(numId).then(setLeague);
-    getLeagueCast(numId).then((cast) => {
-      setTribes(cast.tribes);
-      setContestants(cast.contestants);
-    });
-    getLeagueMembers(numId).then(setLeagueMembers);
-    refreshLeaderboard();
-  }, [leagueId]);
+    getLeagueById(numId).then(setLeague).catch((e) =>
+      setError(e instanceof Error ? e.message : "Failed to load league"),
+    );
+    getLeagueCast(numId)
+      .then((cast) => {
+        setTribes(cast.tribes);
+        setContestants(cast.contestants);
+      })
+      .catch(() => {});
+    getPlayers(numId).then(setPlayers).catch(() => {});
+    refreshStandings();
+  }, [leagueId, numId, refreshStandings]);
 
+  // The admin tab disappears on sign-out, so a stale selection would leave a blank page.
   useEffect(() => {
-    if (!leagueId || !user) return;
-    getRosterForUser(numId, user.id).then(setMyRoster);
-  }, [leagueId, user]);
+    if (!isAdmin && tab === "admin") setTab("standings");
+  }, [isAdmin, tab]);
+
+  const rosterByPlayer = useMemo(
+    () => new Map(rosters.map((r) => [r.userId, r])),
+    [rosters],
+  );
+  const entryByPlayer = useMemo(
+    () => new Map(leaderboard.map((e) => [e.userId, e])),
+    [leaderboard],
+  );
+
+  if (error) {
+    return <p className="px-4 py-8 text-sm text-muted-foreground sm:px-6">{error}</p>;
+  }
 
   if (!league) {
     return <div className="p-8 text-muted-foreground">Loading...</div>;
   }
 
-  // A swap's removed contestant gets its own struck-through row above the picks. It can
-  // still be present in the roster's own pick list (an admin merge override restores the
-  // pick when reverting, and seeded leagues carry it too), so drop it here — otherwise the
-  // same contestant renders twice, once as removed and again as a current pick.
-  const myMergeAction = myRoster?.mergeAction ?? null;
-  const mergeRemovedId =
-    myMergeAction?.actionType === "SWAP" ? myMergeAction.removedContestantId : null;
-
-  const myRosterContestants = myRoster
-    ? (myRoster.contestantIds
-        .filter((id) => id !== mergeRemovedId)
-        .map((id) => contestants.find((c) => c.id === id))
-        .filter(Boolean) as Contestant[])
-    : [];
-
-  const mvpContestant = myRoster
-    ? (contestants.find((c) => c.id === myRoster.mvpContestantId) ?? null)
-    : null;
-
-  const myLeaderboardEntry = user ? leaderboard.find((e) => e.userId === user.id) : undefined;
-  const contestantPoints = myLeaderboardEntry?.contestantPoints ?? {};
-
-  const isAdmin = leagueMembers.some((m) => m.userId === user?.id && m.role === "ADMIN");
   const maxRosterSize = league.contestantsPerTribe * tribes.length;
 
-  const myHasActed = myMergeAction !== null;
-
-  const canEditRoster = league.initialPicksOpen;
+  const tabs = [
+    { id: "standings", label: "Standings" },
+    { id: "rosters", label: "Rosters" },
+    ...(isAdmin ? [{ id: "admin", label: "Admin" }] : []),
+  ];
 
   const rankIcon = (rank: number) => {
     if (rank === 1) return <Medal className="h-4 w-4 text-yellow-400" />;
@@ -332,315 +280,137 @@ export function LeagueOverview() {
     return null;
   };
 
-  const goTab = (t: Tab) => {
-    setTab(t);
-    if (t === "admin") setAdminSubtab("players");
-  };
-
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      {/* ── Left rail ── */}
-      <div className="w-[220px] shrink-0 border-r border-border px-3.5 py-5 flex flex-col gap-0.5">
-        <div className="px-2 pb-4">
-          <div className="text-[15px] font-medium text-foreground">{league.name}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{league.seasonName}</div>
-        </div>
-        <RailButton active={tab === "roster"} onClick={() => goTab("roster")}>My Roster</RailButton>
-        <RailButton active={tab === "standings"} onClick={() => goTab("standings")}>Standings</RailButton>
-        {isAdmin && (
-          <>
-            <RailButton active={tab === "admin"} onClick={() => goTab("admin")}>Admin</RailButton>
-            {tab === "admin" && (
-              <div className="flex flex-col gap-0.5 ml-2.5 pl-2.5 my-0.5 border-l border-border">
-                <RailSubButton active={adminSubtab === "players"} onClick={() => setAdminSubtab("players")}>
-                  Players
-                </RailSubButton>
-                <RailSubButton active={adminSubtab === "season"} onClick={() => setAdminSubtab("season")}>
-                  Season
-                </RailSubButton>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* ── Main content ── */}
-      <div className="flex-1 min-w-0 px-10 py-8 flex flex-col gap-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="mb-1">{league.name}</h1>
-            <p className="text-muted-foreground">{league.seasonName}</p>
-          </div>
-          {canEditRoster && (
-            <Link to={`/league/${leagueId}/pick`}>
-              <Button variant="secondary">{myRoster ? "Edit Roster" : "Make Picks"}</Button>
-            </Link>
+    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+      <div>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="text-2xl sm:text-3xl">{league.name}</h1>
+          {league.archived && (
+            <Badge variant="outline" className="gap-1 text-muted-foreground">
+              <Archive className="h-3 w-3" />
+              Past season
+            </Badge>
           )}
         </div>
-
-        {/* Info row */}
-        <div className="grid grid-cols-3 gap-2.5">
-          <Card className="p-3">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Members</div>
-            <div className="text-lg font-medium mt-0.5">{leagueMembers.length}</div>
-          </Card>
-          <Card className="p-3">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">League Code</div>
-            <div className="text-lg font-medium mt-0.5 font-mono text-primary">{league.code}</div>
-          </Card>
-          <Card className="p-3">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Picking</div>
-            <div className="flex flex-col gap-1 mt-1">
-              <Badge variant="outline" className={`w-fit ${pickingBadgeClass(league.initialPicksOpen)}`}>
-                Initial Picks
-              </Badge>
-              <Badge variant="outline" className={`w-fit ${pickingBadgeClass(league.mergePicksOpen)}`}>
-                Merge Pick
-              </Badge>
-            </div>
-          </Card>
-        </div>
-
-        {/* ── My Roster tab ── */}
-        {tab === "roster" && (
-          <div className="space-y-4">
-            {user && (
-              <MergeAlert
-                league={league}
-                hasActed={myHasActed}
-                onOpenMergeAction={() => setMergeModalOpen(true)}
-              />
-            )}
-
-            {myRoster ? (
-              <Card style={{ padding: "16px" }}>
-                <div className="flex items-start justify-between mb-2.5">
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Your Picks</div>
-                    <div className="text-base font-medium">
-                      {myRosterContestants.length} contestant{myRosterContestants.length !== 1 ? "s" : ""} selected
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Total Points</div>
-                    <div className="text-lg font-semibold text-primary">{myLeaderboardEntry?.totalScore ?? 0}</div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  {/* Removed contestant — shown at top when a swap occurred */}
-                  {mergeRemovedId !== null && (() => {
-                    const removed = contestants.find((c) => c.id === mergeRemovedId);
-                    if (!removed) return null;
-                    return (
-                      <div
-                        key={`removed-${removed.id}`}
-                        className="flex items-center justify-between py-2.5 px-1 border-b border-border opacity-60"
-                      >
-                        <div className="flex items-center gap-2">
-                          {removed.tribeColour && (
-                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: removed.tribeColour }} />
-                          )}
-                          <span className="text-sm font-medium line-through text-muted-foreground">
-                            {removed.firstName} {removed.lastName}
-                          </span>
-                          <span className="text-xs text-muted-foreground/70 italic">Removed in Merge Swap</span>
-                        </div>
-                        <span className="text-sm font-medium">{contestantPoints[removed.id] ?? 0} pts</span>
-                      </div>
-                    );
-                  })()}
-
-                  {myRosterContestants.map((contestant, i) => {
-                    const isMVP = contestant.id === myRoster.mvpContestantId;
-                    const isMergeAdded = myMergeAction?.addedContestantId === contestant.id;
-                    return (
-                      <div
-                        key={contestant.id}
-                        className={`flex items-center justify-between py-2.5 px-1 ${
-                          i < myRosterContestants.length - 1 ? "border-b border-border" : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {contestant.tribeColour && (
-                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: contestant.tribeColour }} />
-                          )}
-                          <span className="text-sm font-medium">{contestant.firstName} {contestant.lastName}</span>
-                          {isMVP && <Badge variant="outline" className="gap-1"><Crown className="h-3 w-3" />MVP</Badge>}
-                          {isMergeAdded && (
-                            <Badge variant="secondary" className="gap-1">
-                              <GitMerge className="h-3 w-3" />
-                              Added in Merge
-                            </Badge>
-                          )}
-                          {contestant.eliminatedEpisode !== null && (
-                            <Badge variant="outline" className="text-muted-foreground">Out</Badge>
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{contestantPoints[contestant.id] ?? 0} pts</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {mvpContestant && (
-                  <div className="mt-4 p-3 rounded-lg bg-accent border border-primary/50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Crown className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">MVP Pick: {mvpContestant.firstName} {mvpContestant.lastName}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      +30 bonus points if they win the season.
-                    </p>
-                  </div>
-                )}
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <p className="text-muted-foreground mb-4">You haven't submitted your picks yet.</p>
-                  {canEditRoster && (
-                    <Link to={`/league/${leagueId}/pick`}>
-                      <Button>Make Picks</Button>
-                    </Link>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* ── Standings tab ── */}
-        {tab === "standings" && (
-          <Card style={{ padding: "16px" }}>
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                {standingsView === "leaderboard" ? "Leaderboard" : standingsView === "graph" ? "Graph" : "Scoring"}
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={standingsView === "leaderboard" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setStandingsView("leaderboard")}
-                >
-                  Leaderboard
-                </Button>
-                <Button
-                  variant={standingsView === "graph" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setStandingsView("graph")}
-                >
-                  Graph
-                </Button>
-                <Button
-                  variant={standingsView === "scoring" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setStandingsView("scoring")}
-                >
-                  Scoring
-                </Button>
-              </div>
-            </div>
-            {standingsView === "graph" ? (
-              <StandingsGraph leagueId={numId} />
-            ) : standingsView === "scoring" ? (
-              <ScoringGrid leagueId={numId} roster={myRoster} />
-            ) : leaderboard.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No scores yet.</p>
-            ) : (
-              <div className="space-y-1">
-                {leaderboard.map((entry, index) => {
-                  const isCurrentUser = user && entry.userId === user.id;
-                  const member = leagueMembers.find((m) => m.userId === entry.userId);
-                  const rank = index + 1;
-
-                  return (
-                    <div
-                      key={entry.userId}
-                      className={`flex items-center justify-between py-2.5 px-1 ${
-                        index < leaderboard.length - 1 ? "border-b border-border" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-6 h-6">
-                          {rankIcon(rank) ?? <span className="text-xs font-bold text-muted-foreground">{rank}</span>}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">{entry.username}</span>
-                          {isCurrentUser && <Badge variant="outline">You</Badge>}
-                          {member?.role === "ADMIN" && <Badge variant="secondary">Admin</Badge>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-base font-medium">{entry.totalScore}</span>
-                        {member && !isCurrentUser && (
-                          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setViewingMember(member)}>
-                            <Eye className="h-3.5 w-3.5" />
-                            Roster
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* ── Admin tab ── */}
-        {tab === "admin" && isAdmin && (
-          <>
-            {adminSubtab === "players" && (
-              <AdminPlayers
-                league={league}
-                adminUserId={user!.id}
-                members={leagueMembers}
-                tribes={tribes}
-                contestants={contestants}
-                maxRosterSize={maxRosterSize}
-                onMergeActionSaved={refreshLeaderboard}
-                onMembersUpdated={setLeagueMembers}
-              />
-            )}
-            {adminSubtab === "season" && (
-              <AdminSeason
-                league={league}
-                adminUserId={user!.id}
-                tribes={tribes}
-                contestants={contestants}
-                onLeagueUpdated={setLeague}
-                onContestantsChanged={setContestants}
-                onScoresChanged={refreshLeaderboard}
-              />
-            )}
-          </>
-        )}
+        <p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
+          {league.seasonName}
+          <span className="mx-2 text-muted-foreground/40">·</span>
+          {players.length} player{players.length !== 1 ? "s" : ""}
+          {league.mergeEpisode !== null && (
+            <>
+              <span className="mx-2 text-muted-foreground/40">·</span>
+              merged ep. {league.mergeEpisode}
+            </>
+          )}
+        </p>
       </div>
 
-      {/* View-roster modal */}
-      <RosterViewModal
-        member={viewingMember}
-        leagueId={numId}
-        contestants={contestants}
-        tribes={tribes}
-        onClose={() => setViewingMember(null)}
-      />
+      <TabBar tabs={tabs} active={tab} onSelect={(id) => setTab(id as Tab)} />
 
-      {/* Merge action modal */}
-      {user && myRoster && league.mergeEpisode !== null && !myHasActed && (
-        <MergeActionModal
-          open={mergeModalOpen}
-          onClose={() => setMergeModalOpen(false)}
-          leagueId={numId}
-          userId={user.id}
-          currentRoster={myRoster}
-          contestants={contestants}
-          maxRosterSize={maxRosterSize}
-          onSuccess={(roster) => {
-            setMyRoster(roster);
-            refreshLeaderboard();
-          }}
-        />
+      {/* ── Standings ── */}
+      {tab === "standings" && (
+        <Card className="p-3 sm:p-4">
+          <div className="mb-3 flex gap-1">
+            <SegmentedButton
+              active={standingsView === "leaderboard"}
+              onClick={() => setStandingsView("leaderboard")}
+            >
+              Leaderboard
+            </SegmentedButton>
+            <SegmentedButton active={standingsView === "graph"} onClick={() => setStandingsView("graph")}>
+              Graph
+            </SegmentedButton>
+            <SegmentedButton active={standingsView === "scoring"} onClick={() => setStandingsView("scoring")}>
+              Scoring
+            </SegmentedButton>
+          </div>
+
+          {standingsView === "graph" ? (
+            <StandingsGraph leagueId={numId} />
+          ) : standingsView === "scoring" ? (
+            <ScoringGrid leagueId={numId} players={players} rosters={rosters} />
+          ) : leaderboard.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No scores yet.</p>
+          ) : (
+            <div>
+              {leaderboard.map((entry, index) => (
+                <div
+                  key={entry.userId}
+                  className={`flex items-center justify-between gap-3 py-2.5 ${
+                    index < leaderboard.length - 1 ? "border-b border-border" : ""
+                  }`}
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+                      {rankIcon(index + 1) ?? (
+                        <span className="text-xs font-bold text-muted-foreground">{index + 1}</span>
+                      )}
+                    </div>
+                    <span className="truncate text-sm font-medium">{entry.username}</span>
+                  </div>
+                  <span className="shrink-0 text-base font-medium tabular-nums">{entry.totalScore}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ── Rosters ── */}
+      {tab === "rosters" &&
+        (players.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No players yet.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {players.map((player) => (
+              <RosterCard
+                key={player.userId}
+                player={player}
+                roster={rosterByPlayer.get(player.userId)}
+                contestants={contestants}
+                tribes={tribes}
+                points={entryByPlayer.get(player.userId)?.contestantPoints ?? {}}
+                total={entryByPlayer.get(player.userId)?.totalScore}
+              />
+            ))}
+          </div>
+        ))}
+
+      {/* ── Admin ── */}
+      {tab === "admin" && isAdmin && (
+        <>
+          <div className="flex gap-1">
+            <SegmentedButton active={adminSubtab === "players"} onClick={() => setAdminSubtab("players")}>
+              Players
+            </SegmentedButton>
+            <SegmentedButton active={adminSubtab === "season"} onClick={() => setAdminSubtab("season")}>
+              Season
+            </SegmentedButton>
+          </div>
+
+          {adminSubtab === "players" ? (
+            <AdminPlayers
+              league={league}
+              players={players}
+              tribes={tribes}
+              contestants={contestants}
+              maxRosterSize={maxRosterSize}
+              onPlayersUpdated={(updated) => {
+                setPlayers(updated);
+                refreshStandings();
+              }}
+              onRostersChanged={refreshStandings}
+            />
+          ) : (
+            <AdminSeason
+              league={league}
+              contestants={contestants}
+              onLeagueUpdated={setLeague}
+              onContestantsChanged={setContestants}
+              onScoresChanged={refreshStandings}
+            />
+          )}
+        </>
       )}
     </div>
   );

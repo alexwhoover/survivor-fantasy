@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
-import { Crown, Pencil, CheckCircle2, Circle, ArrowLeftRight, Plus, ShieldCheck } from "lucide-react";
+import { Crown, Pencil, CheckCircle2, Circle, ArrowLeftRight, Plus, Trash2, UserPlus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { AdminMergeActionModal } from "./AdminMergeActionModal";
 import {
   getAllRosters,
-  adminUpdateRoster,
-  promoteToAdmin,
+  setRoster,
+  addPlayer,
+  removePlayer,
   type LeagueApiResponse,
-  type LeagueMember,
+  type Player,
   type Tribe,
   type Contestant,
   type RosterResponse,
@@ -18,83 +20,92 @@ import {
 
 interface Props {
   league: LeagueApiResponse;
-  adminUserId: number;
-  members: LeagueMember[];
+  players: Player[];
   tribes: Tribe[];
   contestants: Contestant[];
   maxRosterSize: number;
-  onMergeActionSaved: () => void;
-  onMembersUpdated: (members: LeagueMember[]) => void;
+  onPlayersUpdated: (players: Player[]) => void;
+  onRostersChanged: () => void;
 }
 
 interface EditState {
-  member: LeagueMember;
+  player: Player;
   selectedIds: number[];
   mvpId: number | null;
 }
 
 interface MergeEditTarget {
-  member: LeagueMember;
+  player: Player;
   roster: RosterResponse;
 }
 
-function pickingBadgeClass(active: boolean): string {
-  return active
+function statusBadgeClass(done: boolean): string {
+  return done
     ? "bg-green-500/10 text-green-500 border-green-500"
     : "bg-red-500/10 text-red-500 border-red-500";
 }
 
 export function AdminPlayers({
-  league, adminUserId, members, tribes, contestants,
-  maxRosterSize, onMergeActionSaved, onMembersUpdated,
+  league, players, tribes, contestants, maxRosterSize, onPlayersUpdated, onRostersChanged,
 }: Props) {
   const [rosters, setRosters] = useState<Record<number, RosterResponse>>({});
   const [editState, setEditState] = useState<EditState | null>(null);
   const [mergeEditTarget, setMergeEditTarget] = useState<MergeEditTarget | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [promoteTarget, setPromoteTarget] = useState<LeagueMember | null>(null);
-  const [promoting, setPromoting] = useState(false);
-  const [promoteError, setPromoteError] = useState("");
+  const [newName, setNewName] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [rosterError, setRosterError] = useState("");
+  const [removeTarget, setRemoveTarget] = useState<Player | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     getAllRosters(league.id)
       .then((all) => setRosters(Object.fromEntries(all.map((r) => [r.userId, r]))))
       .catch(() => {});
-  }, [league.id, members]);
+  }, [league.id, players]);
 
-  const openRosterEdit = (member: LeagueMember) => {
-    const roster = rosters[member.userId] ?? null;
+  const openRosterEdit = (player: Player) => {
+    const roster = rosters[player.userId] ?? null;
     setEditState({
-      member,
+      player,
       selectedIds: roster?.contestantIds ?? [],
       mvpId: roster?.mvpContestantId ?? null,
     });
     setSaveError("");
   };
 
-  const openMergeEdit = (member: LeagueMember) => {
-    const roster = rosters[member.userId];
+  const openMergeEdit = (player: Player) => {
+    const roster = rosters[player.userId];
     if (!roster) return;
-    setMergeEditTarget({ member, roster });
+    setMergeEditTarget({ player, roster });
   };
 
-  const openPromote = (member: LeagueMember) => {
-    setPromoteTarget(member);
-    setPromoteError("");
-  };
-
-  const handleConfirmPromote = async () => {
-    if (!promoteTarget) return;
-    setPromoting(true);
-    setPromoteError("");
+  const handleAddPlayer = async () => {
+    if (!newName.trim()) return;
+    setAdding(true);
+    setRosterError("");
     try {
-      onMembersUpdated(await promoteToAdmin(league.id, adminUserId, promoteTarget.userId));
-      setPromoteTarget(null);
+      onPlayersUpdated(await addPlayer(league.id, newName.trim()));
+      setNewName("");
     } catch (e) {
-      setPromoteError(e instanceof Error ? e.message : "Failed to promote member");
+      setRosterError(e instanceof Error ? e.message : "Failed to add player");
     } finally {
-      setPromoting(false);
+      setAdding(false);
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
+    setRosterError("");
+    try {
+      onPlayersUpdated(await removePlayer(league.id, removeTarget.userId));
+      setRemoveTarget(null);
+    } catch (e) {
+      setRosterError(e instanceof Error ? e.message : "Failed to remove player");
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -125,12 +136,12 @@ export function AdminPlayers({
     setSaving(true);
     setSaveError("");
     try {
-      const updated = await adminUpdateRoster(
-        league.id, adminUserId, editState.member.userId,
-        editState.selectedIds, editState.mvpId
+      const updated = await setRoster(
+        league.id, editState.player.userId, editState.selectedIds, editState.mvpId,
       );
-      setRosters((prev) => ({ ...prev, [editState.member.userId]: updated }));
+      setRosters((prev) => ({ ...prev, [editState.player.userId]: updated }));
       setEditState(null);
+      onRostersChanged();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save roster");
     } finally {
@@ -139,46 +150,72 @@ export function AdminPlayers({
   };
 
   return (
-    <div className="space-y-2">
-      {members.map((member) => {
-        const roster = rosters[member.userId];
+    <div className="space-y-3">
+      {/* Players don't sign up, so adding one is just naming them. */}
+      <Card style={{ padding: "12px 16px" }}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            placeholder="Player name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAddPlayer(); }}
+            className="min-h-[44px] flex-1"
+          />
+          <Button onClick={handleAddPlayer} disabled={adding || !newName.trim()} className="min-h-[44px] gap-1.5">
+            <UserPlus className="h-4 w-4" />
+            {adding ? "Adding..." : "Add Player"}
+          </Button>
+        </div>
+      </Card>
+
+      {rosterError && <p className="text-sm text-destructive">{rosterError}</p>}
+
+      {players.length === 0 && (
+        <p className="text-sm text-muted-foreground">No players yet — add the first one above.</p>
+      )}
+
+      {players.map((player) => {
+        const roster = rosters[player.userId];
         const hasRoster = !!roster;
         const mergeInitiated = league.mergeEpisode !== null;
         const mergeAction = mergeInitiated ? roster?.mergeAction : null;
         const canEditMerge = mergeInitiated && hasRoster;
-        const isMemberAdmin = member.role === "ADMIN";
 
         return (
-          <Card key={member.userId} style={{ padding: "12px 16px" }}>
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+          <Card key={player.userId} style={{ padding: "12px 16px" }}>
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{member.username}</span>
-                {isMemberAdmin && <Badge variant="secondary">Admin</Badge>}
+                <span className="text-sm font-medium">{player.username}</span>
+                <Badge variant="outline" className={`text-[10px] ${statusBadgeClass(hasRoster)}`}>
+                  Roster
+                </Badge>
+                {mergeInitiated && (
+                  <Badge variant="outline" className={`text-[10px] ${statusBadgeClass(!!mergeAction)}`}>
+                    Merge
+                  </Badge>
+                )}
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className={pickingBadgeClass(hasRoster)}>
-                  Initial Picks
-                </Badge>
-                <Badge variant="outline" className={pickingBadgeClass(!!mergeAction)}>
-                  Merge Pick
-                </Badge>
+              <div className="flex flex-wrap items-center gap-1.5">
                 {canEditMerge && (
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openMergeEdit(member)}>
+                  <Button variant="ghost" size="sm" className="min-h-[36px] gap-1.5 text-xs" onClick={() => openMergeEdit(player)}>
                     {mergeAction
                       ? <><ArrowLeftRight className="h-3.5 w-3.5" /> Edit Merge</>
                       : <><Plus className="h-3.5 w-3.5" /> Set Merge</>}
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openRosterEdit(member)}>
+                <Button variant="ghost" size="sm" className="min-h-[36px] gap-1.5 text-xs" onClick={() => openRosterEdit(player)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Edit Roster
                 </Button>
-                {!isMemberAdmin && (
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => openPromote(member)}>
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Make Admin
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-[36px] gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => setRemoveTarget(player)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </Button>
               </div>
             </div>
           </Card>
@@ -187,14 +224,14 @@ export function AdminPlayers({
 
       {/* Roster edit modal */}
       <Dialog open={editState !== null} onOpenChange={(open) => { if (!open) setEditState(null); }}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           {editState && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit Roster — {editState.member.username}</DialogTitle>
+                <DialogTitle>Roster — {editState.player.username}</DialogTitle>
               </DialogHeader>
               <div className="space-y-5 py-2">
-                <div className="flex items-center justify-between text-sm bg-muted/40 rounded-lg px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-muted/40 px-3 py-2 text-sm">
                   <span>
                     <span className="text-muted-foreground">Selected: </span>
                     <span className="font-semibold">{editState.selectedIds.length} / {maxRosterSize}</span>
@@ -215,12 +252,12 @@ export function AdminPlayers({
 
                   return (
                     <div key={tribe.id}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: tribe.colour }} />
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: tribe.colour }} />
                         <span className="font-medium">{tribe.name} Tribe</span>
                         <Badge variant="outline" className="text-xs">{selected}/{league.contestantsPerTribe}</Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {tribeContestants.map((contestant) => {
                           const isSelected = editState.selectedIds.includes(contestant.id);
                           const isMVP = editState.mvpId === contestant.id;
@@ -230,30 +267,30 @@ export function AdminPlayers({
                           return (
                             <div
                               key={contestant.id}
-                              className={`p-3 rounded-lg border-2 transition-all ${
+                              className={`rounded-lg border-2 p-3 transition-all ${
                                 isSelected
                                   ? "border-primary bg-accent"
                                   : canSelect
-                                  ? "border-border hover:border-muted-foreground cursor-pointer"
-                                  : "border-border opacity-40 cursor-not-allowed"
+                                  ? "cursor-pointer border-border hover:border-muted-foreground"
+                                  : "cursor-not-allowed border-border opacity-40"
                               }`}
                               onClick={() => handleToggle(contestant.id)}
                             >
                               <div className="flex items-start justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-medium text-sm truncate">{contestant.firstName} {contestant.lastName}</span>
-                                    {isMVP && <Crown className="h-3.5 w-3.5 text-primary shrink-0" />}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="truncate text-sm font-medium">{contestant.firstName} {contestant.lastName}</span>
+                                    {isMVP && <Crown className="h-3.5 w-3.5 shrink-0 text-primary" />}
                                   </div>
                                   {isEliminated && <span className="text-xs text-muted-foreground">Out Ep. {contestant.eliminatedEpisode}</span>}
                                 </div>
-                                {isSelected ? <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                {isSelected ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" /> : <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />}
                               </div>
                               {isSelected && !isMVP && (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="mt-2 w-full h-6 text-xs gap-1"
+                                  className="mt-2 h-7 w-full gap-1 text-xs"
                                   onClick={(e) => { e.stopPropagation(); setEditState({ ...editState, mvpId: contestant.id }); }}
                                 >
                                   <Crown className="h-3 w-3" />
@@ -269,9 +306,9 @@ export function AdminPlayers({
                 })}
 
                 {saveError && <p className="text-sm text-destructive">{saveError}</p>}
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button variant="outline" onClick={() => setEditState(null)}>Cancel</Button>
-                  <Button onClick={handleSaveRoster} disabled={saving}>
+                <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:gap-3">
+                  <Button variant="outline" className="min-h-[44px]" onClick={() => setEditState(null)}>Cancel</Button>
+                  <Button className="min-h-[44px]" onClick={handleSaveRoster} disabled={saving}>
                     {saving ? "Saving..." : "Save Roster"}
                   </Button>
                 </div>
@@ -281,23 +318,24 @@ export function AdminPlayers({
         </DialogContent>
       </Dialog>
 
-      {/* Promote-to-admin confirmation */}
-      <Dialog open={promoteTarget !== null} onOpenChange={(open) => { if (!open && !promoting) setPromoteTarget(null); }}>
-        <DialogContent className="max-w-md">
-          {promoteTarget && (
+      {/* Remove-player confirmation */}
+      <Dialog open={removeTarget !== null} onOpenChange={(open) => { if (!open && !removing) setRemoveTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          {removeTarget && (
             <>
               <DialogHeader>
-                <DialogTitle>Make admin — {promoteTarget.username}</DialogTitle>
+                <DialogTitle>Remove {removeTarget.username}?</DialogTitle>
               </DialogHeader>
               <p className="text-sm text-muted-foreground">
-                {promoteTarget.username} will have full admin access to this league, including editing rosters,
-                scores, episodes, and picking windows. This can't be undone.
+                Their roster and merge move in this league are deleted with them, and the standings
+                recalculate. Rosters they hold in other seasons are untouched.
               </p>
-              {promoteError && <p className="text-sm text-destructive">{promoteError}</p>}
-              <div className="flex justify-end gap-3 pt-2">
-                <Button variant="outline" onClick={() => setPromoteTarget(null)} disabled={promoting}>Cancel</Button>
-                <Button onClick={handleConfirmPromote} disabled={promoting}>
-                  {promoting ? "Saving..." : "Make Admin"}
+              <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:gap-3">
+                <Button variant="outline" className="min-h-[44px]" onClick={() => setRemoveTarget(null)} disabled={removing}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" className="min-h-[44px]" onClick={handleConfirmRemove} disabled={removing}>
+                  {removing ? "Removing..." : "Remove Player"}
                 </Button>
               </div>
             </>
@@ -311,14 +349,13 @@ export function AdminPlayers({
           open={true}
           onClose={() => setMergeEditTarget(null)}
           leagueId={league.id}
-          adminUserId={adminUserId}
-          targetMember={mergeEditTarget.member}
+          targetPlayer={mergeEditTarget.player}
           currentRoster={mergeEditTarget.roster}
           contestants={contestants}
           maxRosterSize={maxRosterSize}
           onSuccess={(roster) => {
             setRosters((prev) => ({ ...prev, [roster.userId]: roster }));
-            onMergeActionSaved();
+            onRostersChanged();
             setMergeEditTarget(null);
           }}
         />

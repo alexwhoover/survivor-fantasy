@@ -1,81 +1,39 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
-import java.io.Serial;
-import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
 
+/**
+ * A player in a league — a name that rosters, merge actions and leaderboard entries
+ * hang off. Despite the table name, this is not an account: nobody signs in as a
+ * player. The only credential in the app is the site admin's, which lives in the
+ * environment (see {@code config.SecurityConfig}), not in this table.
+ */
 @Entity
 @Table(name = "users")
-public class User implements UserDetails, Serializable {
-
-    @Serial
-    private static final long serialVersionUID = 1L;
-
-    public User(String username, String passwordHash, LocalDateTime createdAt) {
-        this.username = username;
-        this.passwordHash = passwordHash;
-        this.createdAt = createdAt;
-    }
-
-    public User() {}
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "username")
+    @Column(name = "username", nullable = false)
     private String username;
-
-    @Column(name = "password_hash")
-    private String passwordHash;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    public Long getId() {
-        return id;
-    }
+    public User() {}
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    @Override
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
+    public User(String username, LocalDateTime createdAt) {
         this.username = username;
-    }
-
-    @Override
-    public String getPassword() {
-        return passwordHash;
-    }
-
-    public void setPassword(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
-    }
+    public Long getId() { return id; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

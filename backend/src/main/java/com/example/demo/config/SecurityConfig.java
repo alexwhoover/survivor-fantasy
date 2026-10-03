@@ -1,17 +1,21 @@
 package com.example.demo.config;
 
-import com.example.demo.service.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -19,22 +23,30 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
+/**
+ * The site is read-only for visitors and writable only by the single site admin.
+ *
+ * <p>There is exactly one credential, supplied by APP_ADMIN_USERNAME/APP_ADMIN_PASSWORD
+ * and held in memory — it is deliberately not a row in {@code users}, because those rows
+ * are players now and players never sign in. "Authenticated" therefore means "is the
+ * admin", which is why services no longer check a per-league role.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableJdbcHttpSession
 public class SecurityConfig {
-    private final UserDetailsServiceImpl userDetailsService;
 
-    public SecurityConfig(UserDetailsServiceImpl userDetailsService) {
-        this.userDetailsService = userDetailsService;
+    private final String adminUsername;
+    private final String adminPassword;
+
+    public SecurityConfig(@Value("${app.admin.username}") String adminUsername,
+                          @Value("${app.admin.password}") String adminPassword) {
+        this.adminUsername = adminUsername;
+        this.adminPassword = adminPassword;
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // Permit /api/users/login and /api/users/register without a session
-        // /api/admin/reset-password is authorized by the X-Admin-Key header instead of a session
-        // All other endpoints require a valid session
-        // Spring handles logout automatically with POST /api/users/logout
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
@@ -43,22 +55,21 @@ public class SecurityConfig {
                     // status codes and JSON bodies instead of an empty 403
                     .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR)
                     .permitAll()
-                    .requestMatchers("/api/users/login", "/api/users/register", "/api/users/username-available")
-                    .permitAll()
-                    .requestMatchers("/api/admin/reset-password")
-                    .permitAll()
+                    // Everything a visitor sees — leagues, cast, rosters, episodes,
+                    // scores, standings — is a GET, and all of it is public.
+                    .requestMatchers(HttpMethod.GET, "/api/leagues/**").permitAll()
+                    .requestMatchers("/api/admin/login").permitAll()
+                    // Every write, plus the admin's own session check, needs the session.
                     .anyRequest().authenticated()
             )
-            // Without an explicit entry point, Spring Security's default for a
-            // missing/invalid/expired session is a bare 403. The frontend needs to
-            // tell "not logged in" apart from "logged in but not allowed" (which
-            // application code already reports as 403), so a missing/invalid
-            // session is reported as 401 here instead.
+            // A missing or expired session is the only "not allowed" state left, so it
+            // reports 401 across the board. The frontend reads that as "not signed in as
+            // admin" and simply renders the read-only view.
             .exceptionHandling(ex -> ex.authenticationEntryPoint(
                     (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
             ))
             .logout(logout -> logout
-                    .logoutUrl("/api/users/logout")
+                    .logoutUrl("/api/admin/logout")
                     .deleteCookies("SESSION")
                     .logoutSuccessHandler((request, response, authentication) ->
                             response.setStatus(200))
@@ -66,8 +77,24 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * The one admin account. Fails at startup if either half is blank, rather than
+     * quietly standing up a site with a guessable or empty password.
+     */
     @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
+    public UserDetailsService userDetailsService() {
+        if (adminUsername == null || adminUsername.isBlank() || adminPassword == null || adminPassword.isBlank()) {
+            throw new IllegalStateException("APP_ADMIN_USERNAME and APP_ADMIN_PASSWORD must both be set");
+        }
+        return new InMemoryUserDetailsManager(
+                User.withUsername(adminUsername)
+                        .password(passwordEncoder().encode(adminPassword))
+                        .roles("ADMIN")
+                        .build());
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider(UserDetailsService userDetailsService) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;

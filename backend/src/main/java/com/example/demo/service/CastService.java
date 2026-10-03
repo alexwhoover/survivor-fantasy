@@ -2,14 +2,12 @@ package com.example.demo.service;
 
 import com.example.demo.dao.ContestantDao;
 import com.example.demo.dao.LeagueDao;
-import com.example.demo.dao.LeagueMemberDao;
 import com.example.demo.dao.TribeDao;
 import com.example.demo.dto.CastResponse;
 import com.example.demo.dto.ContestantDto;
 import com.example.demo.dto.TribeDto;
 import com.example.demo.entity.Contestant;
 import com.example.demo.entity.League;
-import com.example.demo.entity.LeagueMember;
 import com.example.demo.entity.Tribe;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,15 +25,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class CastService {
 
     private final LeagueDao leagueDao;
-    private final LeagueMemberDao leagueMemberDao;
     private final TribeDao tribeDao;
     private final ContestantDao contestantDao;
 
     @Autowired
-    public CastService(LeagueDao leagueDao, LeagueMemberDao leagueMemberDao, TribeDao tribeDao,
-                       ContestantDao contestantDao) {
+    public CastService(LeagueDao leagueDao, TribeDao tribeDao, ContestantDao contestantDao) {
         this.leagueDao = leagueDao;
-        this.leagueMemberDao = leagueMemberDao;
         this.tribeDao = tribeDao;
         this.contestantDao = contestantDao;
     }
@@ -50,9 +45,9 @@ public class CastService {
     }
 
     @Transactional
-    public ContestantDto updateContestantStatus(Long leagueId, Long adminUserId, Long contestantId,
+    public ContestantDto updateContestantStatus(Long leagueId, Long contestantId,
                                                 Integer eliminatedEpisode, Boolean winner) {
-        requireAdmin(leagueId, adminUserId);
+        requireLeague(leagueId);
         Contestant contestant = contestantDao.findById(contestantId)
                 .filter(c -> c.getLeagueId().equals(leagueId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contestant not found in this league"));
@@ -65,16 +60,6 @@ public class CastService {
     private League requireLeague(Long leagueId) {
         return leagueDao.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "League not found"));
-    }
-
-    private void requireAdmin(Long leagueId, Long userId) {
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "adminUserId is required");
-        }
-        leagueMemberDao.findByLeagueIdAndUserId(leagueId, userId)
-                .filter(m -> m.getRole() == LeagueMember.Role.ADMIN)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Only league admins can update contestant status"));
     }
 
     private TribeDto toDto(Tribe tribe) {

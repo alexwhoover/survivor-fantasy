@@ -14,6 +14,10 @@ public class RosterDao {
     @PersistenceContext
     private EntityManager entityManager;
 
+    public void delete(Roster roster) {
+        entityManager.remove(roster);
+    }
+
     public void save(Roster roster) {
         entityManager.persist(roster);
     }
