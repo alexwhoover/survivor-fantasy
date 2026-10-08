@@ -3,6 +3,7 @@
 services:
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: survivor_league
@@ -32,6 +33,7 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
     environment:
@@ -48,6 +50,7 @@ services:
         condition: service_completed_successfully
   frontend:
     build: ./frontend
+    restart: unless-stopped
     ports:
       - "127.0.0.1:3000:80"
     depends_on:
