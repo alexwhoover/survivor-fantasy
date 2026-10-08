@@ -1,0 +1,36 @@
+name: Deploy to Pi
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at once, and never interrupt one halfway through.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, pi]
+    # Deploy from the existing checkout rather than actions/checkout: compose names the
+    # project (and so the mysql_data volume) after this directory, and .env lives here.
+    defaults:
+      run:
+        working-directory: /home/alexwhoover/survivor-fantasy
+    steps:
+      - name: Pull latest changes
+        run: git pull --ff-only origin main
+
+      - name: Build images
+        run: docker compose --profile production build
+
+      - name: Restart services
+        # nginx resolves `backend` at startup, so a recreated backend leaves the
+        # frontend serving 502s until it restarts too.
+        run: |
+          docker compose --profile production up -d
+          docker compose --profile production restart frontend
+
+      - name: Remove dangling images
+        run: docker image prune -f
