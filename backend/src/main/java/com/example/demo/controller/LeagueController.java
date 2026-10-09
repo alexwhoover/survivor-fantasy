@@ -11,6 +11,7 @@ import com.example.demo.dto.LeaderboardEntry;
 import com.example.demo.dto.LeaderboardHistoryEntry;
 import com.example.demo.dto.LeagueMemberResponse;
 import com.example.demo.dto.LeagueResponse;
+import com.example.demo.dto.LeagueStatsResponse;
 import com.example.demo.dto.MergeActionRequest;
 import com.example.demo.dto.RosterResponse;
 import com.example.demo.dto.ScoringGridResponse;
@@ -210,5 +211,10 @@ public class LeagueController {
     @GetMapping("/{id}/leaderboard/history")
     public List<LeaderboardHistoryEntry> getLeaderboardHistory(@PathVariable Long id) {
         return leaderboardService.getLeaderboardHistory(id);
+    }
+
+    @GetMapping("/{id}/leaderboard/stats")
+    public LeagueStatsResponse getLeagueStats(@PathVariable Long id) {
+        return leaderboardService.getLeagueStats(id);
     }
 }

@@ -9,11 +9,13 @@ import { AdminPlayers } from "../components/AdminPlayers";
 import { AdminSeason } from "../components/AdminSeason";
 import { ScoringGrid } from "../components/ScoringGrid";
 import { StandingsGraph } from "../components/StandingsGraph";
+import { StandingsStats } from "../components/StandingsStats";
 import {
   getLeagueById,
   getLeagueCast,
   getPlayers,
   getLeaderboard,
+  getLeagueStats,
   getAllRosters,
   type LeagueApiResponse,
   type Tribe,
@@ -21,6 +23,7 @@ import {
   type RosterResponse,
   type Player,
   type LeaderboardEntry,
+  type LeagueStats,
 } from "../../api";
 
 type Tab = "standings" | "rosters" | "admin";
@@ -215,6 +218,7 @@ export function LeagueOverview() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [rosters, setRosters] = useState<RosterResponse[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [stats, setStats] = useState<LeagueStats | null>(null);
   const [error, setError] = useState("");
 
   const [tab, setTab] = useState<Tab>("standings");
@@ -225,6 +229,7 @@ export function LeagueOverview() {
 
   const refreshStandings = useCallback(() => {
     getLeaderboard(numId).then(setLeaderboard).catch(() => {});
+    getLeagueStats(numId).then(setStats).catch(() => {});
     getAllRosters(numId).then(setRosters).catch(() => {});
   }, [numId]);
 
@@ -333,6 +338,7 @@ export function LeagueOverview() {
             <p className="text-sm text-muted-foreground">No scores yet.</p>
           ) : (
             <div>
+              <StandingsStats stats={stats} />
               {leaderboard.map((entry, index) => (
                 <div
                   key={entry.userId}

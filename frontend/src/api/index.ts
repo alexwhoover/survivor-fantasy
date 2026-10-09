@@ -90,6 +90,18 @@ export interface LeaderboardHistoryEntry {
   history: EpisodePoint[];
 }
 
+/**
+ * Headline stats for the latest scored episode. Before episode 2 there's no previous week to
+ * compare against, so `episodeMvp` is null and `biggestMovers` is empty. Ties list everyone.
+ */
+export interface LeagueStats {
+  episodeNumber: number;
+  /** Null when nobody scored above zero. Points exclude the MVP bonus. */
+  episodeMvp: { usernames: string[]; points: number } | null;
+  /** Empty when nobody climbed. Ranks are shared on ties (1, 1, 3). */
+  biggestMovers: { username: string; fromRank: number; toRank: number }[];
+}
+
 export interface ScoringGridRow {
   contestantId: number;
   firstName: string;
@@ -328,6 +340,10 @@ export function getLeaderboard(leagueId: number): Promise<LeaderboardEntry[]> {
 
 export function getLeaderboardHistory(leagueId: number): Promise<LeaderboardHistoryEntry[]> {
   return get(`/leagues/${leagueId}/leaderboard/history`, "Failed to load leaderboard history");
+}
+
+export function getLeagueStats(leagueId: number): Promise<LeagueStats> {
+  return get(`/leagues/${leagueId}/leaderboard/stats`, "Failed to load league stats");
 }
 
 export function getScoringGrid(leagueId: number): Promise<ScoringGridResponse> {
