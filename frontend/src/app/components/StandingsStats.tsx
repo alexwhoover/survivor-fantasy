@@ -42,16 +42,13 @@ function StatCard({
         />
       </div>
       <div className="flex min-w-0 flex-col justify-start gap-2.5 py-3 pr-4">
-        {/* The underline is a background-image on a transparent copy of the label laid over the
-            real one, so the line paints in front of the glyphs and cuts across descenders rather
-            than sitting behind them. The copy wraps identically, so a wrapped label is underlined
-            on every line. It's lifted 0.06em off the box's bottom to sit just under the baseline. */}
-        <span className="relative text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-2xl">
-          {label}
-          <span aria-hidden className="pointer-events-none absolute inset-0 select-none">
-            <span className="bg-[linear-gradient(var(--primary),var(--primary))] bg-[length:100%_2.5px] bg-[position:0_calc(100%_-_0.06em)] bg-no-repeat text-transparent [box-decoration-break:clone]">
-              {label}
-            </span>
+        {/* A thick highlighter bar painted as a background-image behind the glyphs, pinned to the
+            bottom of the line box so it runs from about the baseline down through the descenders.
+            The padding/negative-margin pair lets the bar overhang the text slightly on each side
+            without shifting the text; box-decoration-break repeats both on every wrapped line. */}
+        <span className="text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-2xl">
+          <span className="-mx-[0.08em] bg-[linear-gradient(color-mix(in_srgb,var(--primary)_75%,transparent),color-mix(in_srgb,var(--primary)_75%,transparent))] bg-[length:100%_0.3em] bg-bottom bg-no-repeat px-[0.08em] [box-decoration-break:clone]">
+            {label}
           </span>
         </span>
         <p className="break-words text-base leading-snug text-foreground/80 sm:text-lg">{children}</p>
